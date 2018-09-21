@@ -1160,43 +1160,34 @@ const axisAlignedBoundingBoxShape = shapesToBox => {
   return aabbShape;
 };
 
-const resizeGroup = (shapes, selectedShapes) => {
-  const extending = shape => {
-    const children = shapes.filter(s => s.parent === shape.id && s.type !== 'annotation');
-    const axisAlignedBoundingBox = getAABB(children);
-    const { a, b, localTransformMatrix, rigTransform } = projectAABB(axisAlignedBoundingBox);
+const resizeGroup = (shapes, selectedShapes, elements) => {
+  if (!elements.length) return { shapes, selectedShapes };
+  const e = elements[0];
+  if (e.subtype !== 'adHocGroup') return { shapes, selectedShapes };
+  if (!e.baseAB) {
     return {
-      ...shape,
-      localTransformMatrix,
-      a,
-      b,
-      rigTransform,
-      deltaLocalTransformMatrix: matrix.multiply(
-        shape.localTransformMatrix,
-        matrix.invert(localTransformMatrix)
-      ),
+      shapes: shapes.map(s => {
+        const r = { ...s };
+        r.baseab = null;
+        return r;
+      }),
+      selectedShapes,
     };
-  };
-  const extender = (shapes, shape) => {
-    if (!shape.parent) return shape;
-    const parent = shapes.find(s => s.id === shape.parent);
-    return {
-      ...shape,
-      localTransformMatrix: matrix.multiply(
-        shape.localTransformMatrix,
-        parent.deltaLocalTransformMatrix
-      ),
-    };
-  };
-  const extendingIfNeeded = shape => (isAdHocGroup(shape) ? extending(shape) : shape);
-  const extenderIfNeeded = (shape, i, shapes) =>
-    isAdHocGroup(shape) || shape.type === 'annotation' ? shape : extender(shapes, shape);
-  const extendingShapes = shapes.map(extendingIfNeeded);
+  }
   return {
-    shapes: extendingShapes.map(extenderIfNeeded),
-    selectedShapes: selectedShapes
-      .map(extendingIfNeeded)
-      .map(d => extenderIfNeeded(d, undefined, extendingShapes)),
+    shapes: shapes.map(s => {
+      if (s.parent !== e.id) return s;
+      const baseab = s.baseab || [s.a, s.b];
+      const xRatio = e.a / e.baseAB[0];
+      const yRatio = e.b / e.baseAB[1];
+      return {
+        ...s,
+        a: xRatio * baseab[0],
+        b: yRatio * baseab[1],
+        baseab,
+      };
+    }),
+    selectedShapes,
   };
 };
 
@@ -1228,16 +1219,16 @@ const grouping = select((shapes, selectedShapes) => {
   }
 
   // preserve the current selection if the sole ad hoc group is being manipulated
-  if (
-    selectedShapes.length === 1 &&
-    contentShapes(shapes, selectedShapes)[0].subtype === 'adHocGroup'
-  )
-    return { shapes, selectedShapes };
-
+  const elements = contentShapes(shapes, selectedShapes);
+  if (selectedShapes.length === 1 && elements[0].subtype === 'adHocGroup') {
+    return config.groupResize
+      ? resizeGroup(shapes, selectedShapes, elements)
+      : { shapes, selectedShapes };
+  }
   // group items or extend group bounding box (if enabled)
   if (selectedShapes.length < 2) {
     // resize the group if needed (ad-hoc group resize is manipulated)
-    return config.groupResize ? resizeGroup(shapes, selectedShapes) : { shapes, selectedShapes };
+    return { shapes, selectedShapes };
   } else {
     // group together the multiple items
     const group = axisAlignedBoundingBoxShape(freshSelectedShapes);
