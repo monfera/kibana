@@ -1209,14 +1209,17 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
       if (s.parent !== e.id) return s;
       const baseab = s.baseab || [s.a, s.b];
       const baseLocalTransformMatrix = s.baseLocalTransformMatrix || s.localTransformMatrix;
-      const center = matrix.translateComponent(matrix.multiply(pt1delta, matrix.translateComponent(baseLocalTransformMatrix)));
+      const T = matrix.multiply(pt1delta, baseLocalTransformMatrix);
+      const translateComponent = matrix.translateComponent(T);
+      const compositeComponent = matrix.compositeComponent(T);
+      const angle = matrix.matrixToAngle(T)
 
       //if(xRatio >= 2) debugger
-      const translateComponent = matrix.translateComponent(baseLocalTransformMatrix);
-      const compositeComponent = matrix.compositeComponent(baseLocalTransformMatrix);
+      //const translateComponent = matrix.translateComponent(baseLocalTransformMatrix);
+      //const compositeComponent = matrix.compositeComponent(baseLocalTransformMatrix);
       return {
         ...s,
-        localTransformMatrix: center,
+        localTransformMatrix: translateComponent,
         a: xRatio * baseab[0],
         b: yRatio * baseab[1],
         baseab,
