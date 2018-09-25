@@ -1201,9 +1201,9 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
       selectedShapes,
     };
   }
-  const xRatio = e.a / e.baseAB[0];
-  const yRatio = e.b / e.baseAB[1];
-  const pt1delta = matrix.scale(xRatio, yRatio, 1);
+  const groupScaleX = e.a / e.baseAB[0];
+  const groupScaleY = e.b / e.baseAB[1];
+  const groupScale = matrix.scale(groupScaleX, groupScaleY, 1);
   return {
     shapes: shapes.map(s => {
       if (s.parent !== e.id || s.type === 'annotation') return s;
@@ -1215,12 +1215,9 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
         baseLocalTransformMatrix,
         impliedScale
       );
-      const T = matrix.multiply(pt1delta, normalizedBaseLocalTransformMatrix);
+      const T = matrix.multiply(groupScale, normalizedBaseLocalTransformMatrix);
       const backScaler = matrix
-        .multiply(
-          matrix.scale(xRatio, yRatio, 1),
-          matrix.compositeComponent(baseLocalTransformMatrix)
-        )
+        .multiply(groupScale, matrix.compositeComponent(baseLocalTransformMatrix))
         .map(d => Math.abs(d));
       const transformShit = matrix.invert(backScaler);
       const abShit = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
@@ -1229,9 +1226,9 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
         localTransformMatrix: matrix.multiply(
           T,
           matrix.multiply(inverseImpliedScale, transformShit)
-        ), //T, //matrix.multiply(T, inverseImpliedScale, matrix.scale(50, 20, 1)), //matrix.multiply(translateComponent, matrix.rotateZ(angle)),
-        a: abShit[0], //5, //xRatio * baseab[0],
-        b: abShit[1], //1, //yRatio * baseab[1],
+        ),
+        a: abShit[0],
+        b: abShit[1],
         baseab,
         baseLocalTransformMatrix,
       };
