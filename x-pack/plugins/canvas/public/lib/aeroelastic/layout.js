@@ -1210,7 +1210,10 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
       const baseab = s.baseab || [s.a, s.b];
       const impliedScale = matrix.scale(...baseab, 1);
       const baseLocalTransformMatrix = s.baseLocalTransformMatrix || s.localTransformMatrix;
-      const normalizedBaseLocalTransformMatrix = matrix.multiply(baseLocalTransformMatrix, impliedScale)
+      const normalizedBaseLocalTransformMatrix = matrix.multiply(
+        baseLocalTransformMatrix,
+        impliedScale
+      );
       const T = matrix.multiply(pt1delta, normalizedBaseLocalTransformMatrix);
       const translateComponent = matrix.translateComponent(T);
       const compositeComponent = matrix.compositeComponent(T);
@@ -1222,14 +1225,17 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
       //if(xRatio >= 2) debugger
       //const translateComponent = matrix.translateComponent(baseLocalTransformMatrix);
       //const compositeComponent = matrix.compositeComponent(baseLocalTransformMatrix);
-      const backScaler = [0.5, 1]
-      const transformShit = matrix.scale(...backScaler, 1)
-      const abShit = [baseab[0] * 1 / backScaler[0], baseab[1] * 1 / backScaler[1]]
+      const backScaler = matrix.scale(0.5, 1, 1);
+      const transformShit = backScaler;
+      const abShit = matrix.mvMultiply(matrix.invert(backScaler), [...baseab, 1, 1]);
       return {
         ...s,
-        localTransformMatrix: matrix.multiply(T, matrix.multiply(inverseImpliedScale, transformShit)), //T, //matrix.multiply(T, inverseImpliedScale, matrix.scale(50, 20, 1)), //matrix.multiply(translateComponent, matrix.rotateZ(angle)),
-        a: abShit[0],//5, //xRatio * baseab[0],
-        b: abShit[1],//1, //yRatio * baseab[1],
+        localTransformMatrix: matrix.multiply(
+          T,
+          matrix.multiply(inverseImpliedScale, transformShit)
+        ), //T, //matrix.multiply(T, inverseImpliedScale, matrix.scale(50, 20, 1)), //matrix.multiply(translateComponent, matrix.rotateZ(angle)),
+        a: abShit[0], //5, //xRatio * baseab[0],
+        b: abShit[1], //1, //yRatio * baseab[1],
         baseab,
         baseLocalTransformMatrix,
       };
