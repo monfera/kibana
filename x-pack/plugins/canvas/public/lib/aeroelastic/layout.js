@@ -1225,9 +1225,24 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
       //if(xRatio >= 2) debugger
       //const translateComponent = matrix.translateComponent(baseLocalTransformMatrix);
       //const compositeComponent = matrix.compositeComponent(baseLocalTransformMatrix);
-      const backScaler = matrix.scale(0.5, 1, 1);
-      const transformShit = backScaler;
-      const abShit = matrix.mvMultiply(matrix.invert(backScaler), [...baseab, 1, 1]);
+      if (s.id === 'rect67') console.log(matrix.compositeComponent(baseLocalTransformMatrix));
+      const backScaler =
+        s.id === 'rect67'
+          ? matrix.scale(1, 2, 1)
+          : s.id === 'rect66'
+            ? matrix.scale(2, 1, 1)
+            : matrix.scale(1, 1, 1);
+      const backScaler1 = matrix.multiply(
+        matrix.scale(2, 1, 1),
+        matrix.compositeComponent(baseLocalTransformMatrix)
+      );
+      const transformShit = matrix.invert(backScaler);
+      const abShit = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [
+        1,
+        1,
+        1,
+        1,
+      ]);
       return {
         ...s,
         localTransformMatrix: matrix.multiply(
