@@ -1161,8 +1161,9 @@ const axisAlignedBoundingBoxShape = shapesToBox => {
 };
 
 /*
-// alternative to resizeGroup that scales the elements inside pixel-wise, rather than responsively
+// alternative to `resizeGroup` that scales the elements inside pixel-wise, rather than responsively
 // todo consider activating it via a modifier key, if it's deemed useful (could be useful for effects esp. w/ 3D)
+// code is draft and didn't get even the same level of care as its alternative, `resizeGroup`
 const scaleGroup = (shapes, selectedShapes, elements) => {
   if (!elements.length) return { shapes, selectedShapes };
   const e = elements[0];
