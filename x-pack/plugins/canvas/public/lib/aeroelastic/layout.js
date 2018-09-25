@@ -1206,7 +1206,7 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
   const pt1delta = matrix.scale(xRatio, yRatio, 1);
   return {
     shapes: shapes.map(s => {
-      if (s.parent !== e.id) return s;
+      if (s.parent !== e.id || s.type === 'annotation') return s;
       const baseab = s.baseab || [s.a, s.b];
       const impliedScale = matrix.scale(...baseab, 1);
       const inverseImpliedScale = matrix.invert(impliedScale);
@@ -1216,34 +1216,14 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
         impliedScale
       );
       const T = matrix.multiply(pt1delta, normalizedBaseLocalTransformMatrix);
-      const translateComponent = matrix.translateComponent(T);
-      const compositeComponent = matrix.compositeComponent(T);
-      const angle = (matrix.matrixToAngle(T) / 180) * Math.PI;
-      //if(s.id === 'rect66') debugger
-      //if(xRatio > 1.5 && yRatio > 1.1) debugger
-
-      //if(xRatio >= 2) debugger
-      //const translateComponent = matrix.translateComponent(baseLocalTransformMatrix);
-      //const compositeComponent = matrix.compositeComponent(baseLocalTransformMatrix);
-      //if (s.id === 'rect67') console.log(matrix.compositeComponent(baseLocalTransformMatrix));
-      const backScaler0 =
-        s.id === 'rect67'
-          ? matrix.scale(1, 2, 1)
-          : s.id === 'rect66'
-            ? matrix.scale(2, 1, 1)
-            : matrix.scale(1, 1, 1);
-      const backScaler = matrix.multiply(
-        matrix.scale(xRatio, yRatio, 1),
-        matrix.compositeComponent(baseLocalTransformMatrix),
-      ).map(d=>Math.abs(d));
-      if(s.id === 'rect67') console.log(matrix.compositeComponent(baseLocalTransformMatrix).map(d => Math.round(d * 100) / 100))
+      const backScaler = matrix
+        .multiply(
+          matrix.scale(xRatio, yRatio, 1),
+          matrix.compositeComponent(baseLocalTransformMatrix)
+        )
+        .map(d => Math.abs(d));
       const transformShit = matrix.invert(backScaler);
-      const abShit = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [
-        1,
-        1,
-        1,
-        1,
-      ]);
+      const abShit = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
       return {
         ...s,
         localTransformMatrix: matrix.multiply(
