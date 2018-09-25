@@ -904,19 +904,35 @@ function resizeAnnotation(shapes, selectedShapes, shape) {
   // fixme left active: snap wobble. right active: opposite side wobble.
   const a = snappedA(properShape);
   const b = snappedB(properShape);
-  const resizeVertices =
-    config.groupResize || properShape.type !== 'group' // todo remove the limitation of no group resize
-      ? [
-          [-1, -1, 315],
-          [1, -1, 45],
-          [1, 1, 135],
-          [-1, 1, 225], // corners
-          [0, -1, 0],
-          [1, 0, 90],
-          [0, 1, 180],
-          [-1, 0, 270], // edge midpoints
-        ]
-      : [];
+  const portraitTolerance = 1 / 1000;
+  const groupedShape = shape =>
+    shape.parent === properShape.id &&
+    shape.type !== 'annotation' &&
+    shape.subtype !== config.adHocGroupName;
+  const portraitShape = shape =>
+    shallowEqual(
+      matrix
+        .compositeComponent(shape.localTransformMatrix)
+        .map(d => Math.round(d / portraitTolerance) * portraitTolerance),
+      matrix.UNITMATRIX
+    );
+  const allowResize =
+    properShape.type !== 'group' ||
+    (config.groupResize &&
+      properShape.type === 'group' &&
+      shapes.filter(groupedShape).every(portraitShape));
+  const resizeVertices = allowResize
+    ? [
+        [-1, -1, 315],
+        [1, -1, 45],
+        [1, 1, 135],
+        [-1, 1, 225], // corners
+        [0, -1, 0],
+        [1, 0, 90],
+        [0, 1, 180],
+        [-1, 0, 270], // edge midpoints
+      ]
+    : [];
   const resizePoints = resizeVertices.map(resizePointAnnotations(shape.id, a, b));
   const connectors = connectorVertices.map(resizeEdgeAnnotations(shape.id, a, b));
   return [...resizePoints, ...connectors];
