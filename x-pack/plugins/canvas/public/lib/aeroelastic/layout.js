@@ -1212,16 +1212,20 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
       const T = matrix.multiply(pt1delta, baseLocalTransformMatrix);
       const translateComponent = matrix.translateComponent(T);
       const compositeComponent = matrix.compositeComponent(T);
-      const angle = matrix.matrixToAngle(T)
+      const angle = (matrix.matrixToAngle(T) / 180) * Math.PI;
+      const impliedScale = matrix.scale(baseab[0], baseab[1], 1);
+      const inverseImpliedScale = matrix.invert(impliedScale);
+      //if(s.id === 'rect66') debugger
+      //if(xRatio > 1.5 && yRatio > 1.1) debugger
 
       //if(xRatio >= 2) debugger
       //const translateComponent = matrix.translateComponent(baseLocalTransformMatrix);
       //const compositeComponent = matrix.compositeComponent(baseLocalTransformMatrix);
       return {
         ...s,
-        localTransformMatrix: translateComponent,
-        a: xRatio * baseab[0],
-        b: yRatio * baseab[1],
+        localTransformMatrix: matrix.multiply(T, inverseImpliedScale, matrix.scale(50, 20, 1)), //matrix.multiply(translateComponent, matrix.rotateZ(angle)),
+        //a: xRatio * baseab[0],
+        //b: yRatio * baseab[1],
         baseab,
         baseLocalTransformMatrix,
       };
