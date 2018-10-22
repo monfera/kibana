@@ -1227,6 +1227,8 @@ const getLeafs = (descendCondition, allShapes, shapes) =>
     )
   );
 
+const preserveCurrentGroups = (shapes, selectedShapes) => ({ shapes, selectedShapes });
+
 const grouping = select((shapes, selectedShapes) => {
   const preexistingAdHocGroups = shapes.filter(isAdHocGroup);
   const matcher = idsMatch(selectedShapes);
@@ -1239,6 +1241,7 @@ const grouping = select((shapes, selectedShapes) => {
   // ad hoc groups must dissolve if 1. the user clicks away, 2. has a selection that's not the group, or 3. selected something else
   if (preexistingAdHocGroups.length && selectionOutsideGroup) {
     // asYetUngroupedShapes will trivially be the empty set if case 1 is realized: user clicks aside -> selectedShapes === []
+    // return preserveCurrentGroups(shapes, selectedShapes);
     return dissolveGroups(
       preexistingAdHocGroups,
       shapes,
@@ -1251,12 +1254,12 @@ const grouping = select((shapes, selectedShapes) => {
   if (selectedShapes.length === 1 && elements[0].subtype === 'adHocGroup') {
     return config.groupResize
       ? resizeGroup(shapes, selectedShapes, elements)
-      : { shapes, selectedShapes };
+      : preserveCurrentGroups(shapes, selectedShapes);
   }
   // group items or extend group bounding box (if enabled)
   if (selectedShapes.length < 2) {
     // resize the group if needed (ad-hoc group resize is manipulated)
-    return { shapes, selectedShapes };
+    return preserveCurrentGroups(shapes, selectedShapes);
   } else {
     // group together the multiple items
     const group = axisAlignedBoundingBoxShape(freshSelectedShapes);
