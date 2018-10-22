@@ -7,7 +7,6 @@
 const { select, makeUid } = require('./state');
 
 const {
-  actionEvent,
   dragging,
   dragVector,
   cursorPosition,
@@ -26,6 +25,8 @@ const { shapesAt, landmarkPoint } = require('./geometry');
 const matrix = require('./matrix');
 const matrix2d = require('./matrix2d');
 
+const config = require('./config');
+
 const {
   applyTolerance,
   disjunctiveUnion,
@@ -43,9 +44,6 @@ const {
 
 const primaryUpdate = state => state.primaryUpdate;
 const scene = state => state.currentScene;
-const configuration = state => {
-  return state.configuration;
-};
 
 /**
  * Pure calculations
@@ -66,17 +64,17 @@ const draggingShape = ({ draggedShape, shapes }, hoveredShape, down, mouseDowned
 
 const shapes = select(scene => scene.shapes)(scene);
 
-const hoveredShapes = select((configuration, shapes, cursorPosition) =>
+const hoveredShapes = select((shapes, cursorPosition) =>
   shapesAt(
     shapes.filter(
       // second AND term excludes intra-group element hover (and therefore drag & drop), todo: remove this current limitation
       s =>
         (s.type !== 'annotation' || s.interactive) &&
-        (configuration.intraGroupManipulation || !s.parent || s.type === 'annotation')
+        (config.intraGroupManipulation || !s.parent || s.type === 'annotation')
     ),
     cursorPosition
   )
-)(configuration, shapes, cursorPosition);
+)(shapes, cursorPosition);
 
 const depthIndex = 0;
 const hoveredShape = select(
@@ -97,8 +95,8 @@ const focusedShapes = select((shapes, focusedShape) =>
 )(shapes, focusedShape);
 
 const keyTransformGesture = select(
-  (configuration, keys) =>
-    configuration.shortcuts
+  keys =>
+    config.shortcuts
       ? Object.keys(keys)
           .map(keypress => {
             switch (keypress) {
@@ -147,7 +145,7 @@ const keyTransformGesture = select(
           })
           .filter(identity)
       : []
-)(configuration, pressedKeys);
+)(pressedKeys);
 
 const alterSnapGesture = select(metaHeld => (metaHeld ? ['relax'] : []))(metaHeld);
 
@@ -203,11 +201,11 @@ const directSelect = select(
 
 const selectedShapeObjects = select(scene => scene.selectedShapeObjects || [])(scene);
 
-const singleSelect = (prev, configuration, hoveredShapes, metaHeld, uid) => {
+const singleSelect = (prev, hoveredShapes, metaHeld, uid) => {
   // cycle from top ie. from zero after the cursor position changed ie. !sameLocation
   const down = true; // this function won't be called otherwise
   const depthIndex =
-    configuration.depthSelect && metaHeld
+    config.depthSelect && metaHeld
       ? (prev.depthIndex + (down && !prev.down ? 1 : 0)) % hoveredShapes.length
       : 0;
   return {
@@ -218,7 +216,7 @@ const singleSelect = (prev, configuration, hoveredShapes, metaHeld, uid) => {
   };
 };
 
-const multiSelect = (prev, configuration, hoveredShapes, metaHeld, uid, selectedShapeObjects) => {
+const multiSelect = (prev, hoveredShapes, metaHeld, uid, selectedShapeObjects) => {
   const shapes =
     hoveredShapes.length > 0
       ? disjunctiveUnion(shape => shape.id, selectedShapeObjects, hoveredShapes.slice(0, 1)) // ie. depthIndex of 0, if any
@@ -254,7 +252,6 @@ const contentShapes = (allShapes, shapes) => shapes.map(contentShape(allShapes))
 const selectionState = select(
   (
     prev,
-    configuration,
     selectedShapeObjects,
     hoveredShapes,
     { down, uid },
@@ -280,12 +277,11 @@ const selectionState = select(
     if (selectedShapeObjects) prev.shapes = selectedShapeObjects.slice();
     // take action on mouse down only, and if the uid changed (except with directSelect), ie. bail otherwise
     if (mouseButtonUp || (uidUnchanged && !directSelect)) return { ...prev, down, uid, metaHeld };
-    const selectFunction = configuration.singleSelect || !multiselect ? singleSelect : multiSelect;
-    return selectFunction(prev, configuration, hoveredShapes, metaHeld, uid, selectedShapeObjects);
+    const selectFunction = config.singleSelect || !multiselect ? singleSelect : multiSelect;
+    return selectFunction(prev, hoveredShapes, metaHeld, uid, selectedShapeObjects);
   }
 )(
   selectedShapesPrev,
-  configuration,
   selectedShapeObjects,
   hoveredShapes,
   mouseButton,
@@ -301,11 +297,11 @@ const selectedShapes = select(selectionTuple => {
 
 const selectedShapeIds = select(shapes => shapes.map(shape => shape.id))(selectedShapes);
 
-const primaryShape = shape => (shape.type === 'annotation' ? shape.parent : shape.id); // fixme unify with contentShape
+const primaryShape = shape => shape.parent || shape.id; // fixme unify with contentShape
 
 const selectedPrimaryShapeIds = select(shapes => shapes.map(primaryShape))(selectedShapes);
 
-const rotationManipulation = configuration => ({
+const rotationManipulation = ({
   shape,
   directShape,
   cursorPosition: { x, y },
@@ -330,26 +326,50 @@ const rotationManipulation = configuration => ({
   );
   const relaxed = alterSnapGesture.indexOf('relax') !== -1;
   const newSnappedAngle =
-    pixelDifference < configuration.rotateSnapInPixels && !relaxed ? closest45deg : newAngle;
+    pixelDifference < config.rotateSnapInPixels && !relaxed ? closest45deg : newAngle;
   const result = matrix.rotateZ(oldAngle - newSnappedAngle);
   return { transforms: [result], shapes: [shape.id] };
 };
+
+/* upcoming functionality
+const centeredScaleManipulation = ({ shape, directShape, cursorPosition: { x, y } }) => {
+  // scaling such that the center remains in place (ie. the other side of the shape can grow/shrink)
+  if (!shape || !directShape) return { transforms: [], shapes: [] };
+  const center = shape.transformMatrix;
+  const vector = matrix.mvMultiply(
+    matrix.multiply(center, directShape.localTransformMatrix),
+    matrix.ORIGIN
+  );
+  const shapeCenter = matrix.mvMultiply(center, matrix.ORIGIN);
+  const horizontalRatio =
+    directShape.horizontalPosition === 'center'
+      ? 1
+      : Math.max(0.5, (x - shapeCenter[0]) / (vector[0] - shapeCenter[0]));
+  const verticalRatio =
+    directShape.verticalPosition === 'center'
+      ? 1
+      : Math.max(0.5, (y - shapeCenter[1]) / (vector[1] - shapeCenter[1]));
+  const result = matrix.scale(horizontalRatio, verticalRatio, 1);
+  return { transforms: [result], shapes: [shape.id] };
+};
+*/
 
 const resizeMultiplierHorizontal = { left: -1, center: 0, right: 1 };
 const resizeMultiplierVertical = { top: -1, center: 0, bottom: 1 };
 const xNames = { '-1': 'left', '0': 'center', '1': 'right' };
 const yNames = { '-1': 'top', '0': 'center', '1': 'bottom' };
 
-const minimumSize = (min, { a, b, baseAB }, vector) => {
+const minimumSize = ({ a, b, baseAB }, vector) => {
   // don't allow an element size of less than the minimumElementSize
   // todo switch to matrix algebra
+  const min = config.minimumElementSize;
   return [
     Math.max(baseAB ? min - baseAB[0] : min - a, vector[0]),
     Math.max(baseAB ? min - baseAB[1] : min - b, vector[1]),
   ];
 };
 
-const centeredResizeManipulation = configuration => ({ gesture, shape, directShape }) => {
+const centeredResizeManipulation = ({ gesture, shape, directShape }) => {
   const transform = gesture.cumulativeTransform;
   // scaling such that the center remains in place (ie. the other side of the shape can grow/shrink)
   if (!shape || !directShape) return { transforms: [], shapes: [] };
@@ -367,7 +387,7 @@ const centeredResizeManipulation = configuration => ({ gesture, shape, directSha
     0,
   ];
   const orientedVector = matrix2d.componentProduct(vector, orientationMask);
-  const cappedOrientedVector = minimumSize(configuration.minimumElementSize, shape, orientedVector);
+  const cappedOrientedVector = minimumSize(shape, orientedVector);
   return {
     cumulativeTransforms: [],
     cumulativeSizes: [gesture.sizes || matrix2d.translate(...cappedOrientedVector)],
@@ -375,7 +395,7 @@ const centeredResizeManipulation = configuration => ({ gesture, shape, directSha
   };
 };
 
-const asymmetricResizeManipulation = configuration => ({ gesture, shape, directShape }) => {
+const asymmetricResizeManipulation = ({ gesture, shape, directShape }) => {
   const transform = gesture.cumulativeTransform;
   // scaling such that the center remains in place (ie. the other side of the shape can grow/shrink)
   if (!shape || !directShape) return { transforms: [], shapes: [] };
@@ -389,7 +409,7 @@ const asymmetricResizeManipulation = configuration => ({ gesture, shape, directS
     0,
   ];
   const orientedVector = matrix2d.componentProduct(vector, orientationMask);
-  const cappedOrientedVector = minimumSize(configuration.minimumElementSize, shape, orientedVector);
+  const cappedOrientedVector = minimumSize(shape, orientedVector);
 
   const antiRotatedVector = matrix.mvMultiply(
     matrix.multiply(
@@ -419,7 +439,6 @@ const directShapeTranslateManipulation = (cumulativeTransforms, directShapes) =>
 };
 
 const rotationAnnotationManipulation = (
-  configuration,
   directTransforms,
   directShapes,
   allShapes,
@@ -428,9 +447,7 @@ const rotationAnnotationManipulation = (
 ) => {
   const shapeIds = directShapes.map(
     shape =>
-      shape.type === 'annotation' &&
-      shape.subtype === configuration.rotationHandleName &&
-      shape.parent
+      shape.type === 'annotation' && shape.subtype === config.rotationHandleName && shape.parent
   );
   const shapes = shapeIds.map(id => id && allShapes.find(shape => shape.id === id));
   const tuples = flatten(
@@ -444,21 +461,13 @@ const rotationAnnotationManipulation = (
       }))
     )
   );
-  return tuples.map(rotationManipulation(configuration));
+  return tuples.map(rotationManipulation);
 };
 
-const resizeAnnotationManipulation = (
-  configuration,
-  transformGestures,
-  directShapes,
-  allShapes,
-  manipulator
-) => {
+const resizeAnnotationManipulation = (transformGestures, directShapes, allShapes, manipulator) => {
   const shapeIds = directShapes.map(
     shape =>
-      shape.type === 'annotation' &&
-      shape.subtype === configuration.resizeHandleName &&
-      shape.parent
+      shape.type === 'annotation' && shape.subtype === config.resizeHandleName && shape.parent
   );
   const shapes = shapeIds.map(id => id && allShapes.find(shape => shape.id === id));
   const tuples = flatten(
@@ -471,49 +480,26 @@ const resizeAnnotationManipulation = (
 
 const symmetricManipulation = optionHeld; // as in comparable software applications, todo: make configurable
 
-const resizeManipulator = select((configuration, toggle) =>
-  (toggle ? centeredResizeManipulation : asymmetricResizeManipulation)(configuration)
-)(configuration, symmetricManipulation);
+const resizeManipulator = select(
+  toggle => (toggle ? centeredResizeManipulation : asymmetricResizeManipulation)
+)(symmetricManipulation);
 
 const transformIntents = select(
-  (
-    configuration,
-    transformGestures,
-    directShapes,
-    shapes,
-    cursorPosition,
-    alterSnapGesture,
-    manipulator
-  ) => [
+  (transformGestures, directShapes, shapes, cursorPosition, alterSnapGesture, manipulator) => [
     ...directShapeTranslateManipulation(
       transformGestures.map(g => g.cumulativeTransform),
       directShapes
     ),
     ...rotationAnnotationManipulation(
-      configuration,
       transformGestures.map(g => g.transform),
       directShapes,
       shapes,
       cursorPosition,
       alterSnapGesture
     ),
-    ...resizeAnnotationManipulation(
-      configuration,
-      transformGestures,
-      directShapes,
-      shapes,
-      manipulator
-    ),
+    ...resizeAnnotationManipulation(transformGestures, directShapes, shapes, manipulator),
   ]
-)(
-  configuration,
-  transformGestures,
-  selectedShapes,
-  shapes,
-  cursorPosition,
-  alterSnapGesture,
-  resizeManipulator
-);
+)(transformGestures, selectedShapes, shapes, cursorPosition, alterSnapGesture, resizeManipulator);
 
 const fromScreen = currentTransform => transform => {
   const isTranslate = transform[12] !== 0 || transform[13] !== 0;
@@ -632,24 +618,13 @@ const getUpstreams = (shapes, shape) =>
 const snappedA = shape => shape.a + (shape.snapResizeVector ? shape.snapResizeVector[0] : 0);
 const snappedB = shape => shape.b + (shape.snapResizeVector ? shape.snapResizeVector[1] : 0);
 
-const cascadeUnsnappedTransforms = (shapes, shape) => {
-  if (!shape.parent) return shape.localTransformMatrix; // boost for common case of toplevel shape
+const cascadeTransforms = (shapes, shape) => {
   const upstreams = getUpstreams(shapes, shape);
   const upstreamTransforms = upstreams.map(shape => {
-    return shape.localTransformMatrix;
+    return shape.snapDeltaMatrix
+      ? matrix.multiply(shape.localTransformMatrix, shape.snapDeltaMatrix)
+      : shape.localTransformMatrix;
   });
-  const cascadedTransforms = matrix.reduceTransforms(upstreamTransforms);
-  return cascadedTransforms;
-};
-
-const cascadeTransforms = (shapes, shape) => {
-  const cascade = s =>
-    s.snapDeltaMatrix
-      ? matrix.multiply(s.localTransformMatrix, s.snapDeltaMatrix)
-      : s.localTransformMatrix;
-  if (!shape.parent) return cascade(shape); // boost for common case of toplevel shape
-  const upstreams = getUpstreams(shapes, shape);
-  const upstreamTransforms = upstreams.map(cascade);
   const cascadedTransforms = matrix.reduceTransforms(upstreamTransforms);
   return cascadedTransforms;
 };
@@ -674,7 +649,7 @@ const nextShapes = select((preexistingShapes, restated) => {
 
 const transformedShapes = select(applyLocalTransforms)(nextShapes, transformIntents);
 
-const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
+const alignmentGuides = (shapes, guidedShapes, draggedShape) => {
   const result = {};
   let counter = 0;
   const extremeHorizontal = resizeMultiplierHorizontal[draggedShape.horizontalPosition];
@@ -687,21 +662,15 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
     // key points of the dragged shape bounding box
     for (let j = 0; j < shapes.length; j++) {
       const s = shapes[j];
-      if (
-        configuration.intraGroupSnapOnly &&
-        d.parent !== s.parent &&
-        d.parent !== s.id /* allow parent */
-      )
-        continue;
       if (d.id === s.id) continue; // don't self-constrain; todo in the future, self-constrain to the original location
       if (s.type === 'annotation') continue; // fixme avoid this by not letting annotations get in here
-      if (!configuration.intraGroupManipulation && s.parent) continue;
+      if (s.parent) continue; // for now, don't snap to grouped elements fixme could snap, but make sure transform is gloabl
       // key points of the stationery shape
       for (let k = -1; k < 2; k++) {
         for (let l = -1; l < 2; l++) {
           if ((k && !l) || (!k && l)) continue; // don't worry about midpoints of the edges, only the center
           if (
-            draggedShape.subtype === configuration.resizeHandleName &&
+            draggedShape.subtype === config.resizeHandleName &&
             !(
               (extremeHorizontal === k && extremeVertical === l) || // moved corner
               // moved midpoint on horizontal border
@@ -711,11 +680,11 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
             )
           )
             continue;
-          const D = landmarkPoint(d.a, d.b, cascadeUnsnappedTransforms(shapes, d), k, l);
+          const D = landmarkPoint(d, k, l);
           for (let m = -1; m < 2; m++) {
             for (let n = -1; n < 2; n++) {
               if ((m && !n) || (!m && n)) continue; // don't worry about midpoints of the edges, only the center
-              const S = landmarkPoint(s.a, s.b, cascadeUnsnappedTransforms(shapes, s), m, n);
+              const S = landmarkPoint(s, m, n);
               for (let dim = 0; dim < 2; dim++) {
                 const orthogonalDimension = 1 - dim;
                 const dd = D[dim];
@@ -725,7 +694,7 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
                 const distance = Math.abs(signedDistance);
                 const currentClosest = result[key];
                 if (
-                  Math.round(distance) <= configuration.guideDistance &&
+                  Math.round(distance) <= config.guideDistance &&
                   (!currentClosest || distance <= currentClosest.distance)
                 ) {
                   const orthogonalValues = [
@@ -742,7 +711,7 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
                     localTransformMatrix: matrix.translate(
                       dim ? midPoint : ss,
                       dim ? ss : midPoint,
-                      configuration.atopZ
+                      config.atopZ
                     ),
                     a: dim ? radius : 0.5,
                     b: dim ? 0.5 : radius,
@@ -782,54 +751,49 @@ const draggedPrimaryShape = select(
     draggedShape && shapes.find(shape => shape.id === primaryShape(draggedShape))
 )(shapes, draggedShape);
 
-const alignmentGuideAnnotations = select(
-  (configuration, shapes, draggedPrimaryShape, draggedShape) => {
-    const guidedShapes = draggedPrimaryShape
-      ? [shapes.find(s => s.id === draggedPrimaryShape.id)].filter(identity)
-      : [];
-    return guidedShapes.length
-      ? alignmentGuides(configuration, shapes, guidedShapes, draggedShape).map(shape => ({
-          ...shape,
-          id: configuration.alignmentGuideName + '_' + shape.id,
+const alignmentGuideAnnotations = select((shapes, draggedPrimaryShape, draggedShape) => {
+  const guidedShapes = draggedPrimaryShape
+    ? [shapes.find(s => s.id === draggedPrimaryShape.id)].filter(identity)
+    : [];
+  return guidedShapes.length
+    ? alignmentGuides(shapes, guidedShapes, draggedShape).map(shape => ({
+        ...shape,
+        id: config.alignmentGuideName + '_' + shape.id,
+        type: 'annotation',
+        subtype: config.alignmentGuideName,
+        interactive: false,
+        backgroundColor: 'magenta',
+      }))
+    : [];
+})(transformedShapes, draggedPrimaryShape, draggedShape);
+
+const hoverAnnotations = select((hoveredShape, selectedPrimaryShapeIds, draggedShape) => {
+  return hoveredShape &&
+    hoveredShape.type !== 'annotation' &&
+    selectedPrimaryShapeIds.indexOf(hoveredShape.id) === -1 &&
+    !draggedShape
+    ? [
+        {
+          ...hoveredShape,
+          id: config.hoverAnnotationName + '_' + hoveredShape.id,
           type: 'annotation',
-          subtype: configuration.alignmentGuideName,
+          subtype: config.hoverAnnotationName,
           interactive: false,
-          backgroundColor: 'magenta',
-        }))
-      : [];
-  }
-)(configuration, transformedShapes, draggedPrimaryShape, draggedShape);
+          localTransformMatrix: matrix.multiply(
+            hoveredShape.localTransformMatrix,
+            matrix.translate(0, 0, 100)
+          ),
+        },
+      ]
+    : [];
+})(hoveredShape, selectedPrimaryShapeIds, draggedShape);
 
-const hoverAnnotations = select(
-  (configuration, hoveredShape, selectedPrimaryShapeIds, draggedShape) => {
-    return hoveredShape &&
-      hoveredShape.type !== 'annotation' &&
-      selectedPrimaryShapeIds.indexOf(hoveredShape.id) === -1 &&
-      !draggedShape
-      ? [
-          {
-            ...hoveredShape,
-            id: configuration.hoverAnnotationName + '_' + hoveredShape.id,
-            type: 'annotation',
-            subtype: configuration.hoverAnnotationName,
-            interactive: false,
-            localTransformMatrix: matrix.multiply(
-              hoveredShape.localTransformMatrix,
-              matrix.translate(0, 0, configuration.hoverLift)
-            ),
-          },
-        ]
-      : [];
-  }
-)(configuration, hoveredShape, selectedPrimaryShapeIds, draggedShape);
-
-const rotationAnnotation = (configuration, shapes, selectedShapes, shape, i) => {
+const rotationAnnotation = (shapes, selectedShapes, shape, i) => {
   const foundShape = shapes.find(s => shape.id === s.id);
   if (!foundShape) return false;
 
   if (foundShape.type === 'annotation') {
     return rotationAnnotation(
-      configuration,
       shapes,
       selectedShapes,
       shapes.find(s => foundShape.parent === s.id),
@@ -838,39 +802,35 @@ const rotationAnnotation = (configuration, shapes, selectedShapes, shape, i) => 
   }
   const b = snappedB(foundShape);
   const centerTop = matrix.translate(0, -b, 0);
-  const pixelOffset = matrix.translate(
-    0,
-    -configuration.rotateAnnotationOffset,
-    configuration.atopZ
-  );
+  const pixelOffset = matrix.translate(0, -config.rotateAnnotationOffset, config.atopZ);
   const transform = matrix.multiply(centerTop, pixelOffset);
   return {
-    id: configuration.rotationHandleName + '_' + i,
+    id: config.rotationHandleName + '_' + i,
     type: 'annotation',
-    subtype: configuration.rotationHandleName,
+    subtype: config.rotationHandleName,
     interactive: true,
     parent: foundShape.id,
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,0,255,0.3)',
-    a: configuration.rotationHandleSize,
-    b: configuration.rotationHandleSize,
+    a: config.rotationHandleSize,
+    b: config.rotationHandleSize,
   };
 };
 
-const resizePointAnnotations = (configuration, parent, a, b) => ([x, y, cursorAngle]) => {
-  const markerPlace = matrix.translate(x * a, y * b, configuration.resizeAnnotationOffsetZ);
+const resizePointAnnotations = (parent, a, b) => ([x, y, cursorAngle]) => {
+  const markerPlace = matrix.translate(x * a, y * b, config.resizeAnnotationOffsetZ);
   const pixelOffset = matrix.translate(
-    -x * configuration.resizeAnnotationOffset,
-    -y * configuration.resizeAnnotationOffset,
-    configuration.atopZ + 10
+    -x * config.resizeAnnotationOffset,
+    -y * config.resizeAnnotationOffset,
+    config.atopZ + 10
   );
   const transform = matrix.multiply(markerPlace, pixelOffset);
   const xName = xNames[x];
   const yName = yNames[y];
   return {
-    id: [configuration.resizeHandleName, xName, yName, parent].join('_'),
+    id: [config.resizeHandleName, xName, yName, parent].join('_'),
     type: 'annotation',
-    subtype: configuration.resizeHandleName,
+    subtype: config.resizeHandleName,
     horizontalPosition: xName,
     verticalPosition: yName,
     cursorAngle,
@@ -878,35 +838,30 @@ const resizePointAnnotations = (configuration, parent, a, b) => ([x, y, cursorAn
     parent,
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,255,0,1)',
-    a: configuration.resizeAnnotationSize,
-    b: configuration.resizeAnnotationSize,
+    a: config.resizeAnnotationSize,
+    b: config.resizeAnnotationSize,
   };
 };
 
-const resizeEdgeAnnotations = (configuration, parent, a, b) => ([[x0, y0], [x1, y1]]) => {
+const resizeEdgeAnnotations = (parent, a, b) => ([[x0, y0], [x1, y1]]) => {
   const x = a * mean(x0, x1);
   const y = b * mean(y0, y1);
-  const markerPlace = matrix.translate(x, y, configuration.atopZ - 10);
+  const markerPlace = matrix.translate(x, y, config.atopZ - 10);
   const transform = markerPlace; // no offset etc. at the moment
   const horizontal = y0 === y1;
   const length = horizontal ? a * Math.abs(x1 - x0) : b * Math.abs(y1 - y0);
-  const sectionHalfLength = Math.max(0, length / 2 - configuration.resizeAnnotationConnectorOffset);
+  const sectionHalfLength = Math.max(0, length / 2 - config.resizeAnnotationConnectorOffset);
   const width = 0.5;
   return {
-    id: [
-      configuration.resizeConnectorName,
-      xNames[x0],
-      yNames[y0],
-      xNames[x1],
-      yNames[y1],
-      parent,
-    ].join('_'),
+    id: [config.resizeConnectorName, xNames[x0], yNames[y0], xNames[x1], yNames[y1], parent].join(
+      '_'
+    ),
     type: 'annotation',
-    subtype: configuration.resizeConnectorName,
+    subtype: config.resizeConnectorName,
     interactive: true,
     parent,
     localTransformMatrix: transform,
-    backgroundColor: configuration.devColor,
+    backgroundColor: config.devColor,
     a: horizontal ? sectionHalfLength : width,
     b: horizontal ? width : sectionHalfLength,
   };
@@ -925,33 +880,27 @@ const connectorVertices = [
 
 const cornerVertices = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
 
-function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
+function resizeAnnotation(shapes, selectedShapes, shape) {
   const foundShape = shapes.find(s => shape.id === s.id);
   const properShape =
     foundShape &&
-    (foundShape.subtype === configuration.resizeHandleName
+    (foundShape.subtype === config.resizeHandleName
       ? shapes.find(s => shape.parent === s.id)
       : foundShape);
   if (!foundShape) return [];
 
-  if (foundShape.subtype === configuration.resizeHandleName) {
+  if (foundShape.subtype === config.resizeHandleName) {
     // preserve any interactive annotation when handling
     const result = foundShape.interactive
-      ? resizeAnnotationsFunction(configuration, {
+      ? resizeAnnotationsFunction({
           shapes,
           selectedShapes: [shapes.find(s => shape.parent === s.id)],
         })
       : [];
     return result;
   }
-  if (foundShape.type === 'annotation') {
-    return resizeAnnotation(
-      configuration,
-      shapes,
-      selectedShapes,
-      shapes.find(s => foundShape.parent === s.id)
-    );
-  }
+  if (foundShape.type === 'annotation')
+    return resizeAnnotation(shapes, selectedShapes, shapes.find(s => foundShape.parent === s.id));
 
   // fixme left active: snap wobble. right active: opposite side wobble.
   const a = snappedA(properShape);
@@ -959,7 +908,7 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   const groupedShape = shape =>
     shape.parent === properShape.id &&
     shape.type !== 'annotation' &&
-    shape.type !== configuration.groupName;
+    shape.subtype !== config.adHocGroupName;
   // fixme broaden resizableChild to other multiples of 90 degrees
   const resizableChild = shape =>
     shallowEqual(
@@ -968,7 +917,7 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
     );
   const allowResize =
     properShape.type !== 'group' ||
-    (configuration.groupResize && shapes.filter(groupedShape).every(resizableChild));
+    (config.groupResize && shapes.filter(groupedShape).every(resizableChild));
   const resizeVertices = allowResize
     ? [
         [-1, -1, 315],
@@ -981,17 +930,17 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
         [-1, 0, 270], // edge midpoints
       ]
     : [];
-  const resizePoints = resizeVertices.map(resizePointAnnotations(configuration, shape.id, a, b));
-  const connectors = connectorVertices.map(resizeEdgeAnnotations(configuration, shape.id, a, b));
+  const resizePoints = resizeVertices.map(resizePointAnnotations(shape.id, a, b));
+  const connectors = connectorVertices.map(resizeEdgeAnnotations(shape.id, a, b));
   return [...resizePoints, ...connectors];
 }
 
-function resizeAnnotationsFunction(configuration, { shapes, selectedShapes }) {
+function resizeAnnotationsFunction({ shapes, selectedShapes }) {
   const shapesToAnnotate = selectedShapes;
   return flatten(
     shapesToAnnotate
       .map(shape => {
-        return resizeAnnotation(configuration, shapes, selectedShapes, shape);
+        return resizeAnnotation(shapes, selectedShapes, shape);
       })
       .filter(identity)
   );
@@ -1090,7 +1039,6 @@ const resizeShapeSnap = (
 
 const snappedShapes = select(
   (
-    configuration,
     shapes,
     draggedShape,
     draggedElement,
@@ -1102,22 +1050,15 @@ const snappedShapes = select(
     const subtype = draggedShape && draggedShape.subtype;
     // snapping doesn't come into play if there's no dragging, or it's not a resize drag or translate drag on a
     // leaf element or a group element:
-    if (
-      subtype &&
-      [
-        configuration.resizeHandleName,
-        configuration.adHocGroupName,
-        configuration.persistentGroupName,
-      ].indexOf(subtype) === -1
-    )
+    if (subtype && [config.resizeHandleName, config.adHocGroupName].indexOf(subtype) === -1)
       return contentShapes;
     const constraints = alignmentGuideAnnotations; // fixme split concept of snap constraints and their annotations
     const relaxed = alterSnapGesture.indexOf('relax') !== -1;
-    const constrained = configuration.snapConstraint && !relaxed;
+    const constrained = config.snapConstraint && !relaxed;
     const horizontalConstraint = constrained && directionalConstraint(constraints, isHorizontal);
     const verticalConstraint = constrained && directionalConstraint(constraints, isVertical);
     const snapper =
-      subtype === configuration.resizeHandleName
+      subtype === config.resizeHandleName
         ? resizeShapeSnap(
             horizontalConstraint,
             verticalConstraint,
@@ -1130,7 +1071,6 @@ const snappedShapes = select(
     return contentShapes.map(snapper);
   }
 )(
-  configuration,
   transformedShapes,
   draggedShape,
   draggedPrimaryShape,
@@ -1147,6 +1087,9 @@ const extend = ([[xMin, yMin], [xMax, yMax]], [x0, y0], [x1, y1]) => [
   [Math.min(xMin, x0, x1), Math.min(yMin, y0, y1)],
   [Math.max(xMax, x0, x1), Math.max(yMax, y0, y1)],
 ];
+
+const isAdHocGroup = shape =>
+  shape.type === config.groupName && shape.subtype === config.adHocGroupName;
 
 // fixme put it into geometry.js
 const getAABB = shapes =>
@@ -1179,10 +1122,10 @@ const projectAABB = ([[xMin, yMin], [xMax, yMax]]) => {
   return { a, b, localTransformMatrix, rigTransform };
 };
 
-const dissolveGroups = (groupsToDissolve, shapes, selectedShapes) => {
+const dissolveGroups = (preexistingAdHocGroups, shapes, selectedShapes) => {
   return {
-    shapes: shapes.filter(s => !groupsToDissolve.find(g => s.id === g.id)).map(shape => {
-      const preexistingAdHocGroupParent = groupsToDissolve.find(
+    shapes: shapes.filter(shape => !isAdHocGroup(shape)).map(shape => {
+      const preexistingAdHocGroupParent = preexistingAdHocGroups.find(
         groupShape => groupShape.id === shape.parent
       );
       // if linked, dissociate from ad hoc group parent
@@ -1204,20 +1147,24 @@ const dissolveGroups = (groupsToDissolve, shapes, selectedShapes) => {
 // returns true if the shape is not a child of one of the shapes
 const hasNoParentWithin = shapes => shape => !shapes.some(g => shape.parent === g.id);
 
+const childOfAdHocGroup = shape => shape.parent && shape.parent.startsWith(config.adHocGroupName);
+
+const isOrBelongsToAdHocGroup = shape => isAdHocGroup(shape) || childOfAdHocGroup(shape);
+
 const asYetUngroupedShapes = (preexistingAdHocGroups, selectedShapes) =>
   selectedShapes.filter(hasNoParentWithin(preexistingAdHocGroups));
 
 const idMatch = shape => s => s.id === shape.id;
 const idsMatch = selectedShapes => shape => selectedShapes.find(idMatch(shape));
 
-const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
+const axisAlignedBoundingBoxShape = shapesToBox => {
   const axisAlignedBoundingBox = getAABB(shapesToBox);
   const { a, b, localTransformMatrix, rigTransform } = projectAABB(axisAlignedBoundingBox);
-  const id = configuration.groupName + '_' + makeUid();
+  const id = config.adHocGroupName + '_' + makeUid();
   const aabbShape = {
     id,
-    type: configuration.groupName,
-    subtype: configuration.adHocGroupName,
+    type: config.groupName,
+    subtype: config.adHocGroupName,
     a,
     b,
     localTransformMatrix,
@@ -1226,22 +1173,18 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
   return aabbShape;
 };
 
-const EPSILON = 1e-6;
-
-const resizeGroup = (configuration, shapes, selectedShapes, elements) => {
+const resizeGroup = (shapes, selectedShapes, elements) => {
   if (!elements.length) return { shapes, selectedShapes };
   const e = elements[0];
-  const isGroup = shape => shape.type === configuration.groupName;
-  if (!isGroup(e)) return { shapes, selectedShapes };
+  if (e.subtype !== 'adHocGroup') return { shapes, selectedShapes };
   if (!e.baseAB) {
     return {
       shapes: shapes.map(s => ({ ...s, childBaseAB: null, baseLocalTransformMatrix: null })),
       selectedShapes,
     };
   }
-  // a scaler of 0, encountered when element is shrunk to zero size, would result in a non-invertible transform matrix
-  const groupScaleX = Math.max(e.a / e.baseAB[0], EPSILON);
-  const groupScaleY = Math.max(e.b / e.baseAB[1], EPSILON);
+  const groupScaleX = e.a / e.baseAB[0];
+  const groupScaleY = e.b / e.baseAB[1];
   const groupScale = matrix.scale(groupScaleX, groupScaleY, 1);
   return {
     shapes: shapes.map(s => {
@@ -1256,13 +1199,13 @@ const resizeGroup = (configuration, shapes, selectedShapes, elements) => {
       );
       const T = matrix.multiply(groupScale, normalizedBaseLocalTransformMatrix);
       const backScaler = groupScale.map(d => Math.abs(d));
-      const inverseBackScaler = matrix.invert(backScaler);
+      const transformShit = matrix.invert(backScaler);
       const abTuple = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
       return {
         ...s,
         localTransformMatrix: matrix.multiply(
           T,
-          matrix.multiply(inverseImpliedScale, inverseBackScaler)
+          matrix.multiply(inverseImpliedScale, transformShit)
         ),
         a: abTuple[0],
         b: abTuple[1],
@@ -1286,54 +1229,14 @@ const getLeafs = (descendCondition, allShapes, shapes) =>
 
 const preserveCurrentGroups = (shapes, selectedShapes) => ({ shapes, selectedShapes });
 
-const groupAction = select(action => {
-  const event = action && action.event;
-  return event === 'group' || event === 'ungroup' ? event : null;
-})(actionEvent);
-
-const grouping = select((configuration, shapes, selectedShapes, groupAction) => {
-  const childOfGroup = shape => shape.parent && shape.parent.startsWith(configuration.groupName);
-  const isAdHocGroup = shape =>
-    shape.type === configuration.groupName && shape.subtype === configuration.adHocGroupName;
+const grouping = select((shapes, selectedShapes) => {
   const preexistingAdHocGroups = shapes.filter(isAdHocGroup);
   const matcher = idsMatch(selectedShapes);
   const selectedFn = shape => matcher(shape) && shape.type !== 'annotation';
   const freshSelectedShapes = shapes.filter(selectedFn);
   const freshNonSelectedShapes = shapes.filter(not(selectedFn));
-  const isGroup = shape => shape.type === configuration.groupName;
-  const isOrBelongsToGroup = shape => isGroup(shape) || childOfGroup(shape);
-  const someSelectedShapesAreGrouped = selectedShapes.some(isOrBelongsToGroup);
+  const someSelectedShapesAreGrouped = selectedShapes.some(isOrBelongsToAdHocGroup);
   const selectionOutsideGroup = !someSelectedShapesAreGrouped;
-
-  if (groupAction === 'group') {
-    const selectedAdHocGroupsToPersist = selectedShapes.filter(
-      s => s.subtype === configuration.adHocGroupName
-    );
-    return {
-      shapes: shapes.map(
-        s =>
-          s.subtype === configuration.adHocGroupName
-            ? { ...s, subtype: configuration.persistentGroupName }
-            : s
-      ),
-      selectedShapes: selectedShapes
-        .filter(selected => selected.subtype !== configuration.adHocGroupName)
-        .concat(
-          selectedAdHocGroupsToPersist.map(shape => ({
-            ...shape,
-            subtype: configuration.persistentGroupName,
-          }))
-        ),
-    };
-  }
-
-  if (groupAction === 'ungroup') {
-    return dissolveGroups(
-      selectedShapes.filter(s => s.subtype === configuration.persistentGroupName),
-      shapes,
-      asYetUngroupedShapes(preexistingAdHocGroups, freshSelectedShapes)
-    );
-  }
 
   // ad hoc groups must dissolve if 1. the user clicks away, 2. has a selection that's not the group, or 3. selected something else
   if (preexistingAdHocGroups.length && selectionOutsideGroup) {
@@ -1348,9 +1251,9 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
 
   // preserve the current selection if the sole ad hoc group is being manipulated
   const elements = contentShapes(shapes, selectedShapes);
-  if (selectedShapes.length === 1 && elements[0].type === 'group') {
-    return configuration.groupResize
-      ? resizeGroup(configuration, shapes, selectedShapes, elements)
+  if (selectedShapes.length === 1 && elements[0].subtype === 'adHocGroup') {
+    return config.groupResize
+      ? resizeGroup(shapes, selectedShapes, elements)
       : preserveCurrentGroups(shapes, selectedShapes);
   }
   // group items or extend group bounding box (if enabled)
@@ -1359,9 +1262,9 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
     return preserveCurrentGroups(shapes, selectedShapes);
   } else {
     // group together the multiple items
-    const group = axisAlignedBoundingBoxShape(configuration, freshSelectedShapes);
+    const group = axisAlignedBoundingBoxShape(freshSelectedShapes);
     const selectedLeafShapes = getLeafs(
-      shape => shape.subtype === configuration.adHocGroupName,
+      shape => shape.subtype === config.adHocGroupName,
       shapes,
       freshSelectedShapes
     );
@@ -1371,14 +1274,9 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
       localTransformMatrix: matrix.multiply(group.rigTransform, shape.transformMatrix),
     }));
     const nonGroupGraphConstituent = s =>
-      s.subtype !== configuration.adHocGroupName &&
-      !parentedSelectedShapes.find(ss => s.id === ss.id);
+      s.subtype !== config.adHocGroupName && !parentedSelectedShapes.find(ss => s.id === ss.id);
     const dissociateFromParentIfAny = s =>
-      s.parent &&
-      s.parent.startsWith(configuration.groupName) &&
-      preexistingAdHocGroups.find(ahg => ahg.id === s.parent)
-        ? { ...s, parent: null }
-        : s;
+      s.parent && s.parent.startsWith(config.adHocGroupName) ? { ...s, parent: null } : s;
     const allTerminalShapes = parentedSelectedShapes.concat(
       freshNonSelectedShapes.filter(nonGroupGraphConstituent).map(dissociateFromParentIfAny)
     );
@@ -1387,7 +1285,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
       selectedShapes: [group],
     };
   }
-})(configuration, constrainedShapesWithPreexistingAnnotations, selectedShapes, groupAction);
+})(constrainedShapesWithPreexistingAnnotations, selectedShapes);
 
 const groupedSelectedShapes = select(({ selectedShapes }) => selectedShapes)(grouping);
 
@@ -1399,14 +1297,14 @@ const groupedSelectedPrimaryShapeIds = select(selectedShapes => selectedShapes.m
   groupedSelectedShapes
 );
 
-const resizeAnnotations = select(resizeAnnotationsFunction)(configuration, grouping);
+const resizeAnnotations = select(resizeAnnotationsFunction)(grouping);
 
-const rotationAnnotations = select((configuration, { shapes, selectedShapes }) => {
+const rotationAnnotations = select(({ shapes, selectedShapes }) => {
   const shapesToAnnotate = selectedShapes;
   return shapesToAnnotate
-    .map((shape, i) => rotationAnnotation(configuration, shapes, selectedShapes, shape, i))
+    .map((shape, i) => rotationAnnotation(shapes, selectedShapes, shape, i))
     .filter(identity);
-})(configuration, grouping);
+})(grouping);
 
 const annotatedShapes = select(
   (
@@ -1441,12 +1339,12 @@ const bidirectionalCursors = {
   '315': 'nwse-resize',
 };
 
-const cursor = select((configuration, shape, draggedPrimaryShape) => {
+const cursor = select((shape, draggedPrimaryShape) => {
   if (!shape) return 'auto';
   switch (shape.subtype) {
-    case configuration.rotationHandleName:
+    case config.rotationHandleName:
       return 'crosshair';
-    case configuration.resizeHandleName:
+    case config.resizeHandleName:
       const angle = (matrix.matrixToAngle(shape.transformMatrix) + 360) % 360;
       const screenProjectedAngle = angle + shape.cursorAngle;
       const discretizedAngle = (Math.round(screenProjectedAngle / 45) * 45 + 360) % 360;
@@ -1454,14 +1352,13 @@ const cursor = select((configuration, shape, draggedPrimaryShape) => {
     default:
       return draggedPrimaryShape ? 'grabbing' : 'grab';
   }
-})(configuration, focusedShape, draggedPrimaryShape);
+})(focusedShape, draggedPrimaryShape);
 
 // this is the core scenegraph update invocation: upon new cursor position etc. emit the new scenegraph
 // it's _the_ state representation (at a PoC level...) comprising of transient properties eg. draggedShape, and the
 // collection of shapes themselves
 const nextScene = select(
   (
-    configuration,
     hoveredShape,
     selectedShapeIds,
     selectedPrimaryShapes,
@@ -1474,7 +1371,7 @@ const nextScene = select(
     selectedShapes
   ) => {
     const selectedLeafShapes = getLeafs(
-      shape => shape.type === configuration.groupName,
+      shape => shape.subtype === config.adHocGroupName,
       shapes,
       selectionState.shapes
         .map(s => (s.type === 'annotation' ? shapes.find(ss => ss.id === s.parent) : s))
@@ -1483,7 +1380,6 @@ const nextScene = select(
       .filter(shape => shape.type !== 'annotation')
       .map(s => s.id);
     return {
-      configuration,
       hoveredShape,
       selectedShapes: selectedShapeIds,
       selectedLeafShapes,
@@ -1498,7 +1394,6 @@ const nextScene = select(
     };
   }
 )(
-  configuration,
   hoveredShape,
   groupedSelectedShapeIds,
   groupedSelectedPrimaryShapeIds,
