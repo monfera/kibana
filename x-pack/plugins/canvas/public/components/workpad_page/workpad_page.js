@@ -61,6 +61,7 @@ export class WorkpadPage extends PureComponent {
       isEditable,
       onDoubleClick,
       onKeyDown,
+      onKeyPress,
       onKeyUp,
       onMouseDown,
       onMouseMove,
@@ -85,6 +86,7 @@ export class WorkpadPage extends PureComponent {
         onMouseUp={onMouseUp}
         onMouseDown={onMouseDown}
         onKeyDown={onKeyDown}
+        onKeyPress={onKeyPress}
         onKeyUp={onKeyUp}
         onDoubleClick={onDoubleClick}
         onAnimationEnd={onAnimationEnd}
@@ -116,7 +118,7 @@ export class WorkpadPage extends PureComponent {
                 default:
                   return [];
               }
-            } else if (element.subtype !== 'adHocGroup') {
+            } else if (element.type !== 'group') {
               return <ElementWrapper key={element.id} element={element} />;
             }
           })

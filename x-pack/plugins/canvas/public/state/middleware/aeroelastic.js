@@ -7,6 +7,8 @@
 import { shallowEqual } from 'recompose';
 import { aeroelastic as aero } from '../../lib/aeroelastic_kibana';
 import { matrixToAngle } from '../../lib/aeroelastic/matrix';
+import defaultConfiguration from '../../lib/aeroelastic/config';
+import { arrayToMap } from '../../lib/aeroelastic/functional';
 import {
   addElement,
   removeElements,
@@ -21,6 +23,8 @@ import { addPage, removePage, duplicatePage } from '../actions/pages';
 import { appReady } from '../actions/app';
 import { setWorkpad } from '../actions/workpad';
 import { getElements, getPages, getSelectedPage, getSelectedElement } from '../selectors/workpad';
+
+const isGroupId = id => id.startsWith('group_');
 
 /**
  * elementToShape
@@ -51,23 +55,48 @@ const elementToShape = (element, i) => {
   const z = i; // painter's algo: latest item goes to top
   // multiplying the angle with -1 as `transform: matrix3d` uses a left-handed coordinate system
   const angleRadians = (-position.angle / 180) * Math.PI;
-  const transformMatrix = aero.matrix.multiply(
-    aero.matrix.translate(cx, cy, z),
-    aero.matrix.rotateZ(angleRadians)
-  );
+  const localTransformMatrix =
+    position.localTransformMatrix ||
+    aero.matrix.multiply(aero.matrix.translate(cx, cy, z), aero.matrix.rotateZ(angleRadians));
+  const isGroup = isGroupId(element.id);
   return {
     id: element.id,
-    parent: null, // reserved for hierarchical (tree shaped) grouping,
-    localTransformMatrix: transformMatrix,
-    transformMatrix,
+    type: isGroup ? 'group' : 'rectangleElement',
+    subtype: isGroup ? 'persistentGroup' : '',
+    parent: (element.position && element.position.parent) || null, // reserved for hierarchical (tree shaped) grouping,
+    localTransformMatrix: localTransformMatrix,
+    transformMatrix: localTransformMatrix,
     a, // we currently specify half-width, half-height as it leads to
     b, // more regular math (like ellipsis radii rather than diameters)
   };
 };
 
-const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, elems) => {
-  shapes.forEach((shape, i) => {
-    const elemPos = elems[i] && elems[i].position;
+const shapeToElement = shape => {
+  return {
+    left: shape.transformMatrix[12] - shape.a,
+    top: shape.transformMatrix[13] - shape.b,
+    width: shape.a * 2,
+    height: shape.b * 2,
+    angle: Math.round(matrixToAngle(shape.transformMatrix)),
+    parent: shape.parent || null,
+    localTransformMatrix: shape.localTransformMatrix,
+  };
+};
+
+const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElements) => {
+  const ascending = (a, b) => (a.id < b.id ? -1 : 1);
+  const elements = unsortedElements.slice().sort(ascending);
+  const persistables = shapes
+    .slice()
+    .sort(ascending)
+    .filter(s => s.type !== 'annotation' && s.subtype !== 'adHocGroup');
+
+  // if (persistables.length !== elements.length) debugger;
+
+  persistables.forEach((shape, i) => {
+    const element = elements[i];
+    // if (element.id !== shape.id) debugger;
+    const elemPos = element && element.position;
     if (elemPos && gestureEnd) {
       // get existing position information from element
       const oldProps = {
@@ -76,16 +105,13 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, elems) => {
         width: elemPos.width,
         height: elemPos.height,
         angle: Math.round(elemPos.angle),
+        parent: elemPos.parent || null,
+        localTransformMatrix:
+          elemPos.localTransformMatrix || (element && elementToShape(element).localTransformMatrix),
       };
 
       // cast shape into element-like object to compare
-      const newProps = {
-        left: shape.transformMatrix[12] - shape.a,
-        top: shape.transformMatrix[13] - shape.b,
-        width: shape.a * 2,
-        height: shape.b * 2,
-        angle: Math.round(matrixToAngle(shape.transformMatrix)),
-      };
+      const newProps = shapeToElement(shape);
 
       if (1 / newProps.angle === -Infinity) newProps.angle = 0; // recompose.shallowEqual discerns between 0 and -0
 
@@ -95,6 +121,19 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, elems) => {
 };
 
 const id = element => element.id;
+// check for duplication
+const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
+const idDuplicateCheck = groups => {
+  if (deduped(groups.map(g => g.id)).length !== groups.length)
+    throw new Error('Duplicate element encountered');
+};
+
+const missingParentCheck = groups => {
+  const idMap = arrayToMap(groups.map(g => g.id));
+  groups.forEach(g => {
+    if (g.parent && !idMap[g.parent]) g.parent = null;
+  });
+};
 
 export const aeroelastic = ({ dispatch, getState }) => {
   // When aeroelastic updates an element, we need to dispatch actions to notify redux of the changes
@@ -110,37 +149,88 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const elements = getElements(getState(), page);
     const selectedElement = getSelectedElement(getState());
 
+    const shapes = nextScene.shapes;
+    const persistableGroups = shapes.filter(s => s.subtype === 'persistentGroup');
+    const persistedGroups = elements.filter(e => isGroupId(e.id));
+
+    idDuplicateCheck(persistableGroups);
+    idDuplicateCheck(persistedGroups);
+
+    persistableGroups.forEach(g => {
+      if (
+        !persistedGroups.find(p => {
+          if (!p.id) throw new Error('Element has no id');
+          return p.id === g.id;
+        })
+      ) {
+        const partialElement = {
+          id: g.id,
+          filter: undefined,
+          expression: 'shape fill="rgba(255,255,255,0)" | render',
+          position: {
+            ...shapeToElement(g),
+          },
+        };
+        dispatch(addElement(page, partialElement));
+      }
+    });
+
+    const elementsToRemove = persistedGroups.filter(
+      // list elements for removal if they're not in the persistable set, or if there's no longer an associated element
+      // the latter of which shouldn't happen, so it's belts and braces
+      p =>
+        !persistableGroups.find(g => p.id === g.id) ||
+        !elements.find(e => e.position.parent === p.id)
+    );
+
     updateGlobalPositions(
       (elementId, position) => dispatch(setPosition(elementId, page, position)),
       nextScene,
       elements
     );
 
+    if (elementsToRemove.length) {
+      // remove elements for groups that were ungrouped
+      dispatch(removeElements(elementsToRemove.map(e => e.id), page));
+    }
+
     // set the selected element on the global store, if one element is selected
     const selectedShape = nextScene.selectedPrimaryShapes[0];
-    if (nextScene.selectedShapes.length === 1) {
-      if (selectedShape && selectedShape !== selectedElement)
+    if (nextScene.selectedShapes.length === 1 && !isGroupId(selectedShape)) {
+      if (selectedShape !== (selectedElement && selectedElement.id))
         dispatch(selectElement(selectedShape));
     } else {
       // otherwise, clear the selected element state
-      dispatch(selectElement(null));
+      // even for groups - TODO add handling for groups, esp. persistent groups - common styling etc.
+      if (selectedElement) {
+        const shape = shapes.find(s => s.id === selectedShape);
+        // don't reset if eg. we're in the middle of converting an ad hoc group into a persistent one
+        if (!shape || shape.subtype !== 'adHocGroup') dispatch(selectElement(null));
+      }
     }
   };
 
   const createStore = page =>
     aero.createStore(
-      { shapeAdditions: [], primaryUpdate: null, currentScene: { shapes: [] } },
+      {
+        shapeAdditions: [],
+        primaryUpdate: null,
+        currentScene: { shapes: [] },
+        configuration: defaultConfiguration,
+      },
       onChangeCallback,
       page
     );
 
-  const populateWithElements = page =>
-    aero.commit(
-      page,
-      'restateShapesEvent',
-      { newShapes: getElements(getState(), page).map(elementToShape) },
-      { silent: true }
-    );
+  const populateWithElements = page => {
+    const newShapes = getElements(getState(), page)
+      .map(elementToShape)
+      // filtering to eliminate residual element of a possible group that had been deleted in Redux
+      .filter((d, i, a) => !isGroupId(d.id) || a.find(s => s.parent === d.id));
+    idDuplicateCheck(newShapes);
+    missingParentCheck(newShapes);
+    return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
+  };
 
   const selectShape = (page, id) => {
     aero.commit(page, 'shapeSelect', { shapes: [id] });

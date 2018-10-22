@@ -72,7 +72,7 @@ const handleMouseDown = (commit, e, isEditable) => {
 
 const keyCode = key => (key === 'Meta' ? 'MetaLeft' : 'Key' + key.toUpperCase());
 
-const isNotTextInput = ({ tagName, type }) => {
+const isTextInput = ({ tagName, type }) => {
   // input types that aren't variations of text input
   const nonTextInputs = [
     'button',
@@ -88,11 +88,11 @@ const isNotTextInput = ({ tagName, type }) => {
 
   switch (tagName.toLowerCase()) {
     case 'input':
-      return nonTextInputs.includes(type);
+      return !nonTextInputs.includes(type);
     case 'textarea':
-      return false;
-    default:
       return true;
+    default:
+      return false;
   }
 };
 
@@ -100,7 +100,7 @@ const handleKeyDown = (commit, e, isEditable, remove) => {
   const { key, target } = e;
 
   if (isEditable) {
-    if (isNotTextInput(target) && (key === 'Backspace' || key === 'Delete')) {
+    if ((key === 'Backspace' || key === 'Delete') && !isTextInput(target)) {
       e.preventDefault();
       remove();
     } else {
@@ -109,6 +109,16 @@ const handleKeyDown = (commit, e, isEditable, remove) => {
         code: keyCode(key), // convert to standard event code
       });
     }
+  }
+};
+
+const handleKeyPress = (commit, e, isEditable) => {
+  const { key, target } = e;
+  const upcaseKey = key && key.toUpperCase();
+  if (isEditable && !isTextInput(target) && 'GU'.indexOf(upcaseKey) !== -1) {
+    commit('actionEvent', {
+      event: upcaseKey === 'G' ? 'group' : 'ungroup',
+    });
   }
 };
 
@@ -125,6 +135,7 @@ export const withEventHandlers = withHandlers({
   onMouseDown: props => e => handleMouseDown(props.commit, e, props.isEditable),
   onMouseMove: props => e => handleMouseMove(props.commit, e, props.isEditable),
   onKeyDown: props => e => handleKeyDown(props.commit, e, props.isEditable, props.remove),
+  onKeyPress: props => e => handleKeyPress(props.commit, e, props.isEditable),
   onKeyUp: props => e => handleKeyUp(props.commit, e, props.isEditable),
   resetHandler: () => () => resetHandler(),
 });
