@@ -14,6 +14,8 @@
  */
 const flatten = arrays => [].concat(...arrays);
 
+const flatMap = (array, fun) => array.reduce((prev, next) => [...fun(next), ...prev], []);
+
 /**
  * identity
  *
@@ -76,21 +78,35 @@ const shallowEqual = (a, b) => {
 
 const not = fun => (...args) => !fun(...args);
 
-const removeDuplicates = (idFun, a) =>
-  a.filter((d, i) => a.findIndex(s => idFun(s) === idFun(d)) === i);
+const distinct = (idFun, a) => a.filter((d, i) => a.findIndex(s => idFun(s) === idFun(d)) === i);
 
-const epsilon = 1 / 1000;
-const applyTolerance = d => Math.round(d / epsilon) * epsilon;
+const arrayToMap = (a, makeValueFun = () => true) =>
+  Object.assign({}, ...a.map(d => ({ [d]: makeValueFun(d) })));
+
+const subMultitree = (pk, fk, elements, roots) => {
+  const getSubgraphs = roots => {
+    const children = flatten(roots.map(r => elements.filter(e => fk(e) === pk(r))));
+    return [...roots, ...(children.length && getSubgraphs(children, elements))];
+  };
+  return getSubgraphs(roots);
+};
+
+const adjacentPairs = (a, fun = (l, r) => [l, r]) =>
+  // by default, just form pairs in arrays; otherwise, use the supplied function (l, r, index, array) => ...
+  a.map((d, i, a, next = a[i + 1]) => next && fun(d, next, i, a)).filter(identity);
 
 module.exports = {
-  applyTolerance,
+  adjacentPairs,
+  arrayToMap,
   disjunctiveUnion,
+  distinct,
+  flatMap,
   flatten,
+  subMultitree,
   identity,
   log,
   map,
   mean,
   not,
-  removeDuplicates,
   shallowEqual,
 };
