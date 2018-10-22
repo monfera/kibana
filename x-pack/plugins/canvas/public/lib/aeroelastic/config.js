@@ -17,13 +17,18 @@ const groupName = 'group';
 const groupResize = true;
 const guideDistance = 3;
 const hoverAnnotationName = 'hoverAnnotation';
+const hoverLift = 100;
+const impliedPersistentGroups = true;
 const intraGroupManipulation = false;
+const intraGroupSnapOnly = false;
+const persistentGroupName = 'persistentGroup';
 const resizeAnnotationOffset = 0;
 const resizeAnnotationOffsetZ = 0.1; // causes resize markers to be slightly above the shape plane
 const resizeAnnotationSize = 10;
 const resizeAnnotationConnectorOffset = 0; //resizeAnnotationSize //+ 2
 const resizeConnectorName = 'resizeConnector';
 const rotateAnnotationOffset = 12;
+const rotationEpsilon = 0.001;
 const rotationHandleName = 'rotationHandle';
 const rotationHandleSize = 14;
 const resizeHandleName = 'resizeHandle';
@@ -43,8 +48,12 @@ module.exports = {
   groupResize,
   guideDistance,
   hoverAnnotationName,
+  hoverLift,
+  impliedPersistentGroups,
   intraGroupManipulation,
+  intraGroupSnapOnly,
   minimumElementSize,
+  persistentGroupName,
   resizeAnnotationOffset,
   resizeAnnotationOffsetZ,
   resizeAnnotationSize,
@@ -52,6 +61,7 @@ module.exports = {
   resizeConnectorName,
   resizeHandleName,
   rotateAnnotationOffset,
+  rotationEpsilon,
   rotateSnapInPixels,
   rotationHandleName,
   rotationHandleSize,
