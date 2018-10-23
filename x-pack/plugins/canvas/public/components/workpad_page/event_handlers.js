@@ -112,6 +112,16 @@ const handleKeyDown = (commit, e, isEditable, remove) => {
   }
 };
 
+const handleKeyPress = (commit, e, isEditable) => {
+  const { key, target } = e;
+  const upcaseKey = key && key.toUpperCase();
+  if (isEditable && !isTextInput(target) && 'GU'.indexOf(upcaseKey) !== -1) {
+    commit('actionEvent', {
+      event: upcaseKey === 'G' ? 'group' : 'ungroup',
+    });
+  }
+};
+
 const handleKeyUp = (commit, { key }, isEditable) => {
   if (isEditable) {
     commit('keyboardEvent', {
@@ -125,6 +135,7 @@ export const withEventHandlers = withHandlers({
   onMouseDown: props => e => handleMouseDown(props.commit, e, props.isEditable),
   onMouseMove: props => e => handleMouseMove(props.commit, e, props.isEditable),
   onKeyDown: props => e => handleKeyDown(props.commit, e, props.isEditable, props.remove),
+  onKeyPress: props => e => handleKeyPress(props.commit, e, props.isEditable),
   onKeyUp: props => e => handleKeyUp(props.commit, e, props.isEditable),
   resetHandler: () => () => resetHandler(),
 });
