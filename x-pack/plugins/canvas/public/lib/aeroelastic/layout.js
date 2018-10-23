@@ -1161,7 +1161,7 @@ const idsMatch = selectedShapes => shape => selectedShapes.find(idMatch(shape));
 const axisAlignedBoundingBoxShape = shapesToBox => {
   const axisAlignedBoundingBox = getAABB(shapesToBox);
   const { a, b, localTransformMatrix, rigTransform } = projectAABB(axisAlignedBoundingBox);
-  const id = config.adHocGroupName + '_' + makeUid();
+  const id = config.groupName + '_' + makeUid();
   const aabbShape = {
     id,
     type: config.groupName,
@@ -1236,7 +1236,6 @@ const groupAction = select(action => {
 })(actionEvent);
 
 const grouping = select((shapes, selectedShapes, groupAction) => {
-  console.log(groupAction);
   const preexistingAdHocGroups = shapes.filter(isAdHocGroup);
   const matcher = idsMatch(selectedShapes);
   const selectedFn = shape => matcher(shape) && shape.type !== 'annotation';
@@ -1244,6 +1243,23 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
   const freshNonSelectedShapes = shapes.filter(not(selectedFn));
   const someSelectedShapesAreGrouped = selectedShapes.some(isOrBelongsToAdHocGroup);
   const selectionOutsideGroup = !someSelectedShapesAreGrouped;
+
+  if (groupAction) {
+    const preexistingAdHocGroups = selectedShapes.filter(s => s.subtype === config.adHocGroupName);
+    const constituents = shapes.filter(
+      s => preexistingAdHocGroups.find(sel => s.parent === sel.id) && s.type !== 'annotation'
+    );
+    const result = {
+      shapes: shapes,
+      selectedShapes: selectedShapes
+        .filter(selected => selected.subtype !== config.adHocGroupName)
+        .concat(
+          preexistingAdHocGroups.map(shape => ({ ...shape, subtype: config.persistentGroupName }))
+        ),
+    };
+    // debugger;
+    return result;
+  }
 
   // ad hoc groups must dissolve if 1. the user clicks away, 2. has a selection that's not the group, or 3. selected something else
   if (preexistingAdHocGroups.length && selectionOutsideGroup) {
