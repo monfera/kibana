@@ -131,7 +131,12 @@ const dragVector = select(({ buttonState, downX, downY }, { x, y }) => ({
   y1: y,
 }))(mouseButtonState, cursorPosition);
 
+const actionEvent = select(action => (action.type === 'actionEvent' ? action.payload : null))(
+  primaryUpdate
+);
+
 module.exports = {
+  actionEvent,
   dragging,
   dragVector,
   cursorPosition,
