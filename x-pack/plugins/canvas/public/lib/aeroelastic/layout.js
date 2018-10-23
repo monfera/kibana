@@ -1092,6 +1092,9 @@ const extend = ([[xMin, yMin], [xMax, yMax]], [x0, y0], [x1, y1]) => [
 const isAdHocGroup = shape =>
   shape.type === config.groupName && shape.subtype === config.adHocGroupName;
 
+const isPersistentGroup = shape =>
+  shape.type === config.groupName && shape.subtype === config.persistentGroupName;
+
 // fixme put it into geometry.js
 const getAABB = shapes =>
   shapes.reduce(
@@ -1237,6 +1240,7 @@ const groupAction = select(action => {
 
 const grouping = select((shapes, selectedShapes, groupAction) => {
   const preexistingAdHocGroups = shapes.filter(isAdHocGroup);
+  const preexistingPersistentGroups = shapes.filter(isAdHocGroup);
   const matcher = idsMatch(selectedShapes);
   const selectedFn = shape => matcher(shape) && shape.type !== 'annotation';
   const freshSelectedShapes = shapes.filter(selectedFn);
@@ -1250,7 +1254,10 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
       s => preexistingAdHocGroups.find(sel => s.parent === sel.id) && s.type !== 'annotation'
     );
     const result = {
-      shapes: shapes,
+      shapes: shapes.map(
+        s =>
+          s.subtype === config.adHocGroupName ? { ...s, subtype: config.persistentGroupName } : s
+      ),
       selectedShapes: selectedShapes
         .filter(selected => selected.subtype !== config.adHocGroupName)
         .concat(
