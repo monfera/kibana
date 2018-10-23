@@ -7,6 +7,7 @@
 const { select, makeUid } = require('./state');
 
 const {
+  actionEvent,
   dragging,
   dragVector,
   cursorPosition,
@@ -1229,7 +1230,13 @@ const getLeafs = (descendCondition, allShapes, shapes) =>
 
 const preserveCurrentGroups = (shapes, selectedShapes) => ({ shapes, selectedShapes });
 
-const grouping = select((shapes, selectedShapes) => {
+const groupAction = select(action => {
+  const event = action && action.event;
+  return event === 'group' || event === 'ungroup' ? event : null;
+})(actionEvent);
+
+const grouping = select((shapes, selectedShapes, groupAction) => {
+  console.log(groupAction);
   const preexistingAdHocGroups = shapes.filter(isAdHocGroup);
   const matcher = idsMatch(selectedShapes);
   const selectedFn = shape => matcher(shape) && shape.type !== 'annotation';
@@ -1285,7 +1292,7 @@ const grouping = select((shapes, selectedShapes) => {
       selectedShapes: [group],
     };
   }
-})(constrainedShapesWithPreexistingAnnotations, selectedShapes);
+})(constrainedShapesWithPreexistingAnnotations, selectedShapes, groupAction);
 
 const groupedSelectedShapes = select(({ selectedShapes }) => selectedShapes)(grouping);
 
