@@ -72,7 +72,7 @@ const handleMouseDown = (commit, e, isEditable) => {
 
 const keyCode = key => (key === 'Meta' ? 'MetaLeft' : 'Key' + key.toUpperCase());
 
-const isNotTextInput = ({ tagName, type }) => {
+const isTextInput = ({ tagName, type }) => {
   // input types that aren't variations of text input
   const nonTextInputs = [
     'button',
@@ -88,11 +88,11 @@ const isNotTextInput = ({ tagName, type }) => {
 
   switch (tagName.toLowerCase()) {
     case 'input':
-      return nonTextInputs.includes(type);
+      return !nonTextInputs.includes(type);
     case 'textarea':
-      return false;
-    default:
       return true;
+    default:
+      return false;
   }
 };
 
@@ -100,7 +100,7 @@ const handleKeyDown = (commit, e, isEditable, remove) => {
   const { key, target } = e;
 
   if (isEditable) {
-    if (isNotTextInput(target) && (key === 'Backspace' || key === 'Delete')) {
+    if ((key === 'Backspace' || key === 'Delete') && !isTextInput(target)) {
       e.preventDefault();
       remove();
     } else {
