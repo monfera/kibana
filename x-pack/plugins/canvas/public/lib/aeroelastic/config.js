@@ -18,6 +18,7 @@ const groupResize = true;
 const guideDistance = 3;
 const hoverAnnotationName = 'hoverAnnotation';
 const intraGroupManipulation = false;
+const persistentGroupName = 'persistentGroup';
 const resizeAnnotationOffset = 0;
 const resizeAnnotationOffsetZ = 0.1; // causes resize markers to be slightly above the shape plane
 const resizeAnnotationSize = 10;
@@ -45,6 +46,7 @@ module.exports = {
   hoverAnnotationName,
   intraGroupManipulation,
   minimumElementSize,
+  persistentGroupName,
   resizeAnnotationOffset,
   resizeAnnotationOffsetZ,
   resizeAnnotationSize,
