@@ -1188,7 +1188,6 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
   if (!elements.length) return { shapes, selectedShapes };
   const e = elements[0];
   if (!isGroup(e)) return { shapes, selectedShapes };
-  console.log('group!!!')
   if (!e.baseAB) {
     return {
       shapes: shapes.map(s => ({ ...s, childBaseAB: null, baseLocalTransformMatrix: null })),
@@ -1314,7 +1313,11 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
     const nonGroupGraphConstituent = s =>
       s.subtype !== config.adHocGroupName && !parentedSelectedShapes.find(ss => s.id === ss.id);
     const dissociateFromParentIfAny = s =>
-      s.parent && s.parent.startsWith(config.groupName) ? { ...s, parent: null } : s;
+      s.parent &&
+      s.parent.startsWith(config.groupName) &&
+      preexistingAdHocGroups.find(ahg => ahg.id === s.parent)
+        ? { ...s, parent: null }
+        : s;
     const allTerminalShapes = parentedSelectedShapes.concat(
       freshNonSelectedShapes.filter(nonGroupGraphConstituent).map(dissociateFromParentIfAny)
     );
