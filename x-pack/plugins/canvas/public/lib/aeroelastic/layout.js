@@ -1408,7 +1408,7 @@ const nextScene = select(
     selectedShapes
   ) => {
     const selectedLeafShapes = getLeafs(
-      shape => shape.subtype === config.adHocGroupName,
+      shape => shape.type === config.groupName,
       shapes,
       selectionState.shapes
         .map(s => (s.type === 'annotation' ? shapes.find(ss => ss.id === s.parent) : s))
