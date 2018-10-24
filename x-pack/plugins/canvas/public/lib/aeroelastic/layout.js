@@ -1188,6 +1188,7 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
   if (!elements.length) return { shapes, selectedShapes };
   const e = elements[0];
   if (!isGroup(e)) return { shapes, selectedShapes };
+  console.log('group!!!')
   if (!e.baseAB) {
     return {
       shapes: shapes.map(s => ({ ...s, childBaseAB: null, baseLocalTransformMatrix: null })),
@@ -1288,7 +1289,7 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
 
   // preserve the current selection if the sole ad hoc group is being manipulated
   const elements = contentShapes(shapes, selectedShapes);
-  if (selectedShapes.length === 1 && elements[0].subtype === 'adHocGroup') {
+  if (selectedShapes.length === 1 && elements[0].type === 'group') {
     return config.groupResize
       ? resizeGroup(shapes, selectedShapes, elements)
       : preserveCurrentGroups(shapes, selectedShapes);
