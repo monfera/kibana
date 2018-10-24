@@ -1052,7 +1052,12 @@ const snappedShapes = select(
     const subtype = draggedShape && draggedShape.subtype;
     // snapping doesn't come into play if there's no dragging, or it's not a resize drag or translate drag on a
     // leaf element or a group element:
-    if (subtype && [config.resizeHandleName, config.adHocGroupName].indexOf(subtype) === -1)
+    if (
+      subtype &&
+      [config.resizeHandleName, config.adHocGroupName, config.persistentGroupName].indexOf(
+        subtype
+      ) === -1
+    )
       return contentShapes;
     const constraints = alignmentGuideAnnotations; // fixme split concept of snap constraints and their annotations
     const relaxed = alterSnapGesture.indexOf('relax') !== -1;
@@ -1089,6 +1094,8 @@ const extend = ([[xMin, yMin], [xMax, yMax]], [x0, y0], [x1, y1]) => [
   [Math.min(xMin, x0, x1), Math.min(yMin, y0, y1)],
   [Math.max(xMax, x0, x1), Math.max(yMax, y0, y1)],
 ];
+
+const isGroup = shape => shape.type === config.groupName;
 
 const isAdHocGroup = shape =>
   shape.type === config.groupName && shape.subtype === config.adHocGroupName;
@@ -1152,9 +1159,9 @@ const dissolveGroups = (preexistingAdHocGroups, shapes, selectedShapes) => {
 // returns true if the shape is not a child of one of the shapes
 const hasNoParentWithin = shapes => shape => !shapes.some(g => shape.parent === g.id);
 
-const childOfAdHocGroup = shape => shape.parent && shape.parent.startsWith(config.groupName);
+const childOfGroup = shape => shape.parent && shape.parent.startsWith(config.groupName);
 
-const isOrBelongsToAdHocGroup = shape => isAdHocGroup(shape) || childOfAdHocGroup(shape);
+const isOrBelongsToGroup = shape => isGroup(shape) || childOfGroup(shape);
 
 const asYetUngroupedShapes = (preexistingAdHocGroups, selectedShapes) =>
   selectedShapes.filter(hasNoParentWithin(preexistingAdHocGroups));
@@ -1241,12 +1248,12 @@ const groupAction = select(action => {
 
 const grouping = select((shapes, selectedShapes, groupAction) => {
   const preexistingAdHocGroups = shapes.filter(isAdHocGroup);
-  const preexistingPersistentGroups = shapes.filter(isAdHocGroup);
+  const preexistingPersistentGroups = shapes.filter(isPersistentGroup);
   const matcher = idsMatch(selectedShapes);
   const selectedFn = shape => matcher(shape) && shape.type !== 'annotation';
   const freshSelectedShapes = shapes.filter(selectedFn);
   const freshNonSelectedShapes = shapes.filter(not(selectedFn));
-  const someSelectedShapesAreGrouped = selectedShapes.some(isOrBelongsToAdHocGroup);
+  const someSelectedShapesAreGrouped = selectedShapes.some(isOrBelongsToGroup);
   const selectionOutsideGroup = !someSelectedShapesAreGrouped;
 
   if (groupAction) {
