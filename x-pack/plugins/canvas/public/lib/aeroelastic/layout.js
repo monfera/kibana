@@ -909,7 +909,8 @@ function resizeAnnotation(shapes, selectedShapes, shape) {
   const groupedShape = shape =>
     shape.parent === properShape.id &&
     shape.type !== 'annotation' &&
-    shape.subtype !== config.adHocGroupName;
+    shape.subtype !== config.adHocGroupName &&
+    shape.subtype !== config.persistentGroupName;
   // fixme broaden resizableChild to other multiples of 90 degrees
   const resizableChild = shape =>
     shallowEqual(
