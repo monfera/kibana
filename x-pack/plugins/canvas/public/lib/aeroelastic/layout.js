@@ -1151,7 +1151,7 @@ const dissolveGroups = (preexistingAdHocGroups, shapes, selectedShapes) => {
 // returns true if the shape is not a child of one of the shapes
 const hasNoParentWithin = shapes => shape => !shapes.some(g => shape.parent === g.id);
 
-const childOfAdHocGroup = shape => shape.parent && shape.parent.startsWith(config.adHocGroupName);
+const childOfAdHocGroup = shape => shape.parent && shape.parent.startsWith(config.groupName);
 
 const isOrBelongsToAdHocGroup = shape => isAdHocGroup(shape) || childOfAdHocGroup(shape);
 
@@ -1306,7 +1306,7 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
     const nonGroupGraphConstituent = s =>
       s.subtype !== config.adHocGroupName && !parentedSelectedShapes.find(ss => s.id === ss.id);
     const dissociateFromParentIfAny = s =>
-      s.parent && s.parent.startsWith(config.adHocGroupName) ? { ...s, parent: null } : s;
+      s.parent && s.parent.startsWith(config.groupName) ? { ...s, parent: null } : s;
     const allTerminalShapes = parentedSelectedShapes.concat(
       freshNonSelectedShapes.filter(nonGroupGraphConstituent).map(dissociateFromParentIfAny)
     );
