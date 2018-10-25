@@ -1210,13 +1210,13 @@ const resizeGroup = (shapes, selectedShapes, elements) => {
       );
       const T = matrix.multiply(groupScale, normalizedBaseLocalTransformMatrix);
       const backScaler = groupScale.map(d => Math.abs(d));
-      const transformShit = matrix.invert(backScaler);
+      const inverseBackScaler = matrix.invert(backScaler);
       const abTuple = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
       return {
         ...s,
         localTransformMatrix: matrix.multiply(
           T,
-          matrix.multiply(inverseImpliedScale, transformShit)
+          matrix.multiply(inverseImpliedScale, inverseBackScaler)
         ),
         a: abTuple[0],
         b: abTuple[1],
