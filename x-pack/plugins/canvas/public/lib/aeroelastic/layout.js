@@ -1133,10 +1133,32 @@ const projectAABB = ([[xMin, yMin], [xMax, yMax]]) => {
   return { a, b, localTransformMatrix, rigTransform };
 };
 
-const dissolveGroups = (preexistingAdHocGroups, shapes, selectedShapes) => {
+const dissolveAdHocGroups = (preexistingAdHocGroups, shapes, selectedShapes) => {
   return {
     shapes: shapes.filter(shape => !isAdHocGroup(shape)).map(shape => {
       const preexistingAdHocGroupParent = preexistingAdHocGroups.find(
+        groupShape => groupShape.id === shape.parent
+      );
+      // if linked, dissociate from ad hoc group parent
+      return preexistingAdHocGroupParent
+        ? {
+            ...shape,
+            parent: null,
+            localTransformMatrix: matrix.multiply(
+              preexistingAdHocGroupParent.localTransformMatrix, // reinstate the group offset onto the child
+              shape.localTransformMatrix
+            ),
+          }
+        : shape;
+    }),
+    selectedShapes,
+  };
+};
+
+const dissolvePersistentGroups = (groupsToDissolve, shapes, selectedShapes) => {
+  return {
+    shapes: shapes.filter(s => !groupsToDissolve.find(g => s.id === g.id)).map(shape => {
+      const preexistingAdHocGroupParent = groupsToDissolve.find(
         groupShape => groupShape.id === shape.parent
       );
       // if linked, dissociate from ad hoc group parent
@@ -1258,12 +1280,9 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
   const someSelectedShapesAreGrouped = selectedShapes.some(isOrBelongsToGroup);
   const selectionOutsideGroup = !someSelectedShapesAreGrouped;
 
-  if (groupAction) {
+  if (groupAction === 'group') {
     const preexistingAdHocGroups = selectedShapes.filter(s => s.subtype === config.adHocGroupName);
-    const constituents = shapes.filter(
-      s => preexistingAdHocGroups.find(sel => s.parent === sel.id) && s.type !== 'annotation'
-    );
-    const result = {
+    return {
       shapes: shapes.map(
         s =>
           s.subtype === config.adHocGroupName ? { ...s, subtype: config.persistentGroupName } : s
@@ -1274,15 +1293,21 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
           preexistingAdHocGroups.map(shape => ({ ...shape, subtype: config.persistentGroupName }))
         ),
     };
-    // debugger;
-    return result;
+  }
+
+  if (groupAction === 'ungroup') {
+    return dissolvePersistentGroups(
+      selectedShapes.filter(s => s.subtype === config.persistentGroupName),
+      shapes,
+      asYetUngroupedShapes(preexistingAdHocGroups, freshSelectedShapes)
+    );
   }
 
   // ad hoc groups must dissolve if 1. the user clicks away, 2. has a selection that's not the group, or 3. selected something else
   if (preexistingAdHocGroups.length && selectionOutsideGroup) {
     // asYetUngroupedShapes will trivially be the empty set if case 1 is realized: user clicks aside -> selectedShapes === []
     // return preserveCurrentGroups(shapes, selectedShapes);
-    return dissolveGroups(
+    return dissolveAdHocGroups(
       preexistingAdHocGroups,
       shapes,
       asYetUngroupedShapes(preexistingAdHocGroups, freshSelectedShapes)
