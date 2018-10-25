@@ -119,7 +119,7 @@ export class WorkpadPage extends PureComponent {
                 default:
                   return [];
               }
-            } else if (element.subtype !== 'adHocGroup') {
+            } else if (element.type !== 'group') {
               return <ElementWrapper key={element.id} element={element} />;
             }
           })
