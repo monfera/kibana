@@ -39,7 +39,7 @@ export function getSiblingContext(state, elementId, checkIndex) {
 }
 
 function getBareElement(el, includeId = false) {
-  const props = ['id', 'position', 'expression', 'filter'];
+  const props = ['position', 'expression', 'filter'];
   if (includeId) return pick(el, props.concat('id'));
   return cloneDeep(pick(el, props));
 }
@@ -350,7 +350,7 @@ export const deleteArgumentAtIndex = createThunk('deleteArgumentAtIndex', ({ dis
   payload: element defaults. Eg {expression: 'foo'}
 */
 export const addElement = createThunk('addElement', ({ dispatch }, pageId, element) => {
-  const newElement = { ...getDefaultElement(), ...getBareElement(element) };
+  const newElement = { ...getDefaultElement(), ...getBareElement(element, true) };
   if (element.width) newElement.position.width = element.width;
   if (element.height) newElement.position.height = element.height;
   const _addElement = createAction('addElement');
