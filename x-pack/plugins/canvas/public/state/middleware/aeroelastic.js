@@ -56,6 +56,8 @@ const elementToShape = (element, i) => {
     aero.matrix.multiply(aero.matrix.translate(cx, cy, z), aero.matrix.rotateZ(angleRadians));
   return {
     id: element.id,
+    type: element.id.startsWith('group_') ? 'group' : 'rectangleElement',
+    subtype: element.id.startsWith('group_') ? 'persistentGroup' : '',
     parent: (element.position && element.position.parent) || null, // reserved for hierarchical (tree shaped) grouping,
     localTransformMatrix: localTransformMatrix,
     transformMatrix: localTransformMatrix,
@@ -148,6 +150,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
     persistedGroups.forEach(p => {
       if (!persistedGroups.find(g => p.position.id === g.id)) {
+        debugger
         console.log('wanting to remove group', p.position.id, p.position.subtype);
       }
     });
