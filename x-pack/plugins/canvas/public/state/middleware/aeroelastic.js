@@ -7,7 +7,6 @@
 import { shallowEqual } from 'recompose';
 import { aeroelastic as aero } from '../../lib/aeroelastic_kibana';
 import { matrixToAngle } from '../../lib/aeroelastic/matrix';
-import defaultConfiguration from '../../lib/aeroelastic/config';
 import {
   addElement,
   removeElements,
@@ -57,8 +56,6 @@ const elementToShape = (element, i) => {
     aero.matrix.multiply(aero.matrix.translate(cx, cy, z), aero.matrix.rotateZ(angleRadians));
   return {
     id: element.id,
-    type: element.id.startsWith('group_') ? 'group' : 'rectangleElement',
-    subtype: element.id.startsWith('group_') ? 'persistentGroup' : '',
     parent: (element.position && element.position.parent) || null, // reserved for hierarchical (tree shaped) grouping,
     localTransformMatrix: localTransformMatrix,
     transformMatrix: localTransformMatrix,
@@ -89,7 +86,7 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElem
     .forEach((shape, i) => {
       const element = elements[i];
       const elemPos = element && element.position;
-      if (elemPos && gestureEnd) {return;
+      if (elemPos && gestureEnd) {
         // get existing position information from element
         const oldProps = {
           left: elemPos.left,
@@ -145,13 +142,12 @@ export const aeroelastic = ({ dispatch, getState }) => {
             subtype: 'persistentGroup',
           },
         };
-        //dispatch(addElement(page, partialElement));
+        dispatch(addElement(page, partialElement));
       }
     });
 
     persistedGroups.forEach(p => {
       if (!persistedGroups.find(g => p.position.id === g.id)) {
-        debugger;
         console.log('wanting to remove group', p.position.id, p.position.subtype);
       }
     });
@@ -179,12 +175,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
   const createStore = page =>
     aero.createStore(
-      {
-        shapeAdditions: [],
-        primaryUpdate: null,
-        currentScene: { shapes: [] },
-        configuration: defaultConfiguration,
-      },
+      { shapeAdditions: [], primaryUpdate: null, currentScene: { shapes: [] } },
       onChangeCallback,
       page
     );
