@@ -51,47 +51,65 @@ const elementToShape = (element, i) => {
   const z = i; // painter's algo: latest item goes to top
   // multiplying the angle with -1 as `transform: matrix3d` uses a left-handed coordinate system
   const angleRadians = (-position.angle / 180) * Math.PI;
-  const transformMatrix = aero.matrix.multiply(
-    aero.matrix.translate(cx, cy, z),
-    aero.matrix.rotateZ(angleRadians)
-  );
+  const localTransformMatrix =
+    position.localTransformMatrix ||
+    aero.matrix.multiply(aero.matrix.translate(cx, cy, z), aero.matrix.rotateZ(angleRadians));
   return {
     id: element.id,
-    parent: null, // reserved for hierarchical (tree shaped) grouping,
-    localTransformMatrix: transformMatrix,
-    transformMatrix,
+    parent: (element.position && element.position.parent) || null, // reserved for hierarchical (tree shaped) grouping,
+    localTransformMatrix: localTransformMatrix,
+    transformMatrix: localTransformMatrix,
     a, // we currently specify half-width, half-height as it leads to
     b, // more regular math (like ellipsis radii rather than diameters)
   };
 };
 
-const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, elems) => {
-  shapes.forEach((shape, i) => {
-    const elemPos = elems[i] && elems[i].position;
-    if (elemPos && gestureEnd) {
-      // get existing position information from element
-      const oldProps = {
-        left: elemPos.left,
-        top: elemPos.top,
-        width: elemPos.width,
-        height: elemPos.height,
-        angle: Math.round(elemPos.angle),
-      };
+const shapeToElement = shape => {
+  return {
+    left: shape.transformMatrix[12] - shape.a,
+    top: shape.transformMatrix[13] - shape.b,
+    width: shape.a * 2,
+    height: shape.b * 2,
+    angle: Math.round(matrixToAngle(shape.transformMatrix)),
+    parent: shape.parent || null,
+    localTransformMatrix: shape.localTransformMatrix,
+  };
+};
 
-      // cast shape into element-like object to compare
-      const newProps = {
-        left: shape.transformMatrix[12] - shape.a,
-        top: shape.transformMatrix[13] - shape.b,
-        width: shape.a * 2,
-        height: shape.b * 2,
-        angle: Math.round(matrixToAngle(shape.transformMatrix)),
-      };
+const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElements) => {
+  const ascending = (a, b) => (a.id < b.id ? -1 : 1);
+  const elements = unsortedElements.slice().sort(ascending);
+  shapes
+    .slice()
+    .sort(ascending)
+    .filter(s => s.type !== 'annotation' && s.subtype !== 'adHocGroup')
+    .forEach((shape, i) => {
+      const element = elements[i];
+      const elemPos = element && element.position;
+      if (elemPos && gestureEnd) {
+        // get existing position information from element
+        const oldProps = {
+          left: elemPos.left,
+          top: elemPos.top,
+          width: elemPos.width,
+          height: elemPos.height,
+          angle: Math.round(elemPos.angle),
+          parent: elemPos.parent || null,
+          localTransformMatrix:
+            elemPos.localTransformMatrix ||
+            (element && elementToShape(element).localTransformMatrix),
+        };
 
-      if (1 / newProps.angle === -Infinity) newProps.angle = 0; // recompose.shallowEqual discerns between 0 and -0
+        // cast shape into element-like object to compare
+        const newProps = shapeToElement(shape);
 
-      if (!shallowEqual(oldProps, newProps)) setPosition(shape.id, newProps);
-    }
-  });
+        if (1 / newProps.angle === -Infinity) newProps.angle = 0; // recompose.shallowEqual discerns between 0 and -0
+
+        if (!shallowEqual(oldProps, newProps)) {
+          setPosition(shape.id, newProps);
+        }
+      }
+    });
 };
 
 const id = element => element.id;
@@ -110,6 +128,30 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const elements = getElements(getState(), page);
     const selectedElement = getSelectedElement(getState());
 
+    const persistableGroups = nextScene.shapes.filter(s => s.subtype === 'persistentGroup');
+    const persistedGroups = elements.filter(e => e.position.subtype === 'persistentGroup');
+
+    persistableGroups.forEach(g => {
+      if (!persistedGroups.find(p => p.position.id === g.id)) {
+        const partialElement = {
+          id: g.id,
+          filter: undefined,
+          expression: undefined,
+          position: {
+            ...shapeToElement(g),
+            subtype: 'persistentGroup',
+          },
+        };
+        dispatch(addElement(page, partialElement));
+      }
+    });
+
+    persistedGroups.forEach(p => {
+      if (!persistedGroups.find(g => p.position.id === g.id)) {
+        console.log('wanting to remove group', p.position.id, p.position.subtype);
+      }
+    });
+
     updateGlobalPositions(
       (elementId, position) => dispatch(setPosition(elementId, page, position)),
       nextScene,
@@ -119,8 +161,12 @@ export const aeroelastic = ({ dispatch, getState }) => {
     // set the selected element on the global store, if one element is selected
     const selectedShape = nextScene.selectedPrimaryShapes[0];
     if (nextScene.selectedShapes.length === 1) {
-      if (selectedShape && selectedShape !== selectedElement)
+      if (
+        selectedShape !== (selectedElement && selectedElement.id) &&
+        !selectedShape.startsWith('group_')
+      ) {
         dispatch(selectElement(selectedShape));
+      }
     } else {
       // otherwise, clear the selected element state
       dispatch(selectElement(null));
