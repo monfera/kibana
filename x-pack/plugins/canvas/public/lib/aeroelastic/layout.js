@@ -1155,8 +1155,6 @@ const extend = ([[xMin, yMin], [xMax, yMax]], [x0, y0], [x1, y1]) => [
   [Math.max(xMax, x0, x1), Math.max(yMax, y0, y1)],
 ];
 
-const isGroup = shape => shape.type === config.groupName;
-
 const isAdHocGroup = shape =>
   shape.type === config.groupName && shape.subtype === config.adHocGroupName;
 
@@ -1218,8 +1216,6 @@ const hasNoParentWithin = shapes => shape => !shapes.some(g => shape.parent === 
 
 const childOfGroup = shape => shape.parent && shape.parent.startsWith(config.groupName);
 
-const isOrBelongsToGroup = shape => isGroup(shape) || childOfGroup(shape);
-
 const asYetUngroupedShapes = (preexistingAdHocGroups, selectedShapes) =>
   selectedShapes.filter(hasNoParentWithin(preexistingAdHocGroups));
 
@@ -1244,9 +1240,10 @@ const axisAlignedBoundingBoxShape = shapesToBox => {
 
 const EPSILON = 1e-6;
 
-const resizeGroup = (shapes, selectedShapes, elements) => {
+const resizeGroup = (config, shapes, selectedShapes, elements) => {
   if (!elements.length) return { shapes, selectedShapes };
   const e = elements[0];
+  const isGroup = shape => shape.type === config.groupName;
   if (!isGroup(e)) return { shapes, selectedShapes };
   if (!e.baseAB) {
     return {
@@ -1306,30 +1303,32 @@ const groupAction = select(action => {
   return event === 'group' || event === 'ungroup' ? event : null;
 })(actionEvent);
 
-const grouping = select((shapes, selectedShapes, groupAction) => {
+const grouping = select((configuration, shapes, selectedShapes, groupAction) => {
   const preexistingAdHocGroups = shapes.filter(isAdHocGroup);
   const matcher = idsMatch(selectedShapes);
   const selectedFn = shape => matcher(shape) && shape.type !== 'annotation';
   const freshSelectedShapes = shapes.filter(selectedFn);
   const freshNonSelectedShapes = shapes.filter(not(selectedFn));
+  const isGroup = shape => shape.type === configuration.groupName;
+  const isOrBelongsToGroup = shape => isGroup(shape) || childOfGroup(shape);
   const someSelectedShapesAreGrouped = selectedShapes.some(isOrBelongsToGroup);
   const selectionOutsideGroup = !someSelectedShapesAreGrouped;
 
   if (groupAction === 'group') {
     const selectedAdHocGroupsToPersist = selectedShapes.filter(
-      s => s.subtype === config.adHocGroupName
+      s => s.subtype === configuration.adHocGroupName
     );
     return {
       shapes: shapes.map(
         s =>
-          s.subtype === config.adHocGroupName ? { ...s, subtype: config.persistentGroupName } : s
+          s.subtype === configuration.adHocGroupName ? { ...s, subtype: configuration.persistentGroupName } : s
       ),
       selectedShapes: selectedShapes
-        .filter(selected => selected.subtype !== config.adHocGroupName)
+        .filter(selected => selected.subtype !== configuration.adHocGroupName)
         .concat(
           selectedAdHocGroupsToPersist.map(shape => ({
             ...shape,
-            subtype: config.persistentGroupName,
+            subtype: configuration.persistentGroupName,
           }))
         ),
     };
@@ -1337,7 +1336,7 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
 
   if (groupAction === 'ungroup') {
     return dissolveGroups(
-      selectedShapes.filter(s => s.subtype === config.persistentGroupName),
+      selectedShapes.filter(s => s.subtype === configuration.persistentGroupName),
       shapes,
       asYetUngroupedShapes(preexistingAdHocGroups, freshSelectedShapes)
     );
@@ -1357,8 +1356,8 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
   // preserve the current selection if the sole ad hoc group is being manipulated
   const elements = contentShapes(shapes, selectedShapes);
   if (selectedShapes.length === 1 && elements[0].type === 'group') {
-    return config.groupResize
-      ? resizeGroup(shapes, selectedShapes, elements)
+    return configuration.groupResize
+      ? resizeGroup(configuration, shapes, selectedShapes, elements)
       : preserveCurrentGroups(shapes, selectedShapes);
   }
   // group items or extend group bounding box (if enabled)
@@ -1369,7 +1368,7 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
     // group together the multiple items
     const group = axisAlignedBoundingBoxShape(freshSelectedShapes);
     const selectedLeafShapes = getLeafs(
-      shape => shape.subtype === config.adHocGroupName,
+      shape => shape.subtype === configuration.adHocGroupName,
       shapes,
       freshSelectedShapes
     );
@@ -1379,10 +1378,10 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
       localTransformMatrix: matrix.multiply(group.rigTransform, shape.transformMatrix),
     }));
     const nonGroupGraphConstituent = s =>
-      s.subtype !== config.adHocGroupName && !parentedSelectedShapes.find(ss => s.id === ss.id);
+      s.subtype !== configuration.adHocGroupName && !parentedSelectedShapes.find(ss => s.id === ss.id);
     const dissociateFromParentIfAny = s =>
       s.parent &&
-      s.parent.startsWith(config.groupName) &&
+      s.parent.startsWith(configuration.groupName) &&
       preexistingAdHocGroups.find(ahg => ahg.id === s.parent)
         ? { ...s, parent: null }
         : s;
@@ -1394,7 +1393,7 @@ const grouping = select((shapes, selectedShapes, groupAction) => {
       selectedShapes: [group],
     };
   }
-})(constrainedShapesWithPreexistingAnnotations, selectedShapes, groupAction);
+})(configuration, constrainedShapesWithPreexistingAnnotations, selectedShapes, groupAction);
 
 const groupedSelectedShapes = select(({ selectedShapes }) => selectedShapes)(grouping);
 
