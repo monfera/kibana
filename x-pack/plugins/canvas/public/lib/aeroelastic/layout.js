@@ -1097,6 +1097,7 @@ const resizeShapeSnap = (
 
 const snappedShapes = select(
   (
+    configuration,
     shapes,
     draggedShape,
     draggedElement,
@@ -1110,18 +1111,20 @@ const snappedShapes = select(
     // leaf element or a group element:
     if (
       subtype &&
-      [config.resizeHandleName, config.adHocGroupName, config.persistentGroupName].indexOf(
-        subtype
-      ) === -1
+      [
+        configuration.resizeHandleName,
+        configuration.adHocGroupName,
+        configuration.persistentGroupName,
+      ].indexOf(subtype) === -1
     )
       return contentShapes;
     const constraints = alignmentGuideAnnotations; // fixme split concept of snap constraints and their annotations
     const relaxed = alterSnapGesture.indexOf('relax') !== -1;
-    const constrained = config.snapConstraint && !relaxed;
+    const constrained = configuration.snapConstraint && !relaxed;
     const horizontalConstraint = constrained && directionalConstraint(constraints, isHorizontal);
     const verticalConstraint = constrained && directionalConstraint(constraints, isVertical);
     const snapper =
-      subtype === config.resizeHandleName
+      subtype === configuration.resizeHandleName
         ? resizeShapeSnap(
             horizontalConstraint,
             verticalConstraint,
@@ -1134,6 +1137,7 @@ const snappedShapes = select(
     return contentShapes.map(snapper);
   }
 )(
+  configuration,
   transformedShapes,
   draggedShape,
   draggedPrimaryShape,
