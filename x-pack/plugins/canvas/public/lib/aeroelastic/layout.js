@@ -45,6 +45,9 @@ const {
 
 const primaryUpdate = state => state.primaryUpdate;
 const scene = state => state.currentScene;
+const configuration = state => {
+  return state.configuration;
+};
 
 /**
  * Pure calculations
@@ -65,17 +68,17 @@ const draggingShape = ({ draggedShape, shapes }, hoveredShape, down, mouseDowned
 
 const shapes = select(scene => scene.shapes)(scene);
 
-const hoveredShapes = select((shapes, cursorPosition) =>
+const hoveredShapes = select((configuration, shapes, cursorPosition) =>
   shapesAt(
     shapes.filter(
       // second AND term excludes intra-group element hover (and therefore drag & drop), todo: remove this current limitation
       s =>
         (s.type !== 'annotation' || s.interactive) &&
-        (config.intraGroupManipulation || !s.parent || s.type === 'annotation')
+        (configuration.intraGroupManipulation || !s.parent || s.type === 'annotation')
     ),
     cursorPosition
   )
-)(shapes, cursorPosition);
+)(configuration, shapes, cursorPosition);
 
 const depthIndex = 0;
 const hoveredShape = select(
@@ -96,8 +99,8 @@ const focusedShapes = select((shapes, focusedShape) =>
 )(shapes, focusedShape);
 
 const keyTransformGesture = select(
-  keys =>
-    config.shortcuts
+  (configuration, keys) =>
+    configuration.shortcuts
       ? Object.keys(keys)
           .map(keypress => {
             switch (keypress) {
@@ -146,7 +149,7 @@ const keyTransformGesture = select(
           })
           .filter(identity)
       : []
-)(pressedKeys);
+)(configuration, pressedKeys);
 
 const alterSnapGesture = select(metaHeld => (metaHeld ? ['relax'] : []))(metaHeld);
 
@@ -202,11 +205,11 @@ const directSelect = select(
 
 const selectedShapeObjects = select(scene => scene.selectedShapeObjects || [])(scene);
 
-const singleSelect = (prev, hoveredShapes, metaHeld, uid) => {
+const singleSelect = (prev, configuration, hoveredShapes, metaHeld, uid) => {
   // cycle from top ie. from zero after the cursor position changed ie. !sameLocation
   const down = true; // this function won't be called otherwise
   const depthIndex =
-    config.depthSelect && metaHeld
+    configuration.depthSelect && metaHeld
       ? (prev.depthIndex + (down && !prev.down ? 1 : 0)) % hoveredShapes.length
       : 0;
   return {
@@ -217,7 +220,7 @@ const singleSelect = (prev, hoveredShapes, metaHeld, uid) => {
   };
 };
 
-const multiSelect = (prev, hoveredShapes, metaHeld, uid, selectedShapeObjects) => {
+const multiSelect = (prev, configuration, hoveredShapes, metaHeld, uid, selectedShapeObjects) => {
   const shapes =
     hoveredShapes.length > 0
       ? disjunctiveUnion(shape => shape.id, selectedShapeObjects, hoveredShapes.slice(0, 1)) // ie. depthIndex of 0, if any
@@ -253,6 +256,7 @@ const contentShapes = (allShapes, shapes) => shapes.map(contentShape(allShapes))
 const selectionState = select(
   (
     prev,
+    configuration,
     selectedShapeObjects,
     hoveredShapes,
     { down, uid },
@@ -278,11 +282,12 @@ const selectionState = select(
     if (selectedShapeObjects) prev.shapes = selectedShapeObjects.slice();
     // take action on mouse down only, and if the uid changed (except with directSelect), ie. bail otherwise
     if (mouseButtonUp || (uidUnchanged && !directSelect)) return { ...prev, down, uid, metaHeld };
-    const selectFunction = config.singleSelect || !multiselect ? singleSelect : multiSelect;
-    return selectFunction(prev, hoveredShapes, metaHeld, uid, selectedShapeObjects);
+    const selectFunction = configuration.singleSelect || !multiselect ? singleSelect : multiSelect;
+    return selectFunction(prev, configuration, hoveredShapes, metaHeld, uid, selectedShapeObjects);
   }
 )(
   selectedShapesPrev,
+  configuration,
   selectedShapeObjects,
   hoveredShapes,
   mouseButton,
@@ -302,7 +307,7 @@ const primaryShape = shape => shape.parent || shape.id; // fixme unify with cont
 
 const selectedPrimaryShapeIds = select(shapes => shapes.map(primaryShape))(selectedShapes);
 
-const rotationManipulation = ({
+const rotationManipulation = configuration => ({
   shape,
   directShape,
   cursorPosition: { x, y },
@@ -327,7 +332,7 @@ const rotationManipulation = ({
   );
   const relaxed = alterSnapGesture.indexOf('relax') !== -1;
   const newSnappedAngle =
-    pixelDifference < config.rotateSnapInPixels && !relaxed ? closest45deg : newAngle;
+    pixelDifference < configuration.rotateSnapInPixels && !relaxed ? closest45deg : newAngle;
   const result = matrix.rotateZ(oldAngle - newSnappedAngle);
   return { transforms: [result], shapes: [shape.id] };
 };
@@ -440,6 +445,7 @@ const directShapeTranslateManipulation = (cumulativeTransforms, directShapes) =>
 };
 
 const rotationAnnotationManipulation = (
+  configuration,
   directTransforms,
   directShapes,
   allShapes,
@@ -462,7 +468,7 @@ const rotationAnnotationManipulation = (
       }))
     )
   );
-  return tuples.map(rotationManipulation);
+  return tuples.map(rotationManipulation(configuration));
 };
 
 const resizeAnnotationManipulation = (transformGestures, directShapes, allShapes, manipulator) => {
@@ -482,16 +488,25 @@ const resizeAnnotationManipulation = (transformGestures, directShapes, allShapes
 const symmetricManipulation = optionHeld; // as in comparable software applications, todo: make configurable
 
 const resizeManipulator = select(
-  toggle => (toggle ? centeredResizeManipulation : asymmetricResizeManipulation)
-)(symmetricManipulation);
+  (configuration, toggle) => (toggle ? centeredResizeManipulation : asymmetricResizeManipulation)
+)(configuration, symmetricManipulation);
 
 const transformIntents = select(
-  (transformGestures, directShapes, shapes, cursorPosition, alterSnapGesture, manipulator) => [
+  (
+    configuration,
+    transformGestures,
+    directShapes,
+    shapes,
+    cursorPosition,
+    alterSnapGesture,
+    manipulator
+  ) => [
     ...directShapeTranslateManipulation(
       transformGestures.map(g => g.cumulativeTransform),
       directShapes
     ),
     ...rotationAnnotationManipulation(
+      configuration,
       transformGestures.map(g => g.transform),
       directShapes,
       shapes,
@@ -500,7 +515,15 @@ const transformIntents = select(
     ),
     ...resizeAnnotationManipulation(transformGestures, directShapes, shapes, manipulator),
   ]
-)(transformGestures, selectedShapes, shapes, cursorPosition, alterSnapGesture, resizeManipulator);
+)(
+  configuration,
+  transformGestures,
+  selectedShapes,
+  shapes,
+  cursorPosition,
+  alterSnapGesture,
+  resizeManipulator
+);
 
 const fromScreen = currentTransform => transform => {
   const isTranslate = transform[12] !== 0 || transform[13] !== 0;
@@ -1407,6 +1430,7 @@ const cursor = select((shape, draggedPrimaryShape) => {
 // collection of shapes themselves
 const nextScene = select(
   (
+    configuration,
     hoveredShape,
     selectedShapeIds,
     selectedPrimaryShapes,
@@ -1428,6 +1452,7 @@ const nextScene = select(
       .filter(shape => shape.type !== 'annotation')
       .map(s => s.id);
     return {
+      configuration,
       hoveredShape,
       selectedShapes: selectedShapeIds,
       selectedLeafShapes,
@@ -1442,6 +1467,7 @@ const nextScene = select(
     };
   }
 )(
+  configuration,
   hoveredShape,
   groupedSelectedShapeIds,
   groupedSelectedPrimaryShapeIds,
