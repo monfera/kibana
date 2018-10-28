@@ -790,7 +790,7 @@ const alignmentGuideAnnotations = select((configuration, shapes, draggedPrimaryS
     : [];
 })(configuration, transformedShapes, draggedPrimaryShape, draggedShape);
 
-const hoverAnnotations = select((hoveredShape, selectedPrimaryShapeIds, draggedShape) => {
+const hoverAnnotations = select((configuration, hoveredShape, selectedPrimaryShapeIds, draggedShape) => {
   return hoveredShape &&
     hoveredShape.type !== 'annotation' &&
     selectedPrimaryShapeIds.indexOf(hoveredShape.id) === -1 &&
@@ -798,9 +798,9 @@ const hoverAnnotations = select((hoveredShape, selectedPrimaryShapeIds, draggedS
     ? [
         {
           ...hoveredShape,
-          id: config.hoverAnnotationName + '_' + hoveredShape.id,
+          id: configuration.hoverAnnotationName + '_' + hoveredShape.id,
           type: 'annotation',
-          subtype: config.hoverAnnotationName,
+          subtype: configuration.hoverAnnotationName,
           interactive: false,
           localTransformMatrix: matrix.multiply(
             hoveredShape.localTransformMatrix,
@@ -809,14 +809,15 @@ const hoverAnnotations = select((hoveredShape, selectedPrimaryShapeIds, draggedS
         },
       ]
     : [];
-})(hoveredShape, selectedPrimaryShapeIds, draggedShape);
+})(configuration, hoveredShape, selectedPrimaryShapeIds, draggedShape);
 
-const rotationAnnotation = (shapes, selectedShapes, shape, i) => {
+const rotationAnnotation = (configuration, shapes, selectedShapes, shape, i) => {
   const foundShape = shapes.find(s => shape.id === s.id);
   if (!foundShape) return false;
 
   if (foundShape.type === 'annotation') {
     return rotationAnnotation(
+      configuration,
       shapes,
       selectedShapes,
       shapes.find(s => foundShape.parent === s.id),
@@ -825,35 +826,35 @@ const rotationAnnotation = (shapes, selectedShapes, shape, i) => {
   }
   const b = snappedB(foundShape);
   const centerTop = matrix.translate(0, -b, 0);
-  const pixelOffset = matrix.translate(0, -config.rotateAnnotationOffset, config.atopZ);
+  const pixelOffset = matrix.translate(0, -configuration.rotateAnnotationOffset, configuration.atopZ);
   const transform = matrix.multiply(centerTop, pixelOffset);
   return {
-    id: config.rotationHandleName + '_' + i,
+    id: configuration.rotationHandleName + '_' + i,
     type: 'annotation',
-    subtype: config.rotationHandleName,
+    subtype: configuration.rotationHandleName,
     interactive: true,
     parent: foundShape.id,
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,0,255,0.3)',
-    a: config.rotationHandleSize,
-    b: config.rotationHandleSize,
+    a: configuration.rotationHandleSize,
+    b: configuration.rotationHandleSize,
   };
 };
 
-const resizePointAnnotations = (parent, a, b) => ([x, y, cursorAngle]) => {
-  const markerPlace = matrix.translate(x * a, y * b, config.resizeAnnotationOffsetZ);
+const resizePointAnnotations = (configuration, parent, a, b) => ([x, y, cursorAngle]) => {
+  const markerPlace = matrix.translate(x * a, y * b, configuration.resizeAnnotationOffsetZ);
   const pixelOffset = matrix.translate(
-    -x * config.resizeAnnotationOffset,
-    -y * config.resizeAnnotationOffset,
-    config.atopZ + 10
+    -x * configuration.resizeAnnotationOffset,
+    -y * configuration.resizeAnnotationOffset,
+    configuration.atopZ + 10
   );
   const transform = matrix.multiply(markerPlace, pixelOffset);
   const xName = xNames[x];
   const yName = yNames[y];
   return {
-    id: [config.resizeHandleName, xName, yName, parent].join('_'),
+    id: [configuration.resizeHandleName, xName, yName, parent].join('_'),
     type: 'annotation',
-    subtype: config.resizeHandleName,
+    subtype: configuration.resizeHandleName,
     horizontalPosition: xName,
     verticalPosition: yName,
     cursorAngle,
@@ -861,30 +862,30 @@ const resizePointAnnotations = (parent, a, b) => ([x, y, cursorAngle]) => {
     parent,
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,255,0,1)',
-    a: config.resizeAnnotationSize,
-    b: config.resizeAnnotationSize,
+    a: configuration.resizeAnnotationSize,
+    b: configuration.resizeAnnotationSize,
   };
 };
 
-const resizeEdgeAnnotations = (parent, a, b) => ([[x0, y0], [x1, y1]]) => {
+const resizeEdgeAnnotations = (configuration, parent, a, b) => ([[x0, y0], [x1, y1]]) => {
   const x = a * mean(x0, x1);
   const y = b * mean(y0, y1);
-  const markerPlace = matrix.translate(x, y, config.atopZ - 10);
+  const markerPlace = matrix.translate(x, y, configuration.atopZ - 10);
   const transform = markerPlace; // no offset etc. at the moment
   const horizontal = y0 === y1;
   const length = horizontal ? a * Math.abs(x1 - x0) : b * Math.abs(y1 - y0);
-  const sectionHalfLength = Math.max(0, length / 2 - config.resizeAnnotationConnectorOffset);
+  const sectionHalfLength = Math.max(0, length / 2 - configuration.resizeAnnotationConnectorOffset);
   const width = 0.5;
   return {
-    id: [config.resizeConnectorName, xNames[x0], yNames[y0], xNames[x1], yNames[y1], parent].join(
+    id: [configuration.resizeConnectorName, xNames[x0], yNames[y0], xNames[x1], yNames[y1], parent].join(
       '_'
     ),
     type: 'annotation',
-    subtype: config.resizeConnectorName,
+    subtype: configuration.resizeConnectorName,
     interactive: true,
     parent,
     localTransformMatrix: transform,
-    backgroundColor: config.devColor,
+    backgroundColor: configuration.devColor,
     a: horizontal ? sectionHalfLength : width,
     b: horizontal ? width : sectionHalfLength,
   };
@@ -903,19 +904,19 @@ const connectorVertices = [
 
 const cornerVertices = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
 
-function resizeAnnotation(shapes, selectedShapes, shape) {
+function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   const foundShape = shapes.find(s => shape.id === s.id);
   const properShape =
     foundShape &&
-    (foundShape.subtype === config.resizeHandleName
+    (foundShape.subtype === configuration.resizeHandleName
       ? shapes.find(s => shape.parent === s.id)
       : foundShape);
   if (!foundShape) return [];
 
-  if (foundShape.subtype === config.resizeHandleName) {
+  if (foundShape.subtype === configuration.resizeHandleName) {
     // preserve any interactive annotation when handling
     const result = foundShape.interactive
-      ? resizeAnnotationsFunction({
+      ? resizeAnnotationsFunction(configuration, {
           shapes,
           selectedShapes: [shapes.find(s => shape.parent === s.id)],
         })
@@ -923,7 +924,7 @@ function resizeAnnotation(shapes, selectedShapes, shape) {
     return result;
   }
   if (foundShape.type === 'annotation')
-    return resizeAnnotation(shapes, selectedShapes, shapes.find(s => foundShape.parent === s.id));
+    return resizeAnnotation(configuration, shapes, selectedShapes, shapes.find(s => foundShape.parent === s.id));
 
   // fixme left active: snap wobble. right active: opposite side wobble.
   const a = snappedA(properShape);
@@ -931,7 +932,7 @@ function resizeAnnotation(shapes, selectedShapes, shape) {
   const groupedShape = shape =>
     shape.parent === properShape.id &&
     shape.type !== 'annotation' &&
-    shape.type !== config.groupName;
+    shape.type !== configuration.groupName;
   // fixme broaden resizableChild to other multiples of 90 degrees
   const resizableChild = shape =>
     shallowEqual(
@@ -940,7 +941,7 @@ function resizeAnnotation(shapes, selectedShapes, shape) {
     );
   const allowResize =
     properShape.type !== 'group' ||
-    (config.groupResize && shapes.filter(groupedShape).every(resizableChild));
+    (configuration.groupResize && shapes.filter(groupedShape).every(resizableChild));
   const resizeVertices = allowResize
     ? [
         [-1, -1, 315],
@@ -953,17 +954,17 @@ function resizeAnnotation(shapes, selectedShapes, shape) {
         [-1, 0, 270], // edge midpoints
       ]
     : [];
-  const resizePoints = resizeVertices.map(resizePointAnnotations(shape.id, a, b));
-  const connectors = connectorVertices.map(resizeEdgeAnnotations(shape.id, a, b));
+  const resizePoints = resizeVertices.map(resizePointAnnotations(configuration, shape.id, a, b));
+  const connectors = connectorVertices.map(resizeEdgeAnnotations(configuration, shape.id, a, b));
   return [...resizePoints, ...connectors];
 }
 
-function resizeAnnotationsFunction({ shapes, selectedShapes }) {
+function resizeAnnotationsFunction(configuration, { shapes, selectedShapes }) {
   const shapesToAnnotate = selectedShapes;
   return flatten(
     shapesToAnnotate
       .map(shape => {
-        return resizeAnnotation(shapes, selectedShapes, shape);
+        return resizeAnnotation(configuration, shapes, selectedShapes, shape);
       })
       .filter(identity)
   );
@@ -1367,14 +1368,14 @@ const groupedSelectedPrimaryShapeIds = select(selectedShapes => selectedShapes.m
   groupedSelectedShapes
 );
 
-const resizeAnnotations = select(resizeAnnotationsFunction)(grouping);
+const resizeAnnotations = select(resizeAnnotationsFunction)(configuration, grouping);
 
-const rotationAnnotations = select(({ shapes, selectedShapes }) => {
+const rotationAnnotations = select((configuration, { shapes, selectedShapes }) => {
   const shapesToAnnotate = selectedShapes;
   return shapesToAnnotate
-    .map((shape, i) => rotationAnnotation(shapes, selectedShapes, shape, i))
+    .map((shape, i) => rotationAnnotation(configuration, shapes, selectedShapes, shape, i))
     .filter(identity);
-})(grouping);
+})(configuration, grouping);
 
 const annotatedShapes = select(
   (
