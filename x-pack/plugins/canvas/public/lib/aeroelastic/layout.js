@@ -1155,9 +1155,6 @@ const extend = ([[xMin, yMin], [xMax, yMax]], [x0, y0], [x1, y1]) => [
   [Math.max(xMax, x0, x1), Math.max(yMax, y0, y1)],
 ];
 
-const isAdHocGroup = shape =>
-  shape.type === config.groupName && shape.subtype === config.adHocGroupName;
-
 // fixme put it into geometry.js
 const getAABB = shapes =>
   shapes.reduce(
@@ -1214,22 +1211,20 @@ const dissolveGroups = (groupsToDissolve, shapes, selectedShapes) => {
 // returns true if the shape is not a child of one of the shapes
 const hasNoParentWithin = shapes => shape => !shapes.some(g => shape.parent === g.id);
 
-const childOfGroup = shape => shape.parent && shape.parent.startsWith(config.groupName);
-
 const asYetUngroupedShapes = (preexistingAdHocGroups, selectedShapes) =>
   selectedShapes.filter(hasNoParentWithin(preexistingAdHocGroups));
 
 const idMatch = shape => s => s.id === shape.id;
 const idsMatch = selectedShapes => shape => selectedShapes.find(idMatch(shape));
 
-const axisAlignedBoundingBoxShape = shapesToBox => {
+const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
   const axisAlignedBoundingBox = getAABB(shapesToBox);
   const { a, b, localTransformMatrix, rigTransform } = projectAABB(axisAlignedBoundingBox);
-  const id = config.groupName + '_' + makeUid();
+  const id = configuration.groupName + '_' + makeUid();
   const aabbShape = {
     id,
-    type: config.groupName,
-    subtype: config.adHocGroupName,
+    type: configuration.groupName,
+    subtype: configuration.adHocGroupName,
     a,
     b,
     localTransformMatrix,
@@ -1240,10 +1235,10 @@ const axisAlignedBoundingBoxShape = shapesToBox => {
 
 const EPSILON = 1e-6;
 
-const resizeGroup = (config, shapes, selectedShapes, elements) => {
+const resizeGroup = (configuration, shapes, selectedShapes, elements) => {
   if (!elements.length) return { shapes, selectedShapes };
   const e = elements[0];
-  const isGroup = shape => shape.type === config.groupName;
+  const isGroup = shape => shape.type === configuration.groupName;
   if (!isGroup(e)) return { shapes, selectedShapes };
   if (!e.baseAB) {
     return {
@@ -1304,6 +1299,9 @@ const groupAction = select(action => {
 })(actionEvent);
 
 const grouping = select((configuration, shapes, selectedShapes, groupAction) => {
+  const childOfGroup = shape => shape.parent && shape.parent.startsWith(configuration.groupName);
+  const isAdHocGroup = shape =>
+    shape.type === configuration.groupName && shape.subtype === configuration.adHocGroupName;
   const preexistingAdHocGroups = shapes.filter(isAdHocGroup);
   const matcher = idsMatch(selectedShapes);
   const selectedFn = shape => matcher(shape) && shape.type !== 'annotation';
@@ -1366,7 +1364,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
     return preserveCurrentGroups(shapes, selectedShapes);
   } else {
     // group together the multiple items
-    const group = axisAlignedBoundingBoxShape(freshSelectedShapes);
+    const group = axisAlignedBoundingBoxShape(configuration, freshSelectedShapes);
     const selectedLeafShapes = getLeafs(
       shape => shape.subtype === configuration.adHocGroupName,
       shapes,
@@ -1447,12 +1445,12 @@ const bidirectionalCursors = {
   '315': 'nwse-resize',
 };
 
-const cursor = select((shape, draggedPrimaryShape) => {
+const cursor = select((configuration, shape, draggedPrimaryShape) => {
   if (!shape) return 'auto';
   switch (shape.subtype) {
-    case config.rotationHandleName:
+    case configuration.rotationHandleName:
       return 'crosshair';
-    case config.resizeHandleName:
+    case configuration.resizeHandleName:
       const angle = (matrix.matrixToAngle(shape.transformMatrix) + 360) % 360;
       const screenProjectedAngle = angle + shape.cursorAngle;
       const discretizedAngle = (Math.round(screenProjectedAngle / 45) * 45 + 360) % 360;
@@ -1460,7 +1458,7 @@ const cursor = select((shape, draggedPrimaryShape) => {
     default:
       return draggedPrimaryShape ? 'grabbing' : 'grab';
   }
-})(focusedShape, draggedPrimaryShape);
+})(configuration, focusedShape, draggedPrimaryShape);
 
 // this is the core scenegraph update invocation: upon new cursor position etc. emit the new scenegraph
 // it's _the_ state representation (at a PoC level...) comprising of transient properties eg. draggedShape, and the
@@ -1480,7 +1478,7 @@ const nextScene = select(
     selectedShapes
   ) => {
     const selectedLeafShapes = getLeafs(
-      shape => shape.type === config.groupName,
+      shape => shape.type === configuration.groupName,
       shapes,
       selectionState.shapes
         .map(s => (s.type === 'annotation' ? shapes.find(ss => ss.id === s.parent) : s))
