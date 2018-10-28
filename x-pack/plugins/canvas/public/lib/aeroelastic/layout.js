@@ -365,17 +365,16 @@ const resizeMultiplierVertical = { top: -1, center: 0, bottom: 1 };
 const xNames = { '-1': 'left', '0': 'center', '1': 'right' };
 const yNames = { '-1': 'top', '0': 'center', '1': 'bottom' };
 
-const minimumSize = ({ a, b, baseAB }, vector) => {
+const minimumSize = (min, { a, b, baseAB }, vector) => {
   // don't allow an element size of less than the minimumElementSize
   // todo switch to matrix algebra
-  const min = config.minimumElementSize;
   return [
     Math.max(baseAB ? min - baseAB[0] : min - a, vector[0]),
     Math.max(baseAB ? min - baseAB[1] : min - b, vector[1]),
   ];
 };
 
-const centeredResizeManipulation = ({ gesture, shape, directShape }) => {
+const centeredResizeManipulation = configuration => ({ gesture, shape, directShape }) => {
   const transform = gesture.cumulativeTransform;
   // scaling such that the center remains in place (ie. the other side of the shape can grow/shrink)
   if (!shape || !directShape) return { transforms: [], shapes: [] };
@@ -393,7 +392,7 @@ const centeredResizeManipulation = ({ gesture, shape, directShape }) => {
     0,
   ];
   const orientedVector = matrix2d.componentProduct(vector, orientationMask);
-  const cappedOrientedVector = minimumSize(shape, orientedVector);
+  const cappedOrientedVector = minimumSize(configuration.minimumElementSize, shape, orientedVector);
   return {
     cumulativeTransforms: [],
     cumulativeSizes: [gesture.sizes || matrix2d.translate(...cappedOrientedVector)],
@@ -401,7 +400,7 @@ const centeredResizeManipulation = ({ gesture, shape, directShape }) => {
   };
 };
 
-const asymmetricResizeManipulation = ({ gesture, shape, directShape }) => {
+const asymmetricResizeManipulation = configuration => ({ gesture, shape, directShape }) => {
   const transform = gesture.cumulativeTransform;
   // scaling such that the center remains in place (ie. the other side of the shape can grow/shrink)
   if (!shape || !directShape) return { transforms: [], shapes: [] };
@@ -415,7 +414,7 @@ const asymmetricResizeManipulation = ({ gesture, shape, directShape }) => {
     0,
   ];
   const orientedVector = matrix2d.componentProduct(vector, orientationMask);
-  const cappedOrientedVector = minimumSize(shape, orientedVector);
+  const cappedOrientedVector = minimumSize(configuration.minimumElementSize, shape, orientedVector);
 
   const antiRotatedVector = matrix.mvMultiply(
     matrix.multiply(
@@ -487,8 +486,8 @@ const resizeAnnotationManipulation = (transformGestures, directShapes, allShapes
 
 const symmetricManipulation = optionHeld; // as in comparable software applications, todo: make configurable
 
-const resizeManipulator = select(
-  (configuration, toggle) => (toggle ? centeredResizeManipulation : asymmetricResizeManipulation)
+const resizeManipulator = select((configuration, toggle) =>
+  (toggle ? centeredResizeManipulation : asymmetricResizeManipulation)(configuration)
 )(configuration, symmetricManipulation);
 
 const transformIntents = select(
