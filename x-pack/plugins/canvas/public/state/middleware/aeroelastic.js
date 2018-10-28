@@ -7,6 +7,7 @@
 import { shallowEqual } from 'recompose';
 import { aeroelastic as aero } from '../../lib/aeroelastic_kibana';
 import { matrixToAngle } from '../../lib/aeroelastic/matrix';
+import defaultConfiguration from '../../lib/aeroelastic/config';
 import {
   addElement,
   removeElements,
@@ -150,7 +151,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
     persistedGroups.forEach(p => {
       if (!persistedGroups.find(g => p.position.id === g.id)) {
-        debugger
+        debugger;
         console.log('wanting to remove group', p.position.id, p.position.subtype);
       }
     });
@@ -178,7 +179,12 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
   const createStore = page =>
     aero.createStore(
-      { shapeAdditions: [], primaryUpdate: null, currentScene: { shapes: [] } },
+      {
+        shapeAdditions: [],
+        primaryUpdate: null,
+        currentScene: { shapes: [] },
+        configuration: defaultConfiguration,
+      },
       onChangeCallback,
       page
     );
