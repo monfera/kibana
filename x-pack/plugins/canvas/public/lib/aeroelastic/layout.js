@@ -1319,7 +1319,9 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
     return {
       shapes: shapes.map(
         s =>
-          s.subtype === configuration.adHocGroupName ? { ...s, subtype: configuration.persistentGroupName } : s
+          s.subtype === configuration.adHocGroupName
+            ? { ...s, subtype: configuration.persistentGroupName }
+            : s
       ),
       selectedShapes: selectedShapes
         .filter(selected => selected.subtype !== configuration.adHocGroupName)
@@ -1376,7 +1378,8 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
       localTransformMatrix: matrix.multiply(group.rigTransform, shape.transformMatrix),
     }));
     const nonGroupGraphConstituent = s =>
-      s.subtype !== configuration.adHocGroupName && !parentedSelectedShapes.find(ss => s.id === ss.id);
+      s.subtype !== configuration.adHocGroupName &&
+      !parentedSelectedShapes.find(ss => s.id === ss.id);
     const dissociateFromParentIfAny = s =>
       s.parent &&
       s.parent.startsWith(configuration.groupName) &&
