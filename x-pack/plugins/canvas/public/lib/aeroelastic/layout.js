@@ -453,7 +453,7 @@ const rotationAnnotationManipulation = (
 ) => {
   const shapeIds = directShapes.map(
     shape =>
-      shape.type === 'annotation' && shape.subtype === config.rotationHandleName && shape.parent
+      shape.type === 'annotation' && shape.subtype === configuration.rotationHandleName && shape.parent
   );
   const shapes = shapeIds.map(id => id && allShapes.find(shape => shape.id === id));
   const tuples = flatten(
@@ -470,10 +470,10 @@ const rotationAnnotationManipulation = (
   return tuples.map(rotationManipulation(configuration));
 };
 
-const resizeAnnotationManipulation = (transformGestures, directShapes, allShapes, manipulator) => {
+const resizeAnnotationManipulation = (configuration, transformGestures, directShapes, allShapes, manipulator) => {
   const shapeIds = directShapes.map(
     shape =>
-      shape.type === 'annotation' && shape.subtype === config.resizeHandleName && shape.parent
+      shape.type === 'annotation' && shape.subtype === configuration.resizeHandleName && shape.parent
   );
   const shapes = shapeIds.map(id => id && allShapes.find(shape => shape.id === id));
   const tuples = flatten(
@@ -512,7 +512,7 @@ const transformIntents = select(
       cursorPosition,
       alterSnapGesture
     ),
-    ...resizeAnnotationManipulation(transformGestures, directShapes, shapes, manipulator),
+    ...resizeAnnotationManipulation(configuration, transformGestures, directShapes, shapes, manipulator),
   ]
 )(
   configuration,
@@ -672,7 +672,7 @@ const nextShapes = select((preexistingShapes, restated) => {
 
 const transformedShapes = select(applyLocalTransforms)(nextShapes, transformIntents);
 
-const alignmentGuides = (shapes, guidedShapes, draggedShape) => {
+const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
   const result = {};
   let counter = 0;
   const extremeHorizontal = resizeMultiplierHorizontal[draggedShape.horizontalPosition];
@@ -693,7 +693,7 @@ const alignmentGuides = (shapes, guidedShapes, draggedShape) => {
         for (let l = -1; l < 2; l++) {
           if ((k && !l) || (!k && l)) continue; // don't worry about midpoints of the edges, only the center
           if (
-            draggedShape.subtype === config.resizeHandleName &&
+            draggedShape.subtype === configuration.resizeHandleName &&
             !(
               (extremeHorizontal === k && extremeVertical === l) || // moved corner
               // moved midpoint on horizontal border
@@ -717,7 +717,7 @@ const alignmentGuides = (shapes, guidedShapes, draggedShape) => {
                 const distance = Math.abs(signedDistance);
                 const currentClosest = result[key];
                 if (
-                  Math.round(distance) <= config.guideDistance &&
+                  Math.round(distance) <= configuration.guideDistance &&
                   (!currentClosest || distance <= currentClosest.distance)
                 ) {
                   const orthogonalValues = [
@@ -734,7 +734,7 @@ const alignmentGuides = (shapes, guidedShapes, draggedShape) => {
                     localTransformMatrix: matrix.translate(
                       dim ? midPoint : ss,
                       dim ? ss : midPoint,
-                      config.atopZ
+                      configuration.atopZ
                     ),
                     a: dim ? radius : 0.5,
                     b: dim ? 0.5 : radius,
@@ -774,21 +774,21 @@ const draggedPrimaryShape = select(
     draggedShape && shapes.find(shape => shape.id === primaryShape(draggedShape))
 )(shapes, draggedShape);
 
-const alignmentGuideAnnotations = select((shapes, draggedPrimaryShape, draggedShape) => {
+const alignmentGuideAnnotations = select((configuration, shapes, draggedPrimaryShape, draggedShape) => {
   const guidedShapes = draggedPrimaryShape
     ? [shapes.find(s => s.id === draggedPrimaryShape.id)].filter(identity)
     : [];
   return guidedShapes.length
-    ? alignmentGuides(shapes, guidedShapes, draggedShape).map(shape => ({
+    ? alignmentGuides(configuration, shapes, guidedShapes, draggedShape).map(shape => ({
         ...shape,
-        id: config.alignmentGuideName + '_' + shape.id,
+        id: configuration.alignmentGuideName + '_' + shape.id,
         type: 'annotation',
-        subtype: config.alignmentGuideName,
+        subtype: configuration.alignmentGuideName,
         interactive: false,
         backgroundColor: 'magenta',
       }))
     : [];
-})(transformedShapes, draggedPrimaryShape, draggedShape);
+})(configuration, transformedShapes, draggedPrimaryShape, draggedShape);
 
 const hoverAnnotations = select((hoveredShape, selectedPrimaryShapeIds, draggedShape) => {
   return hoveredShape &&
