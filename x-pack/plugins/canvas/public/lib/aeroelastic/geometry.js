@@ -85,7 +85,8 @@ const shapesAt = (shapes, { x, y }) =>
 const getExtremum = (transformMatrix, a, b) =>
   matrix.normalize(matrix.mvMultiply(transformMatrix, [a, b, 0, 1]));
 
-const landmarkPoint = (a, b, transformMatrix, k, l) => getExtremum(transformMatrix, k * a, l * b);
+const landmarkPoint = ({ a, b }, localTransformMatrix, k, l) =>
+  getExtremum(localTransformMatrix, k * a, l * b);
 
 module.exports = {
   landmarkPoint,
