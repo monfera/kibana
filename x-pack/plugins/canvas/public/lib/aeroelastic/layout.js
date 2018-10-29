@@ -26,8 +26,6 @@ const { shapesAt, landmarkPoint } = require('./geometry');
 const matrix = require('./matrix');
 const matrix2d = require('./matrix2d');
 
-const config = require('./config');
-
 const {
   applyTolerance,
   disjunctiveUnion,
@@ -337,29 +335,6 @@ const rotationManipulation = configuration => ({
   return { transforms: [result], shapes: [shape.id] };
 };
 
-/* upcoming functionality
-const centeredScaleManipulation = ({ shape, directShape, cursorPosition: { x, y } }) => {
-  // scaling such that the center remains in place (ie. the other side of the shape can grow/shrink)
-  if (!shape || !directShape) return { transforms: [], shapes: [] };
-  const center = shape.transformMatrix;
-  const vector = matrix.mvMultiply(
-    matrix.multiply(center, directShape.localTransformMatrix),
-    matrix.ORIGIN
-  );
-  const shapeCenter = matrix.mvMultiply(center, matrix.ORIGIN);
-  const horizontalRatio =
-    directShape.horizontalPosition === 'center'
-      ? 1
-      : Math.max(0.5, (x - shapeCenter[0]) / (vector[0] - shapeCenter[0]));
-  const verticalRatio =
-    directShape.verticalPosition === 'center'
-      ? 1
-      : Math.max(0.5, (y - shapeCenter[1]) / (vector[1] - shapeCenter[1]));
-  const result = matrix.scale(horizontalRatio, verticalRatio, 1);
-  return { transforms: [result], shapes: [shape.id] };
-};
-*/
-
 const resizeMultiplierHorizontal = { left: -1, center: 0, right: 1 };
 const resizeMultiplierVertical = { top: -1, center: 0, bottom: 1 };
 const xNames = { '-1': 'left', '0': 'center', '1': 'right' };
@@ -657,6 +632,15 @@ const getUpstreams = (shapes, shape) =>
 const snappedA = shape => shape.a + (shape.snapResizeVector ? shape.snapResizeVector[0] : 0);
 const snappedB = shape => shape.b + (shape.snapResizeVector ? shape.snapResizeVector[1] : 0);
 
+const cascadeTransforms0 = (shapes, shape) => {
+  const upstreams = getUpstreams(shapes, shape);
+  const upstreamTransforms = upstreams.map(shape => {
+    return shape.localTransformMatrix;
+  });
+  const cascadedTransforms = matrix.reduceTransforms(upstreamTransforms);
+  return cascadedTransforms;
+};
+
 const cascadeTransforms = (shapes, shape) => {
   const upstreams = getUpstreams(shapes, shape);
   const upstreamTransforms = upstreams.map(shape => {
@@ -719,11 +703,11 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
             )
           )
             continue;
-          const D = landmarkPoint(d, k, l);
+          const D = landmarkPoint(d, cascadeTransforms0(shapes, d), k, l);
           for (let m = -1; m < 2; m++) {
             for (let n = -1; n < 2; n++) {
               if ((m && !n) || (!m && n)) continue; // don't worry about midpoints of the edges, only the center
-              const S = landmarkPoint(s, m, n);
+              const S = landmarkPoint(s, cascadeTransforms0(shapes, s), m, n);
               for (let dim = 0; dim < 2; dim++) {
                 const orthogonalDimension = 1 - dim;
                 const dd = D[dim];
