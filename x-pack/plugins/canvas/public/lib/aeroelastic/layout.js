@@ -301,7 +301,7 @@ const selectedShapes = select(selectionTuple => {
 
 const selectedShapeIds = select(shapes => shapes.map(shape => shape.id))(selectedShapes);
 
-const primaryShape = shape => shape.parent || shape.id; // fixme unify with contentShape
+const primaryShape = shape => (shape.type === 'annotation' ? shape.parent : shape.id); // fixme unify with contentShape
 
 const selectedPrimaryShapeIds = select(shapes => shapes.map(primaryShape))(selectedShapes);
 
@@ -687,7 +687,7 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
       const s = shapes[j];
       if (d.id === s.id) continue; // don't self-constrain; todo in the future, self-constrain to the original location
       if (s.type === 'annotation') continue; // fixme avoid this by not letting annotations get in here
-      if (s.parent) continue; // for now, don't snap to grouped elements fixme could snap, but make sure transform is gloabl
+      if (!configuration.intraGroupManipulation && s.parent) continue; // for now, don't snap to grouped elements fixme could snap, but make sure transform is gloabl
       // key points of the stationery shape
       for (let k = -1; k < 2; k++) {
         for (let l = -1; l < 2; l++) {
