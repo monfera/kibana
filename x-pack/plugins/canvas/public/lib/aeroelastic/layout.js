@@ -633,6 +633,7 @@ const snappedA = shape => shape.a + (shape.snapResizeVector ? shape.snapResizeVe
 const snappedB = shape => shape.b + (shape.snapResizeVector ? shape.snapResizeVector[1] : 0);
 
 const cascadeUnsnappedTransforms = (shapes, shape) => {
+  if (!shape.parent) return shape.localTransformMatrix; // boost for common case of toplevel shape
   const upstreams = getUpstreams(shapes, shape);
   const upstreamTransforms = upstreams.map(shape => {
     return shape.localTransformMatrix;
@@ -642,12 +643,13 @@ const cascadeUnsnappedTransforms = (shapes, shape) => {
 };
 
 const cascadeTransforms = (shapes, shape) => {
+  const cascade = s =>
+    s.snapDeltaMatrix
+      ? matrix.multiply(s.localTransformMatrix, s.snapDeltaMatrix)
+      : s.localTransformMatrix;
+  if (!shape.parent) return cascade(shape); // boost for common case of toplevel shape
   const upstreams = getUpstreams(shapes, shape);
-  const upstreamTransforms = upstreams.map(shape => {
-    return shape.snapDeltaMatrix
-      ? matrix.multiply(shape.localTransformMatrix, shape.snapDeltaMatrix)
-      : shape.localTransformMatrix;
-  });
+  const upstreamTransforms = upstreams.map(cascade);
   const cascadedTransforms = matrix.reduceTransforms(upstreamTransforms);
   return cascadedTransforms;
 };
