@@ -632,7 +632,7 @@ const getUpstreams = (shapes, shape) =>
 const snappedA = shape => shape.a + (shape.snapResizeVector ? shape.snapResizeVector[0] : 0);
 const snappedB = shape => shape.b + (shape.snapResizeVector ? shape.snapResizeVector[1] : 0);
 
-const cascadeTransforms0 = (shapes, shape) => {
+const cascadeUnsnappedTransforms = (shapes, shape) => {
   const upstreams = getUpstreams(shapes, shape);
   const upstreamTransforms = upstreams.map(shape => {
     return shape.localTransformMatrix;
@@ -687,7 +687,7 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
       const s = shapes[j];
       if (d.id === s.id) continue; // don't self-constrain; todo in the future, self-constrain to the original location
       if (s.type === 'annotation') continue; // fixme avoid this by not letting annotations get in here
-      if (!configuration.intraGroupManipulation && s.parent) continue; // for now, don't snap to grouped elements fixme could snap, but make sure transform is gloabl
+      if (!configuration.intraGroupManipulation && s.parent) continue;
       // key points of the stationery shape
       for (let k = -1; k < 2; k++) {
         for (let l = -1; l < 2; l++) {
@@ -703,11 +703,11 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
             )
           )
             continue;
-          const D = landmarkPoint(d, cascadeTransforms0(shapes, d), k, l);
+          const D = landmarkPoint(d, cascadeUnsnappedTransforms(shapes, d), k, l);
           for (let m = -1; m < 2; m++) {
             for (let n = -1; n < 2; n++) {
               if ((m && !n) || (!m && n)) continue; // don't worry about midpoints of the edges, only the center
-              const S = landmarkPoint(s, cascadeTransforms0(shapes, s), m, n);
+              const S = landmarkPoint(s, cascadeUnsnappedTransforms(shapes, s), m, n);
               for (let dim = 0; dim < 2; dim++) {
                 const orthogonalDimension = 1 - dim;
                 const dd = D[dim];
@@ -936,13 +936,14 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
       : [];
     return result;
   }
-  if (foundShape.type === 'annotation')
+  if (foundShape.type === 'annotation') {
     return resizeAnnotation(
       configuration,
       shapes,
       selectedShapes,
       shapes.find(s => foundShape.parent === s.id)
     );
+  }
 
   // fixme left active: snap wobble. right active: opposite side wobble.
   const a = snappedA(properShape);
