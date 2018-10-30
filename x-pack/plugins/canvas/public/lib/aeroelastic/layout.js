@@ -703,11 +703,11 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
             )
           )
             continue;
-          const D = landmarkPoint(d, cascadeUnsnappedTransforms(shapes, d), k, l);
+          const D = landmarkPoint(d.a, d.b, cascadeUnsnappedTransforms(shapes, d), k, l);
           for (let m = -1; m < 2; m++) {
             for (let n = -1; n < 2; n++) {
               if ((m && !n) || (!m && n)) continue; // don't worry about midpoints of the edges, only the center
-              const S = landmarkPoint(s, cascadeUnsnappedTransforms(shapes, s), m, n);
+              const S = landmarkPoint(s.a, s.b, cascadeUnsnappedTransforms(shapes, s), m, n);
               for (let dim = 0; dim < 2; dim++) {
                 const orthogonalDimension = 1 - dim;
                 const dd = D[dim];
