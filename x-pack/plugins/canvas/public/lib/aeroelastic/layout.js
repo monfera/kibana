@@ -731,6 +731,7 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
                   const highPoint = Math.max(...orthogonalValues);
                   const midPoint = (lowPoint + highPoint) / 2;
                   const radius = midPoint - lowPoint;
+                  console.log('snapping dragged shape', d.id, 'to reference shape', s.id)
                   result[key] = {
                     id: counter++,
                     localTransformMatrix: matrix.translate(
@@ -809,7 +810,7 @@ const hoverAnnotations = select(
             interactive: false,
             localTransformMatrix: matrix.multiply(
               hoveredShape.localTransformMatrix,
-              matrix.translate(0, 0, 100)
+              matrix.translate(0, 0, configuration.hoverLift)
             ),
           },
         ]

@@ -17,6 +17,7 @@ const groupName = 'group';
 const groupResize = true;
 const guideDistance = 3;
 const hoverAnnotationName = 'hoverAnnotation';
+const hoverLift = 100;
 const intraGroupManipulation = false;
 const persistentGroupName = 'persistentGroup';
 const resizeAnnotationOffset = 0;
@@ -44,6 +45,7 @@ module.exports = {
   groupResize,
   guideDistance,
   hoverAnnotationName,
+  hoverLift,
   intraGroupManipulation,
   minimumElementSize,
   persistentGroupName,
