@@ -687,6 +687,12 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
     // key points of the dragged shape bounding box
     for (let j = 0; j < shapes.length; j++) {
       const s = shapes[j];
+      if (
+        configuration.intraGroupSnapOnly &&
+        d.parent !== s.parent &&
+        d.parent !== s.id /* allow parent */
+      )
+        continue;
       if (d.id === s.id) continue; // don't self-constrain; todo in the future, self-constrain to the original location
       if (s.type === 'annotation') continue; // fixme avoid this by not letting annotations get in here
       if (!configuration.intraGroupManipulation && s.parent) continue;
@@ -731,7 +737,6 @@ const alignmentGuides = (configuration, shapes, guidedShapes, draggedShape) => {
                   const highPoint = Math.max(...orthogonalValues);
                   const midPoint = (lowPoint + highPoint) / 2;
                   const radius = midPoint - lowPoint;
-                  console.log('snapping dragged shape', d.id, 'to reference shape', s.id)
                   result[key] = {
                     id: counter++,
                     localTransformMatrix: matrix.translate(
