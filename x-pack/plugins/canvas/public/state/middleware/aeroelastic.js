@@ -89,7 +89,7 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElem
     .forEach((shape, i) => {
       const element = elements[i];
       const elemPos = element && element.position;
-      if (elemPos && gestureEnd) {
+      if (elemPos && gestureEnd) {return;
         // get existing position information from element
         const oldProps = {
           left: elemPos.left,
@@ -145,7 +145,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
             subtype: 'persistentGroup',
           },
         };
-        dispatch(addElement(page, partialElement));
+        //dispatch(addElement(page, partialElement));
       }
     });
 
