@@ -89,7 +89,7 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElem
     .forEach((shape, i) => {
       const element = elements[i];
       const elemPos = element && element.position;
-      if (elemPos && gestureEnd) {return;
+      if (elemPos && gestureEnd) {
         // get existing position information from element
         const oldProps = {
           left: elemPos.left,
@@ -116,6 +116,9 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElem
 };
 
 const id = element => element.id;
+    // check for duplication
+    const deduped = a => a.filter((d, i) => a.indexOf(d) === i)
+    const idDuplicateCheck = groups => {if(deduped(groups.map(g => g.id)).length !== groups.length) debbugger}
 
 export const aeroelastic = ({ dispatch, getState }) => {
   // When aeroelastic updates an element, we need to dispatch actions to notify redux of the changes
@@ -132,27 +135,30 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const selectedElement = getSelectedElement(getState());
 
     const persistableGroups = nextScene.shapes.filter(s => s.subtype === 'persistentGroup');
-    const persistedGroups = elements.filter(e => e.position.subtype === 'persistentGroup');
+    const persistedGroups = elements.filter(e => e.id.startsWith('group_'));
+
+    idDuplicateCheck(persistableGroups)
+    idDuplicateCheck(persistedGroups)
 
     persistableGroups.forEach(g => {
-      if (!persistedGroups.find(p => p.position.id === g.id)) {
+      if (!persistedGroups.find(p => {if(!p.id) debugger; return p.id === g.id})) {
         const partialElement = {
           id: g.id,
           filter: undefined,
-          expression: undefined,
+          expression: 'shape fill="rgba(255,255,255,0)" | render',
           position: {
-            ...shapeToElement(g),
-            subtype: 'persistentGroup',
+            ...shapeToElement(g)
           },
         };
-        //dispatch(addElement(page, partialElement));
+        dispatch(addElement(page, partialElement));
       }
     });
 
     persistedGroups.forEach(p => {
-      if (!persistedGroups.find(g => p.position.id === g.id)) {
+      if(!p.id) debugger
+      if (!persistedGroups.find(g => p.id === g.id)) {
         debugger;
-        console.log('wanting to remove group', p.position.id, p.position.subtype);
+        console.log('wanting to remove group', p.id, p.position.subtype);
       }
     });
 
@@ -190,12 +196,14 @@ export const aeroelastic = ({ dispatch, getState }) => {
     );
 
   const populateWithElements = page =>
-    aero.commit(
+{const newShapes = getElements(getState(), page).map(elementToShape)
+  idDuplicateCheck(newShapes)
+  return    aero.commit(
       page,
       'restateShapesEvent',
-      { newShapes: getElements(getState(), page).map(elementToShape) },
+      { newShapes },
       { silent: true }
-    );
+    )};
 
   const selectShape = (page, id) => {
     aero.commit(page, 'shapeSelect', { shapes: [id] });
