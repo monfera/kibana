@@ -116,9 +116,11 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElem
 };
 
 const id = element => element.id;
-    // check for duplication
-    const deduped = a => a.filter((d, i) => a.indexOf(d) === i)
-    const idDuplicateCheck = groups => {if(deduped(groups.map(g => g.id)).length !== groups.length) debbugger}
+// check for duplication
+const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
+const idDuplicateCheck = groups => {
+  if (deduped(groups.map(g => g.id)).length !== groups.length) debbugger;
+};
 
 export const aeroelastic = ({ dispatch, getState }) => {
   // When aeroelastic updates an element, we need to dispatch actions to notify redux of the changes
@@ -137,17 +139,22 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const persistableGroups = nextScene.shapes.filter(s => s.subtype === 'persistentGroup');
     const persistedGroups = elements.filter(e => e.id.startsWith('group_'));
 
-    idDuplicateCheck(persistableGroups)
-    idDuplicateCheck(persistedGroups)
+    idDuplicateCheck(persistableGroups);
+    idDuplicateCheck(persistedGroups);
 
     persistableGroups.forEach(g => {
-      if (!persistedGroups.find(p => {if(!p.id) debugger; return p.id === g.id})) {
+      if (
+        !persistedGroups.find(p => {
+          if (!p.id) debugger;
+          return p.id === g.id;
+        })
+      ) {
         const partialElement = {
           id: g.id,
           filter: undefined,
           expression: 'shape fill="rgba(255,255,255,0)" | render',
           position: {
-            ...shapeToElement(g)
+            ...shapeToElement(g),
           },
         };
         dispatch(addElement(page, partialElement));
@@ -155,7 +162,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
     });
 
     persistedGroups.forEach(p => {
-      if(!p.id) debugger
+      if (!p.id) debugger;
       if (!persistedGroups.find(g => p.id === g.id)) {
         debugger;
         console.log('wanting to remove group', p.id, p.position.subtype);
@@ -195,15 +202,11 @@ export const aeroelastic = ({ dispatch, getState }) => {
       page
     );
 
-  const populateWithElements = page =>
-{const newShapes = getElements(getState(), page).map(elementToShape)
-  idDuplicateCheck(newShapes)
-  return    aero.commit(
-      page,
-      'restateShapesEvent',
-      { newShapes },
-      { silent: true }
-    )};
+  const populateWithElements = page => {
+    const newShapes = getElements(getState(), page).map(elementToShape);
+    idDuplicateCheck(newShapes);
+    return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
+  };
 
   const selectShape = (page, id) => {
     aero.commit(page, 'shapeSelect', { shapes: [id] });
