@@ -110,7 +110,7 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElem
         if (1 / newProps.angle === -Infinity) newProps.angle = 0; // recompose.shallowEqual discerns between 0 and -0
 
         if (!shallowEqual(oldProps, newProps)) {
-          console.log('setting x of shape', shape.id, 'from', oldProps.left, 'to', newProps.left)
+          console.log('setting x of shape', shape.id, 'from', oldProps.left, 'to', newProps.left);
           setPosition(shape.id, newProps);
         }
       }
@@ -158,7 +158,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
       if (
         !persistedGroups.find(p => {
           if (!p.id) debugger;
-          console.log(1 || nextScene)
+          console.log(1 || nextScene);
           return p.id === g.id;
         })
       ) {
