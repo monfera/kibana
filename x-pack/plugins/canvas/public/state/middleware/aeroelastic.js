@@ -216,11 +216,11 @@ export const aeroelastic = ({ dispatch, getState }) => {
     );
 
   const populateWithElements = page => {
-    if(window.monfera) debugger;
+    if (window.monfera) debugger;
     const newShapes = getElements(getState(), page).map(elementToShape);
     idDuplicateCheck(newShapes);
     missingParentCheck(newShapes);
-    console.log('restated x values:', newShapes.map(s => s.localTransformMatrix[12]))
+    console.log('restated x values:', newShapes.map(s => s.localTransformMatrix[12]));
     return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
   };
 
