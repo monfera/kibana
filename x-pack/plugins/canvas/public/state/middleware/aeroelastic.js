@@ -110,6 +110,7 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElem
         if (1 / newProps.angle === -Infinity) newProps.angle = 0; // recompose.shallowEqual discerns between 0 and -0
 
         if (!shallowEqual(oldProps, newProps)) {
+          console.log('setting x of shape', shape.id, 'from', oldProps.left, 'to', newProps.left)
           setPosition(shape.id, newProps);
         }
       }
@@ -127,7 +128,7 @@ const missingParentCheck = groups => {
   const idMap = arrayToMap(groups.map(g => g.id));
   groups.forEach(g => {
     if (g.parent && !idMap[g.parent]) {
-      debugger;
+      //debugger;
       g.parent = null;
     }
   });
@@ -157,6 +158,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
       if (
         !persistedGroups.find(p => {
           if (!p.id) debugger;
+          console.log(1 || nextScene)
           return p.id === g.id;
         })
       ) {
@@ -176,15 +178,15 @@ export const aeroelastic = ({ dispatch, getState }) => {
       p => !persistableGroups.find(g => p.id === g.id)
     );
 
-    if (elementsToRemove.length) {
-      dispatch(removeElements(elementsToRemove.map(e => e.id), page));
-    }
-
     updateGlobalPositions(
       (elementId, position) => dispatch(setPosition(elementId, page, position)),
       nextScene,
       elements
     );
+
+    if (elementsToRemove.length) {
+      dispatch(removeElements(elementsToRemove.map(e => e.id), page));
+    }
 
     // set the selected element on the global store, if one element is selected
     const selectedShape = nextScene.selectedPrimaryShapes[0];
@@ -214,9 +216,11 @@ export const aeroelastic = ({ dispatch, getState }) => {
     );
 
   const populateWithElements = page => {
+    if(window.monfera) debugger;
     const newShapes = getElements(getState(), page).map(elementToShape);
     idDuplicateCheck(newShapes);
     missingParentCheck(newShapes);
+    console.log('restated x values:', newShapes.map(s => s.localTransformMatrix[12]))
     return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
   };
 
