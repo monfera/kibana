@@ -8,6 +8,7 @@ import { shallowEqual } from 'recompose';
 import { aeroelastic as aero } from '../../lib/aeroelastic_kibana';
 import { matrixToAngle } from '../../lib/aeroelastic/matrix';
 import defaultConfiguration from '../../lib/aeroelastic/config';
+import { arrayToMap } from '../../lib/aeroelastic/functional';
 import {
   addElement,
   removeElements,
@@ -119,7 +120,17 @@ const id = element => element.id;
 // check for duplication
 const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
 const idDuplicateCheck = groups => {
-  if (deduped(groups.map(g => g.id)).length !== groups.length) debbugger;
+  if (deduped(groups.map(g => g.id)).length !== groups.length) debugger;
+};
+
+const missingParentCheck = groups => {
+  const idMap = arrayToMap(groups.map(g => g.id));
+  groups.forEach(g => {
+    if (g.parent && !idMap[g.parent]) {
+      debugger;
+      g.parent = null;
+    }
+  });
 };
 
 export const aeroelastic = ({ dispatch, getState }) => {
@@ -161,13 +172,13 @@ export const aeroelastic = ({ dispatch, getState }) => {
       }
     });
 
-    persistedGroups.forEach(p => {
-      if (!p.id) debugger;
-      if (!persistedGroups.find(g => p.id === g.id)) {
-        debugger;
-        console.log('wanting to remove group', p.id, p.position.subtype);
-      }
-    });
+    const elementsToRemove = persistedGroups.filter(
+      p => !persistableGroups.find(g => p.id === g.id)
+    );
+
+    if (elementsToRemove.length) {
+      dispatch(removeElements(elementsToRemove.map(e => e.id), page));
+    }
 
     updateGlobalPositions(
       (elementId, position) => dispatch(setPosition(elementId, page, position)),
@@ -205,6 +216,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
   const populateWithElements = page => {
     const newShapes = getElements(getState(), page).map(elementToShape);
     idDuplicateCheck(newShapes);
+    missingParentCheck(newShapes);
     return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
   };
 

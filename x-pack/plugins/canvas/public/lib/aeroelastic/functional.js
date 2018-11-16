@@ -82,8 +82,11 @@ const removeDuplicates = (idFun, a) =>
 const epsilon = 1 / 1000;
 const applyTolerance = d => Math.round(d / epsilon) * epsilon;
 
+const arrayToMap = a => Object.assign({}, ...a.map(d => ({ [d]: true })));
+
 module.exports = {
   applyTolerance,
+  arrayToMap,
   disjunctiveUnion,
   flatten,
   identity,
