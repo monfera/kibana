@@ -24,6 +24,8 @@ import { appReady } from '../actions/app';
 import { setWorkpad } from '../actions/workpad';
 import { getElements, getPages, getSelectedPage, getSelectedElement } from '../selectors/workpad';
 
+const isGroupId = id => id.startsWith('group_');
+
 /**
  * elementToShape
  *
@@ -56,10 +58,11 @@ const elementToShape = (element, i) => {
   const localTransformMatrix =
     position.localTransformMatrix ||
     aero.matrix.multiply(aero.matrix.translate(cx, cy, z), aero.matrix.rotateZ(angleRadians));
+  const isGroup = isGroupId(element.id);
   return {
     id: element.id,
-    type: element.id.startsWith('group_') ? 'group' : 'rectangleElement',
-    subtype: element.id.startsWith('group_') ? 'persistentGroup' : '',
+    type: isGroup ? 'group' : 'rectangleElement',
+    subtype: isGroup ? 'persistentGroup' : '',
     parent: (element.position && element.position.parent) || null, // reserved for hierarchical (tree shaped) grouping,
     localTransformMatrix: localTransformMatrix,
     transformMatrix: localTransformMatrix,
@@ -149,7 +152,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const selectedElement = getSelectedElement(getState());
 
     const persistableGroups = nextScene.shapes.filter(s => s.subtype === 'persistentGroup');
-    const persistedGroups = elements.filter(e => e.id.startsWith('group_'));
+    const persistedGroups = elements.filter(e => isGroupId(e.id));
 
     idDuplicateCheck(persistableGroups);
     idDuplicateCheck(persistedGroups);
@@ -191,10 +194,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
     // set the selected element on the global store, if one element is selected
     const selectedShape = nextScene.selectedPrimaryShapes[0];
     if (nextScene.selectedShapes.length === 1) {
-      if (
-        selectedShape !== (selectedElement && selectedElement.id) &&
-        !selectedShape.startsWith('group_')
-      ) {
+      if (selectedShape !== (selectedElement && selectedElement.id) && !isGroupId(selectedShape)) {
         dispatch(selectElement(selectedShape));
       }
     } else {
