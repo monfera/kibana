@@ -86,38 +86,41 @@ const shapeToElement = shape => {
 const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElements) => {
   const ascending = (a, b) => (a.id < b.id ? -1 : 1);
   const elements = unsortedElements.slice().sort(ascending);
-  shapes
+  const persistables = shapes
     .slice()
     .sort(ascending)
-    .filter(s => s.type !== 'annotation' && s.subtype !== 'adHocGroup')
-    .forEach((shape, i) => {
-      const element = elements[i];
-      const elemPos = element && element.position;
-      if (elemPos && gestureEnd) {
-        // get existing position information from element
-        const oldProps = {
-          left: elemPos.left,
-          top: elemPos.top,
-          width: elemPos.width,
-          height: elemPos.height,
-          angle: Math.round(elemPos.angle),
-          parent: elemPos.parent || null,
-          localTransformMatrix:
-            elemPos.localTransformMatrix ||
-            (element && elementToShape(element).localTransformMatrix),
-        };
+    .filter(s => s.type !== 'annotation' && s.subtype !== 'adHocGroup');
 
-        // cast shape into element-like object to compare
-        const newProps = shapeToElement(shape);
+  // if (persistables.length !== elements.length) debugger;
 
-        if (1 / newProps.angle === -Infinity) newProps.angle = 0; // recompose.shallowEqual discerns between 0 and -0
+  persistables.forEach((shape, i) => {
+    const element = elements[i];
+    // if (element.id !== shape.id) debugger;
+    const elemPos = element && element.position;
+    if (elemPos && gestureEnd) {
+      // get existing position information from element
+      const oldProps = {
+        left: elemPos.left,
+        top: elemPos.top,
+        width: elemPos.width,
+        height: elemPos.height,
+        angle: Math.round(elemPos.angle),
+        parent: elemPos.parent || null,
+        localTransformMatrix:
+          elemPos.localTransformMatrix || (element && elementToShape(element).localTransformMatrix),
+      };
 
-        if (!shallowEqual(oldProps, newProps)) {
-          console.log('setting x of shape', shape.id, 'from', oldProps.left, 'to', newProps.left);
-          setPosition(shape.id, newProps);
-        }
+      // cast shape into element-like object to compare
+      const newProps = shapeToElement(shape);
+
+      if (1 / newProps.angle === -Infinity) newProps.angle = 0; // recompose.shallowEqual discerns between 0 and -0
+
+      if (!shallowEqual(oldProps, newProps)) {
+        console.log('setting x of shape', shape.id, 'from', oldProps.left, 'to', newProps.left);
+        setPosition(shape.id, newProps);
       }
-    });
+    }
+  });
 };
 
 const id = element => element.id;
@@ -188,6 +191,8 @@ export const aeroelastic = ({ dispatch, getState }) => {
     );
 
     if (elementsToRemove.length) {
+      //debugger
+      // remove elements for groups that were ungrouped
       dispatch(removeElements(elementsToRemove.map(e => e.id), page));
     }
 
