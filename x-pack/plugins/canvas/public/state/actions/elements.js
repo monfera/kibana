@@ -10,7 +10,7 @@ import { createThunk } from 'redux-thunks';
 import { set, del } from 'object-path-immutable';
 import { get, pick, cloneDeep, without } from 'lodash';
 import { toExpression, safeElementFromExpression } from '@kbn/interpreter/common';
-import { getPages, getElementById, getSelectedPageIndex } from '../selectors/workpad';
+import { getPages, getElementById, getElements, getSelectedPageIndex } from '../selectors/workpad';
 import { getValue as getResolvedArgsValue } from '../selectors/resolved_args';
 import { getDefaultElement } from '../defaults';
 import { notify } from '../../lib/notify';
@@ -204,11 +204,27 @@ export const duplicateElement = createThunk(
   }
 );
 
+const flatten = a => [].concat.apply([], a);
+
+const getSubgraph = (roots, elements) => {
+  const children = flatten(roots.map(r => elements.filter(e => e.position.parent === r.id)));
+  return [...roots, ...(children.length && getSubgraph(children, elements))];
+};
+
 export const removeElements = createThunk(
   'removeElements',
-  ({ dispatch, getState }, elementIds, pageId) => {
+  ({ dispatch, getState }, rootElementIds, pageId) => {
+    const state = getState();
+
+    // todo consider doing the group membership collation in aeroelastic when pros/cons crystallize
+    const allElements = getElements(state, pageId);
+    const allRoots = rootElementIds.map(id => allElements.find(e => id === e.id));
+    if (allRoots.indexOf(undefined) !== -1)
+      throw new Error('Some of the elements to be deleted do not exist');
+    const elementIds = getSubgraph(allRoots, allElements).map(e => e.id);
+
     const shouldRefresh = elementIds.some(elementId => {
-      const element = getElementById(getState(), elementId, pageId);
+      const element = getElementById(state, elementId, pageId);
       const filterIsApplied = element.filter != null && element.filter.length > 0;
       return filterIsApplied;
     });

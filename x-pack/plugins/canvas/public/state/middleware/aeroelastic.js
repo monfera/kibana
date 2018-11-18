@@ -175,7 +175,11 @@ export const aeroelastic = ({ dispatch, getState }) => {
     });
 
     const elementsToRemove = persistedGroups.filter(
-      p => !persistableGroups.find(g => p.id === g.id)
+      // list elements for removal if they're not in the persistable set, or if there's no longer an associated element
+      // the latter of which shouldn't happen, so it's belts and braces
+      p =>
+        !persistableGroups.find(g => p.id === g.id) ||
+        !elements.find(e => e.position.parent === p.id)
     );
 
     updateGlobalPositions(
@@ -214,7 +218,10 @@ export const aeroelastic = ({ dispatch, getState }) => {
     );
 
   const populateWithElements = page => {
-    const newShapes = getElements(getState(), page).map(elementToShape);
+    const newShapes = getElements(getState(), page)
+      .map(elementToShape)
+      // filtering to eliminate residual element of a possible group that had been deleted in Redux
+      .filter((d, i, a) => !isGroupId(d.id) || a.find(s => s.parent === d.id));
     idDuplicateCheck(newShapes);
     missingParentCheck(newShapes);
     return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
