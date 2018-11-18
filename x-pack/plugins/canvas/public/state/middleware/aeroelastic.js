@@ -115,10 +115,7 @@ const updateGlobalPositions = (setPosition, { shapes, gestureEnd }, unsortedElem
 
       if (1 / newProps.angle === -Infinity) newProps.angle = 0; // recompose.shallowEqual discerns between 0 and -0
 
-      if (!shallowEqual(oldProps, newProps)) {
-        console.log('setting x of shape', shape.id, 'from', oldProps.left, 'to', newProps.left);
-        setPosition(shape.id, newProps);
-      }
+      if (!shallowEqual(oldProps, newProps)) setPosition(shape.id, newProps);
     }
   });
 };
@@ -127,16 +124,14 @@ const id = element => element.id;
 // check for duplication
 const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
 const idDuplicateCheck = groups => {
-  if (deduped(groups.map(g => g.id)).length !== groups.length) debugger;
+  if (deduped(groups.map(g => g.id)).length !== groups.length)
+    throw new Error('Duplicate element encountered');
 };
 
 const missingParentCheck = groups => {
   const idMap = arrayToMap(groups.map(g => g.id));
   groups.forEach(g => {
-    if (g.parent && !idMap[g.parent]) {
-      //debugger;
-      g.parent = null;
-    }
+    if (g.parent && !idMap[g.parent]) g.parent = null;
   });
 };
 
@@ -163,8 +158,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
     persistableGroups.forEach(g => {
       if (
         !persistedGroups.find(p => {
-          if (!p.id) debugger;
-          console.log(1 || nextScene);
+          if (!p.id) throw new Error('Element has no id');
           return p.id === g.id;
         })
       ) {
@@ -191,7 +185,6 @@ export const aeroelastic = ({ dispatch, getState }) => {
     );
 
     if (elementsToRemove.length) {
-      //debugger
       // remove elements for groups that were ungrouped
       dispatch(removeElements(elementsToRemove.map(e => e.id), page));
     }
@@ -199,9 +192,8 @@ export const aeroelastic = ({ dispatch, getState }) => {
     // set the selected element on the global store, if one element is selected
     const selectedShape = nextScene.selectedPrimaryShapes[0];
     if (nextScene.selectedShapes.length === 1) {
-      if (selectedShape !== (selectedElement && selectedElement.id) && !isGroupId(selectedShape)) {
+      if (selectedShape !== (selectedElement && selectedElement.id) && !isGroupId(selectedShape))
         dispatch(selectElement(selectedShape));
-      }
     } else {
       // otherwise, clear the selected element state
       dispatch(selectElement(null));
@@ -224,7 +216,6 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const newShapes = getElements(getState(), page).map(elementToShape);
     idDuplicateCheck(newShapes);
     missingParentCheck(newShapes);
-    console.log('restated x values:', newShapes.map(s => s.localTransformMatrix[12]));
     return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
   };
 
