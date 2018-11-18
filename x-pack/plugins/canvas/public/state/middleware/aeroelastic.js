@@ -221,7 +221,6 @@ export const aeroelastic = ({ dispatch, getState }) => {
     );
 
   const populateWithElements = page => {
-    if (window.monfera) debugger;
     const newShapes = getElements(getState(), page).map(elementToShape);
     idDuplicateCheck(newShapes);
     missingParentCheck(newShapes);

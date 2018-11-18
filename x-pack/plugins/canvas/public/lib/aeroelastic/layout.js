@@ -1182,16 +1182,17 @@ const projectAABB = ([[xMin, yMin], [xMax, yMax]]) => {
 const dissolveGroups = (groupsToDissolve, shapes, selectedShapes) => {
   return {
     shapes: shapes.filter(s => !groupsToDissolve.find(g => s.id === g.id)).map(shape => {
-      const preexistingAdHocGroupParent = groupsToDissolve.find(
+      const preexistingGroupParent = groupsToDissolve.find(
         groupShape => groupShape.id === shape.parent
       );
       // if linked, dissociate from ad hoc group parent
-      return preexistingAdHocGroupParent
+      return preexistingGroupParent
         ? {
             ...shape,
             parent: null,
             localTransformMatrix: matrix.multiply(
-              preexistingAdHocGroupParent.localTransformMatrix, // reinstate the group offset onto the child
+              // pulling preexistingGroupParent from `shapes` to get fresh matrices
+              shapes.find(s => s.id === preexistingGroupParent.id).localTransformMatrix, // reinstate the group offset onto the child
               shape.localTransformMatrix
             ),
           }
