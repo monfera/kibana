@@ -84,11 +84,20 @@ const applyTolerance = d => Math.round(d / epsilon) * epsilon;
 
 const arrayToMap = a => Object.assign({}, ...a.map(d => ({ [d]: true })));
 
+const subMultitree = (pk, fk, elements, roots) => {
+  const getSubgraphs = roots => {
+    const children = flatten(roots.map(r => elements.filter(e => fk(e) === pk(r))));
+    return [...roots, ...(children.length && getSubgraphs(children, elements))];
+  };
+  return getSubgraphs(roots);
+};
+
 module.exports = {
   applyTolerance,
   arrayToMap,
   disjunctiveUnion,
   flatten,
+  subMultitree,
   identity,
   log,
   map,

@@ -15,6 +15,8 @@ import { getValue as getResolvedArgsValue } from '../selectors/resolved_args';
 import { getDefaultElement } from '../defaults';
 import { notify } from '../../lib/notify';
 import { runInterpreter } from '../../lib/run_interpreter';
+import { interpretAst } from '../../lib/interpreter';
+import { subMultitree } from '../../lib/aeroelastic/functional';
 import { selectElement } from './transient';
 import * as args from './resolved_args';
 
@@ -204,13 +206,6 @@ export const duplicateElement = createThunk(
   }
 );
 
-const flatten = a => [].concat.apply([], a);
-
-const getSubgraph = (roots, elements) => {
-  const children = flatten(roots.map(r => elements.filter(e => e.position.parent === r.id)));
-  return [...roots, ...(children.length && getSubgraph(children, elements))];
-};
-
 export const removeElements = createThunk(
   'removeElements',
   ({ dispatch, getState }, rootElementIds, pageId) => {
@@ -221,7 +216,9 @@ export const removeElements = createThunk(
     const allRoots = rootElementIds.map(id => allElements.find(e => id === e.id));
     if (allRoots.indexOf(undefined) !== -1)
       throw new Error('Some of the elements to be deleted do not exist');
-    const elementIds = getSubgraph(allRoots, allElements).map(e => e.id);
+    const elementIds = subMultitree(e => e.id, e => e.position.parent, allElements, allRoots).map(
+      e => e.id
+    );
 
     const shouldRefresh = elementIds.some(elementId => {
       const element = getElementById(state, elementId, pageId);
