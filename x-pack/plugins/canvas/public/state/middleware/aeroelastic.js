@@ -191,12 +191,13 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
     // set the selected element on the global store, if one element is selected
     const selectedShape = nextScene.selectedPrimaryShapes[0];
-    if (nextScene.selectedShapes.length === 1) {
-      if (selectedShape !== (selectedElement && selectedElement.id) && !isGroupId(selectedShape))
+    if (nextScene.selectedShapes.length === 1 && !isGroupId(selectedShape)) {
+      if (selectedShape !== (selectedElement && selectedElement.id))
         dispatch(selectElement(selectedShape));
     } else {
       // otherwise, clear the selected element state
-      dispatch(selectElement(null));
+      // even for groups - TODO add handling for groups, esp. persistent groups - common styling etc.
+      if (selectedElement) dispatch(selectElement(null));
     }
   };
 
