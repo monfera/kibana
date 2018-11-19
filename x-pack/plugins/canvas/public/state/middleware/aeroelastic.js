@@ -149,7 +149,8 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const elements = getElements(getState(), page);
     const selectedElement = getSelectedElement(getState());
 
-    const persistableGroups = nextScene.shapes.filter(s => s.subtype === 'persistentGroup');
+    const shapes = nextScene.shapes;
+    const persistableGroups = shapes.filter(s => s.subtype === 'persistentGroup');
     const persistedGroups = elements.filter(e => isGroupId(e.id));
 
     idDuplicateCheck(persistableGroups);
@@ -201,7 +202,11 @@ export const aeroelastic = ({ dispatch, getState }) => {
     } else {
       // otherwise, clear the selected element state
       // even for groups - TODO add handling for groups, esp. persistent groups - common styling etc.
-      if (selectedElement) dispatch(selectElement(null));
+      if (selectedElement) {
+        const shape = shapes.find(s => s.id === selectedShape);
+        // don't reset if eg. we're in the middle of converting an ad hoc group into a persistent one
+        if (!shape || shape.subtype !== 'adHocGroup') dispatch(selectElement(null));
+      }
     }
   };
 
