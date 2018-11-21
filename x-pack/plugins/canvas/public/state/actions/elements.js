@@ -15,7 +15,6 @@ import { getValue as getResolvedArgsValue } from '../selectors/resolved_args';
 import { getDefaultElement } from '../defaults';
 import { notify } from '../../lib/notify';
 import { runInterpreter } from '../../lib/run_interpreter';
-import { interpretAst } from '../../lib/interpreter';
 import { subMultitree } from '../../lib/aeroelastic/functional';
 import { selectElement } from './transient';
 import * as args from './resolved_args';
