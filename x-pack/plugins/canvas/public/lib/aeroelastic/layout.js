@@ -1229,24 +1229,22 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
 
 const EPSILON = 1e-6;
 
-const resizeGroup = (configuration, shapes, selectedShapes, elements) => {
-  if (!elements.length) return { shapes, selectedShapes };
-  const e = elements[0];
+const resizeGroup = (configuration, shapes, selectedShapes, element) => {
   const isGroup = shape => shape.type === configuration.groupName;
-  if (!isGroup(e)) return { shapes, selectedShapes };
-  if (!e.baseAB) {
+  if (!isGroup(element)) return { shapes, selectedShapes };
+  if (!element.baseAB) {
     return {
       shapes: shapes.map(s => ({ ...s, childBaseAB: null, baseLocalTransformMatrix: null })),
       selectedShapes,
     };
   }
   // a scaler of 0, encountered when element is shrunk to zero size, would result in a non-invertible transform matrix
-  const groupScaleX = Math.max(e.a / e.baseAB[0], EPSILON);
-  const groupScaleY = Math.max(e.b / e.baseAB[1], EPSILON);
+  const groupScaleX = Math.max(element.a / element.baseAB[0], EPSILON);
+  const groupScaleY = Math.max(element.b / element.baseAB[1], EPSILON);
   const groupScale = matrix.scale(groupScaleX, groupScaleY, 1);
   return {
     shapes: shapes.map(s => {
-      if (s.parent !== e.id || s.type === 'annotation') return s;
+      if (s.parent !== element.id || s.type === 'annotation') return s;
       const childBaseAB = s.childBaseAB || [s.a, s.b];
       const impliedScale = matrix.scale(...childBaseAB, 1);
       const inverseImpliedScale = matrix.invert(impliedScale);
@@ -1259,6 +1257,7 @@ const resizeGroup = (configuration, shapes, selectedShapes, elements) => {
       const backScaler = groupScale.map(d => Math.abs(d));
       const inverseBackScaler = matrix.invert(backScaler);
       const abTuple = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
+      console.log('resizing group member', s.id);
       return {
         ...s,
         localTransformMatrix: matrix.multiply(
@@ -1349,9 +1348,9 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
 
   // preserve the current selection if the sole ad hoc group is being manipulated
   const elements = contentShapes(shapes, selectedShapes);
-  if (selectedShapes.length === 1 && elements[0].type === 'group') {
+  if (elements.length === 1 && elements[0].type === 'group') {
     return configuration.groupResize
-      ? resizeGroup(configuration, shapes, selectedShapes, elements)
+      ? resizeGroup(configuration, shapes, selectedShapes, elements[0])
       : preserveCurrentGroups(shapes, selectedShapes);
   }
   // group items or extend group bounding box (if enabled)
