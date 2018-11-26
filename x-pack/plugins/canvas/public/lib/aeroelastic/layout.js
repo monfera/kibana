@@ -1230,7 +1230,9 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
 const resizeGroup = (shapes, selectedShapes, element) => {
   if (!element.baseAB) {
     return {
-      shapes: shapes.map(s => ({ ...s, childBaseAB: null, baseLocalTransformMatrix: null })),
+      shapes: shapes.map(
+        s => (s.childBaseAB ? { ...s, childBaseAB: null, baseLocalTransformMatrix: null } : s)
+      ),
       selectedShapes,
     };
   }
@@ -1254,7 +1256,7 @@ const resizeGroup = (shapes, selectedShapes, element) => {
       const backScaler = groupScale.map(d => Math.abs(d));
       const inverseBackScaler = matrix.invert(backScaler);
       const abTuple = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
-      console.log('resizing group member', s.id);
+      // console.log('resizing group member', s.id);
       return {
         ...s,
         localTransformMatrix: matrix.multiply(
