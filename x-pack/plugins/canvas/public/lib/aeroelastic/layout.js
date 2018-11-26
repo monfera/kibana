@@ -1227,8 +1227,6 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
   return aabbShape;
 };
 
-const EPSILON = 1e-6;
-
 const resizeGroup = (configuration, shapes, selectedShapes, element) => {
   const isGroup = shape => shape.type === configuration.groupName;
   if (!isGroup(element)) return { shapes, selectedShapes };
@@ -1239,8 +1237,9 @@ const resizeGroup = (configuration, shapes, selectedShapes, element) => {
     };
   }
   // a scaler of 0, encountered when element is shrunk to zero size, would result in a non-invertible transform matrix
-  const groupScaleX = Math.max(element.a / element.baseAB[0], EPSILON);
-  const groupScaleY = Math.max(element.b / element.baseAB[1], EPSILON);
+  const epsilon = 1e-6;
+  const groupScaleX = Math.max(element.a / element.baseAB[0], epsilon);
+  const groupScaleY = Math.max(element.b / element.baseAB[1], epsilon);
   const groupScale = matrix.scale(groupScaleX, groupScaleY, 1);
   return {
     shapes: shapes.map(s => {
