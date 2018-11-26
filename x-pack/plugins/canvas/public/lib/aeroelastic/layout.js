@@ -1227,9 +1227,7 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
   return aabbShape;
 };
 
-const resizeGroup = (configuration, shapes, selectedShapes, element) => {
-  const isGroup = shape => shape.type === configuration.groupName;
-  if (!isGroup(element)) return { shapes, selectedShapes };
+const resizeGroup = (shapes, selectedShapes, element) => {
   if (!element.baseAB) {
     return {
       shapes: shapes.map(s => ({ ...s, childBaseAB: null, baseLocalTransformMatrix: null })),
@@ -1349,7 +1347,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
   const elements = contentShapes(shapes, selectedShapes);
   if (elements.length === 1 && elements[0].type === 'group') {
     return configuration.groupResize
-      ? resizeGroup(configuration, shapes, selectedShapes, elements[0])
+      ? resizeGroup(shapes, selectedShapes, elements[0])
       : preserveCurrentGroups(shapes, selectedShapes);
   }
   // group items or extend group bounding box (if enabled)
