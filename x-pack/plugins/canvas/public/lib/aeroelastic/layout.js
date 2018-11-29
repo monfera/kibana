@@ -1235,43 +1235,55 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
   return aabbShape;
 };
 
-const resizeGroup = (shapes, element) => {
-  if (!element.baseAB) {
-    return shapes.map(
-      s => (s.childBaseAB ? { ...s, childBaseAB: null, baseLocalTransformMatrix: null } : s)
-    );
-  }
+const resetChild = s =>
+  s.childBaseAB ? { ...s, childBaseAB: null, baseLocalTransformMatrix: null } : s;
+
+const resetChildren = shapes => shapes.map(resetChild);
+
+const childScaler = ({ a, b, baseAB }) => {
   // a scaler of 0, encountered when element is shrunk to zero size, would result in a non-invertible transform matrix
   const epsilon = 1e-6;
-  const groupScaleX = Math.max(element.a / element.baseAB[0], epsilon);
-  const groupScaleY = Math.max(element.b / element.baseAB[1], epsilon);
+  const groupScaleX = Math.max(a / baseAB[0], epsilon);
+  const groupScaleY = Math.max(b / baseAB[1], epsilon);
   const groupScale = matrix.scale(groupScaleX, groupScaleY, 1);
-  return shapes.map(s => {
-    if (s.parent !== element.id || s.type === 'annotation') return s;
-    const childBaseAB = s.childBaseAB || [s.a, s.b];
-    const impliedScale = matrix.scale(...childBaseAB, 1);
-    const inverseImpliedScale = matrix.invert(impliedScale);
-    const baseLocalTransformMatrix = s.baseLocalTransformMatrix || s.localTransformMatrix;
-    const normalizedBaseLocalTransformMatrix = matrix.multiply(
-      baseLocalTransformMatrix,
-      impliedScale
-    );
-    const T = matrix.multiply(groupScale, normalizedBaseLocalTransformMatrix);
-    const backScaler = groupScale.map(d => Math.abs(d));
-    const inverseBackScaler = matrix.invert(backScaler);
-    const abTuple = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
-    return {
-      ...s,
-      localTransformMatrix: matrix.multiply(
-        T,
-        matrix.multiply(inverseImpliedScale, inverseBackScaler)
-      ),
-      a: abTuple[0],
-      b: abTuple[1],
-      childBaseAB,
-      baseLocalTransformMatrix,
-    };
-  });
+  return groupScale;
+};
+
+const resizeChild = groupScale => s => {
+  const childBaseAB = s.childBaseAB || [s.a, s.b];
+  const impliedScale = matrix.scale(...childBaseAB, 1);
+  const inverseImpliedScale = matrix.invert(impliedScale);
+  const baseLocalTransformMatrix = s.baseLocalTransformMatrix || s.localTransformMatrix;
+  const normalizedBaseLocalTransformMatrix = matrix.multiply(
+    baseLocalTransformMatrix,
+    impliedScale
+  );
+  const T = matrix.multiply(groupScale, normalizedBaseLocalTransformMatrix);
+  const backScaler = groupScale.map(d => Math.abs(d));
+  const inverseBackScaler = matrix.invert(backScaler);
+  const abTuple = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
+  return {
+    ...s,
+    localTransformMatrix: matrix.multiply(
+      T,
+      matrix.multiply(inverseImpliedScale, inverseBackScaler)
+    ),
+    a: abTuple[0],
+    b: abTuple[1],
+    childBaseAB,
+    baseLocalTransformMatrix,
+  };
+};
+
+const resizeGroup = (shapes, element) => {
+  if (element.baseAB) {
+    const resizer = resizeChild(childScaler(element));
+    const childToRescale = s => s.parent === element.id && s.type !== 'annotation';
+    const resizeIfNeeded = s => (childToRescale(s) ? resizer(s) : s);
+    return shapes.map(resizeIfNeeded);
+  } else {
+    return resetChildren(shapes);
+  }
 };
 
 const getLeafs = (descendCondition, allShapes, shapes) =>
