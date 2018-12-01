@@ -1238,8 +1238,6 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
 const resetChild = s =>
   s.childBaseAB ? { ...s, childBaseAB: null, baseLocalTransformMatrix: null } : s;
 
-const resetChildren = shapes => shapes.map(resetChild);
-
 const childScaler = ({ a, b, baseAB }) => {
   // a scaler of 0, encountered when element is shrunk to zero size, would result in a non-invertible transform matrix
   const epsilon = 1e-6;
@@ -1276,14 +1274,12 @@ const resizeChild = groupScale => s => {
 };
 
 const resizeGroup = (shapes, element) => {
-  if (element.baseAB) {
-    const resizer = resizeChild(childScaler(element));
-    const childToRescale = s => s.parent === element.id && s.type !== 'annotation';
-    const resizeIfNeeded = s => (childToRescale(s) ? resizer(s) : s);
-    return shapes.map(resizeIfNeeded);
-  } else {
-    return resetChildren(shapes);
-  }
+  const parentResized = Boolean(element.baseAB);
+  const resizer = parentResized && resizeChild(childScaler(element));
+  const childToRescale = s => s.parent === element.id && s.type !== 'annotation';
+  const setChildIfNeeded = s => (childToRescale(s) ? resizer(s) : s);
+  const resizeOrResetIfNeeded = s => (parentResized ? setChildIfNeeded(s) : resetChild(s));
+  return shapes.map(resizeOrResetIfNeeded);
 };
 
 const getLeafs = (descendCondition, allShapes, shapes) =>
