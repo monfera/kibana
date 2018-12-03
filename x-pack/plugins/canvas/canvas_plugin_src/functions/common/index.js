@@ -38,6 +38,7 @@ import { neq } from './neq';
 import { palette } from './palette';
 import { pie } from './pie';
 import { plot } from './plot';
+import { plotly } from './plotly';
 import { ply } from './ply';
 import { progress } from './progress';
 import { render } from './render';
@@ -93,6 +94,7 @@ export const functions = [
   palette,
   pie,
   plot,
+  plotly,
   ply,
   progress,
   render,

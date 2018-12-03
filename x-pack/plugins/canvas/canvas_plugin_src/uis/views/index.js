@@ -11,6 +11,7 @@ import { markdown } from './markdown';
 import { metric } from './metric';
 import { pie } from './pie';
 import { plot } from './plot';
+import { plotly } from './plotly';
 import { progress } from './progress';
 import { repeatImage } from './repeatImage';
 import { revealImage } from './revealImage';
@@ -27,6 +28,7 @@ export const viewSpecs = [
   metric,
   pie,
   plot,
+  plotly,
   progress,
   repeatImage,
   revealImage,

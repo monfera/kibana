@@ -18,6 +18,7 @@ import { markdown } from './markdown';
 import { metric } from './metric';
 import { pie } from './pie';
 import { plot } from './plot';
+import { plotly } from './plotly';
 import { progressGauge } from './progress_gauge';
 import { progressSemicircle } from './progress_semicircle';
 import { progressWheel } from './progress_wheel';
@@ -46,6 +47,7 @@ export const elementSpecs = [
   metric,
   pie,
   plot,
+  plotly,
   progressGauge,
   progressSemicircle,
   progressWheel,

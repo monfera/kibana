@@ -15,6 +15,7 @@ import { markdown } from './markdown';
 import { metric } from './metric';
 import { pie } from './pie';
 import { plot } from './plot';
+import { plotly } from './plotly';
 import { progress } from './progress';
 import { shape } from './shape';
 import { table } from './table';
@@ -33,6 +34,7 @@ export const renderFunctions = [
   metric,
   pie,
   plot,
+  plotly,
   progress,
   shape,
   table,

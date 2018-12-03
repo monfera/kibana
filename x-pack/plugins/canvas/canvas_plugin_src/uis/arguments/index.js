@@ -10,6 +10,7 @@ import { imageUpload } from './image_upload';
 import { number } from './number';
 import { palette } from './palette';
 import { percentage } from './percentage';
+import { plotly } from './plotly';
 import { range } from './range';
 import { select } from './select';
 import { shape } from './shape';
@@ -24,6 +25,7 @@ export const args = [
   number,
   palette,
   percentage,
+  plotly,
   range,
   select,
   shape,
