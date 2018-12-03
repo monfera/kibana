@@ -4,7 +4,7 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import { plotlys } from './plotlys';
+import Plotly from 'plotly.js-dist';
 
 export const plotly = () => ({
   name: 'plotly',
@@ -12,61 +12,63 @@ export const plotly = () => ({
   help: 'Render a plotly plot',
   reuseDomNode: true,
   render(domNode, config, handlers) {
-    const { plotly, fill, border, borderWidth, maintainAspect } = config;
-    const parser = new DOMParser();
-    const [shapeSvg] = parser
-      .parseFromString(plotlys[plotly], 'image/svg+xml')
-      .getElementsByTagName('svg');
+    const trace1 = {
+      x: [1, 2, 3, 4],
+      y: [10, 15, 13, 17],
+      mode: 'markers',
+      type: 'scatter',
+    };
 
-    const shapeContent = shapeSvg.firstElementChild;
+    const trace2 = {
+      x: [2, 3, 4, 5],
+      y: [16, 5, 11, 9],
+      mode: 'lines',
+      type: 'scatter',
+    };
 
-    if (fill) shapeContent.setAttribute('fill', fill);
-    if (border) shapeContent.setAttribute('stroke', border);
-    const strokeWidth = Math.max(borderWidth, 0);
-    shapeContent.setAttribute('stroke-width', strokeWidth);
-    shapeContent.setAttribute('stroke-miterlimit', 999);
-    shapeContent.setAttribute('vector-effect', 'non-scaling-stroke');
+    const trace3 = {
+      x: [1, 2, 3, 4],
+      y: [12, 9, 15, 12],
+      mode: 'lines+markers',
+      type: 'scatter',
+    };
 
-    shapeSvg.setAttribute('preserveAspectRatio', maintainAspect ? 'xMidYMid meet' : 'none');
-    shapeSvg.setAttribute('overflow', 'visible');
+    const data = [trace1, trace2, trace3];
+    const layout = {
+      title: 'Responsive to element size',
+      font: { size: 14 },
+    };
 
-    const initialViewBox = shapeSvg
-      .getAttribute('viewBox')
-      .split(' ')
-      .map(v => parseInt(v, 10));
+    Plotly.newPlot(domNode, data, layout, { responsive: false });
 
     const draw = () => {
       const width = domNode.offsetWidth;
       const height = domNode.offsetHeight;
 
-      // adjust viewBox based on border width
-      let [minX, minY, shapeWidth, shapeHeight] = initialViewBox;
-      const borderOffset = strokeWidth;
+      const trace2 = {
+        x: [2, 3, 4, 5],
+        y: [16, 5, 11, 9],
+        mode: 'lines',
+        type: 'scatter',
+      };
 
-      if (width) {
-        const xOffset = (shapeWidth / width) * borderOffset;
-        minX -= xOffset;
-        shapeWidth += xOffset * 2;
-      } else {
-        shapeWidth = 0;
-      }
+      const trace3 = {
+        x: [1, 2, 3, 4],
+        y: [12, 9, 15, 12],
+        mode: 'lines+markers',
+        type: 'scatter',
+      };
 
-      if (height) {
-        const yOffset = (shapeHeight / height) * borderOffset;
-        minY -= yOffset;
-        shapeHeight += yOffset * 2;
-      } else {
-        shapeHeight = 0;
-      }
+      const data = [trace1, trace2, trace3];
+      const layout = {
+        title: 'Responsive to element size',
+        width,
+        height,
+        font: { size: 14 },
+        autosize: false,
+      };
 
-      shapeSvg.setAttribute('width', width);
-      shapeSvg.setAttribute('height', height);
-      shapeSvg.setAttribute('viewBox', [minX, minY, shapeWidth, shapeHeight].join(' '));
-
-      const oldShape = domNode.firstElementChild;
-      if (oldShape) domNode.removeChild(oldShape);
-
-      domNode.appendChild(shapeSvg);
+      Plotly.react(domNode, data, layout, {});
     };
 
     draw();
