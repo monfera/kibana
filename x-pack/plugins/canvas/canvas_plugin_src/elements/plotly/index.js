@@ -14,5 +14,5 @@ export const plotly = () => ({
   height: 200,
   image: header,
   expression:
-    'plotly "square" fill="#4cbce4" border="rgba(255,255,255,0)" borderWidth=0 maintainAspect=true | render',
+    'plotly "square" fill="#4cbce4" border="rgba(255,255,255,0)" borderWidth=0 maintainAspect=true title="Responsive" | render',
 });

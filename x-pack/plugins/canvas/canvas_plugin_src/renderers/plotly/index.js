@@ -12,6 +12,8 @@ export const plotly = () => ({
   help: 'Render a plotly plot',
   reuseDomNode: true,
   render(domNode, config, handlers) {
+    const layout = { title: config.title };
+
     const trace1 = {
       x: [1, 2, 3, 4],
       y: [10, 15, 13, 17],
@@ -34,11 +36,8 @@ export const plotly = () => ({
     };
 
     const data = [trace1, trace2, trace3];
-    const layout = {
-      title: 'Responsive to element size',
-      font: { size: 14 },
-    };
 
+    console.log('rendering with', JSON.stringify(config));
     Plotly.newPlot(domNode, data, layout, { responsive: false });
 
     const draw = () => {
@@ -60,15 +59,8 @@ export const plotly = () => ({
       };
 
       const data = [trace1, trace2, trace3];
-      const layout = {
-        title: 'Responsive to element size',
-        width,
-        height,
-        font: { size: 14 },
-        autosize: false,
-      };
 
-      Plotly.react(domNode, data, layout, {});
+      Plotly.react(domNode, data, { ...layout, width, height, autosize: false }, {});
     };
 
     draw();

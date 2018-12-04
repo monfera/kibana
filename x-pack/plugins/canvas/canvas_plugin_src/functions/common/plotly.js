@@ -43,6 +43,11 @@ export const plotly = () => ({
       help: 'Valid CSS color string',
       default: 'black',
     },
+    title: {
+      types: ['string', 'null'],
+      help: 'Title of the chart',
+      default: null,
+    },
     border: {
       types: ['string', 'null'],
       aliases: ['stroke'],
@@ -61,12 +66,13 @@ export const plotly = () => ({
       options: [true, false],
     },
   },
-  fn: (context, { plotly, fill, border, borderWidth, maintainAspect }) => ({
+  fn: (context, { plotly, fill, border, borderWidth, maintainAspect, title }) => ({
     type: 'plotly',
     plotly,
     fill,
     border,
     borderWidth,
     maintainAspect,
+    title,
   }),
 });
