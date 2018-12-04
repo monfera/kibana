@@ -11,7 +11,7 @@ export const plotly = () => ({
   //as: 'plotly',
   help: 'Create a plotly',
   context: {
-    types: ['null'],
+    types: ['pointseries'],
   },
   args: {
     plotly: {
@@ -74,5 +74,6 @@ export const plotly = () => ({
     borderWidth,
     maintainAspect,
     title,
+    context,
   }),
 });

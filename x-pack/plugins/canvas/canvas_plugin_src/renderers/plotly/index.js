@@ -14,50 +14,32 @@ export const plotly = () => ({
   render(domNode, config, handlers) {
     const layout = { title: config.title };
 
-    const trace1 = {
-      x: [1, 2, 3, 4],
-      y: [10, 15, 13, 17],
-      mode: 'markers',
-      type: 'scatter',
-    };
+    const colorMap = {};
+    config.context.rows.forEach(r => {
+      colorMap[r.color] = true;
+    });
+    const traces = Object.keys(colorMap).sort();
 
-    const trace2 = {
-      x: [2, 3, 4, 5],
-      y: [16, 5, 11, 9],
-      mode: 'lines',
-      type: 'scatter',
-    };
-
-    const trace3 = {
-      x: [1, 2, 3, 4],
-      y: [12, 9, 15, 12],
-      mode: 'lines+markers',
-      type: 'scatter',
-    };
-
-    const data = [trace1, trace2, trace3];
+    const data = traces.map(colorDriver => {
+      const points = config.context.rows
+        .filter(r => r.color === colorDriver)
+        .sort((a, b) => (a.x < b.x ? -1 : a.x > b.x ? 1 : 0));
+      return {
+        x: points.map(r => r.x),
+        y: points.map(r => r.y),
+        mode: 'lines+markers',
+        type: 'scatter',
+        name: colorDriver,
+        //line: { color },
+        //marker: { color },
+      };
+    });
 
     Plotly.newPlot(domNode, data, layout, { responsive: false });
 
     const draw = () => {
       const width = domNode.offsetWidth;
       const height = domNode.offsetHeight;
-
-      const trace2 = {
-        x: [2, 3, 4, 5],
-        y: [16, 5, 11, 9],
-        mode: 'lines',
-        type: 'scatter',
-      };
-
-      const trace3 = {
-        x: [1, 2, 3, 4],
-        y: [12, 9, 15, 12],
-        mode: 'lines+markers',
-        type: 'scatter',
-      };
-
-      const data = [trace1, trace2, trace3];
 
       Plotly.react(domNode, data, { ...layout, width, height, autosize: false }, {});
     };

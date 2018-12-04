@@ -10,8 +10,13 @@ export const plotly = () => ({
   name: 'plotly',
   displayName: 'Plotly',
   help: 'A plotly plot',
-  width: 200,
-  height: 200,
+  width: 400,
+  height: 250,
   image: header,
-  expression: 'plotly title="Responsive" | render',
+  expression: `filters
+| demodata
+| pointseries x="project" y="sum(price)" color="state" size="size(username)"
+| plotly title="Price in function of project"
+| render
+`,
 });
