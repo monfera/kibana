@@ -36,6 +36,10 @@ export const pointseries = () => ({
       types: ['string', 'null'],
       help: 'The values along the y-axis',
     },
+    z: {
+      types: ['string', 'null'],
+      help: 'The values along the z-axis',
+    },
     color: {
       types: ['string', 'null'],
       help: "An expression to use in determining the mark's color", // If you need categorization, transform the field.

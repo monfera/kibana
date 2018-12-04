@@ -8,6 +8,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 export const PlotlyPreview = ({ plotly }) => {
+  return (
+    // eslint-disable-next-line react/no-danger
+    <div className="canvasPlotlyPreview" dangerouslySetInnerHTML={{ __html: '' }} />
+  );
   const weight = 5;
   const parser = new DOMParser();
   const [shapeSvg] = parser.parseFromString(plotly, 'image/svg+xml').getElementsByTagName('svg');

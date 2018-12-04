@@ -16,7 +16,7 @@ export const plotly = () => ({
   expression: `filters
 | demodata
 | pointseries x="project" y="sum(price)" color="state" size="size(username)"
-| plotly title="Price in function of project"
+| plotly "scatter" title="Price in function of project"
 | render
 `,
 });

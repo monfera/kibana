@@ -18,7 +18,10 @@ export const plotly = () => ({
       title: config.title,
       xaxis: { title: config.context.columns.x.expression },
       yaxis: { title: config.context.columns.y.expression },
+      zaxis: { title: config.context.columns.z && config.context.columns.z.expression },
     };
+
+    const type = config.plotly || 'scatter';
 
     const colorMap = {};
     config.context.rows.forEach(r => {
@@ -31,8 +34,13 @@ export const plotly = () => ({
       return {
         x: points.map(r => r.x),
         y: points.map(r => r.y),
-        mode: 'lines+markers',
-        type: 'scatter',
+        ...(config.context.columns.z && {
+          z: points.map(r => r.z),
+          marker: { size: 4 },
+          line: { width: 0.25 },
+        }),
+        //mode: 'lines+markers',
+        type,
         name: colorDriver,
       };
     });
