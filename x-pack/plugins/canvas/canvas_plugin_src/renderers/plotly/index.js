@@ -37,7 +37,6 @@ export const plotly = () => ({
 
     const data = [trace1, trace2, trace3];
 
-    console.log('rendering with', JSON.stringify(config));
     Plotly.newPlot(domNode, data, layout, { responsive: false });
 
     const draw = () => {

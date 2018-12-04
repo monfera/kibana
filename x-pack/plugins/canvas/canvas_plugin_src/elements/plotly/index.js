@@ -13,6 +13,5 @@ export const plotly = () => ({
   width: 200,
   height: 200,
   image: header,
-  expression:
-    'plotly "square" fill="#4cbce4" border="rgba(255,255,255,0)" borderWidth=0 maintainAspect=true title="Responsive" | render',
+  expression: 'plotly title="Responsive" | render',
 });
