@@ -803,6 +803,8 @@ const alignmentGuideAnnotations = select(
           subtype: configuration.alignmentGuideName,
           interactive: false,
           backgroundColor: 'magenta',
+          parent: null,
+          ancestors: [],
         }))
       : [];
   }
@@ -825,6 +827,8 @@ const hoverAnnotations = select(
               hoveredShape.localTransformMatrix,
               matrix.translate(0, 0, configuration.hoverLift)
             ),
+            parent: null, // consider linking to proper parent, eg. for more regular typing (ie. all shapes have all props)
+            ancestors: [],
           },
         ]
       : [];
@@ -858,6 +862,7 @@ const rotationAnnotation = (configuration, shapes, selectedShapes, shape, i) => 
     subtype: configuration.rotationHandleName,
     interactive: true,
     parent: foundShape.id,
+    ancestors: [...foundShape.ancestors, foundShape.id],
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,0,255,0.3)',
     a: configuration.rotationHandleSize,
@@ -883,7 +888,8 @@ const resizePointAnnotations = (configuration, parent, a, b) => ([x, y, cursorAn
     verticalPosition: yName,
     cursorAngle,
     interactive: true,
-    parent,
+    parent: parent.id,
+    ancestors: [...parent.ancestors, parent.id],
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,255,0,1)',
     a: configuration.resizeAnnotationSize,
@@ -912,7 +918,8 @@ const resizeEdgeAnnotations = (configuration, parent, a, b) => ([[x0, y0], [x1, 
     type: 'annotation',
     subtype: configuration.resizeConnectorName,
     interactive: true,
-    parent,
+    parent: parent.id,
+    ancestors: [...parent.ancestors, parent.id],
     localTransformMatrix: transform,
     backgroundColor: configuration.devColor,
     a: horizontal ? sectionHalfLength : width,
@@ -989,8 +996,8 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
         [-1, 0, 270], // edge midpoints
       ]
     : [];
-  const resizePoints = resizeVertices.map(resizePointAnnotations(configuration, shape.id, a, b));
-  const connectors = connectorVertices.map(resizeEdgeAnnotations(configuration, shape.id, a, b));
+  const resizePoints = resizeVertices.map(resizePointAnnotations(configuration, shape, a, b));
+  const connectors = connectorVertices.map(resizeEdgeAnnotations(configuration, shape, a, b));
   return [...resizePoints, ...connectors];
 }
 
@@ -1198,6 +1205,7 @@ const dissolveGroups = (groupsToDissolve, shapes, selectedShapes) => {
         ? {
             ...shape,
             parent: null,
+            ancestors: [],
             localTransformMatrix: matrix.multiply(
               // pulling preexistingGroupParent from `shapes` to get fresh matrices
               shapes.find(s => s.id === preexistingGroupParent.id).localTransformMatrix, // reinstate the group offset onto the child
@@ -1231,6 +1239,8 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
     b,
     localTransformMatrix,
     rigTransform,
+    parent: null,
+    ancestors: [],
   };
   return aabbShape;
 };
@@ -1376,6 +1386,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
     const parentedSelectedShapes = selectedLeafShapes.map(shape => ({
       ...shape,
       parent: group.id,
+      ancestors: [...group.ancestors, group.id],
       localTransformMatrix: matrix.multiply(group.rigTransform, shape.transformMatrix),
     }));
     const nonGroupGraphConstituent = s =>
@@ -1385,7 +1396,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
       s.parent &&
       s.parent.startsWith(configuration.groupName) &&
       preexistingAdHocGroups.find(ahg => ahg.id === s.parent)
-        ? { ...s, parent: null }
+        ? { ...s, parent: null, ancestors: [] }
         : s;
     const allTerminalShapes = parentedSelectedShapes.concat(
       freshNonSelectedShapes.filter(nonGroupGraphConstituent).map(dissociateFromParentIfAny)
