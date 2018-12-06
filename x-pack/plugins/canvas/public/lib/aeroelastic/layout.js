@@ -1245,8 +1245,12 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
   return aabbShape;
 };
 
-const resetChild = s =>
-  s.childBaseAB ? { ...s, childBaseAB: null, baseLocalTransformMatrix: null } : s;
+const resetChild = s => {
+  if (s.childBaseAB) {
+    s.childBaseAB = null;
+    s.baseLocalTransformMatrix = null;
+  }
+};
 
 const childScaler = ({ a, b, baseAB }) => {
   // a scaler of 0, encountered when element is shrunk to zero size, would result in a non-invertible transform matrix
@@ -1270,36 +1274,48 @@ const resizeChild = groupScale => s => {
   const backScaler = groupScale.map(d => Math.abs(d));
   const inverseBackScaler = matrix.invert(backScaler);
   const abTuple = matrix.mvMultiply(matrix.multiply(backScaler, impliedScale), [1, 1, 1, 1]);
-  return {
-    ...s,
-    localTransformMatrix: matrix.multiply(
-      T,
-      matrix.multiply(inverseImpliedScale, inverseBackScaler)
-    ),
-    a: abTuple[0],
-    b: abTuple[1],
-    childBaseAB,
-    baseLocalTransformMatrix,
+  s.localTransformMatrix = matrix.multiply(
+    T,
+    matrix.multiply(inverseImpliedScale, inverseBackScaler)
+  );
+  s.a = abTuple[0];
+  s.b = abTuple[1];
+  s.childBaseAB = childBaseAB;
+  s.baseLocalTransformMatrix = baseLocalTransformMatrix;
+};
+
+const getAncestors = (idMap, shape) => {
+  const recAncestors = shape => {
+    if (shape.ancestors) return shape.ancestors;
+    if (!shape.parent) return [];
+    //if(idMap[shape.parent]) return [...idMap[shape.parent].ancestors, shape.parent]
+    return [...recAncestors(idMap[shape.parent]), shape.parent];
   };
+  return recAncestors(shape);
 };
 
 const resizeGroup = (shapes, rootElement) => {
+  const idMap = {};
+  for (let i = 0; i < shapes.length; i++) {
+    idMap[shapes[i].id] = shapes[i];
+    shapes[i].ancestors = null;
+  }
+
+  for (let i = 0; i < shapes.length; i++) shapes[i].ancestors = getAncestors(idMap, shapes[i]);
+
   const resizedParents = { [rootElement.id]: rootElement };
   const sortedShapes = shapes.slice().sort((a, b) => a.ancestors.length - b.ancestors.length);
   const parentResized = s => Boolean(s.baseAB);
-  const result = [];
   for (let i = 0; i < sortedShapes.length; i++) {
     const shape = sortedShapes[i];
     const parent = resizedParents[shape.parent];
     if (parent) {
-      if (parentResized(parent)) result.push(resizeChild(childScaler(parent))(shape));
-      else result.push(resetChild(shape));
       resizedParents[shape.id] = shape;
-    } else {
-      result.push(shape);
+      if (parentResized(parent)) resizeChild(childScaler(parent))(shape);
+      else resetChild(shape);
     }
   }
-  return result;
+  return sortedShapes;
 };
 
 const getLeafs = (descendCondition, allShapes, shapes) =>
