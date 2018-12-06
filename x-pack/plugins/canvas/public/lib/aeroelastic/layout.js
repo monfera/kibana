@@ -1283,13 +1283,23 @@ const resizeChild = groupScale => s => {
   };
 };
 
-const resizeGroup = (shapes, element) => {
-  const parentResized = Boolean(element.baseAB);
-  const resizer = parentResized && resizeChild(childScaler(element));
-  const childToRescale = s => s.parent === element.id;
-  const setChildIfNeeded = s => (childToRescale(s) ? resizer(s) : s);
-  const resizeOrResetIfNeeded = s => (parentResized ? setChildIfNeeded(s) : resetChild(s));
-  return shapes.map(resizeOrResetIfNeeded);
+const resizeGroup = (shapes, rootElement) => {
+  const resizedParents = { [rootElement.id]: rootElement };
+  const sortedShapes = shapes.slice().sort((a, b) => a.ancestors.length - b.ancestors.length);
+  const parentResized = s => Boolean(s.baseAB);
+  const result = [];
+  for (let i = 0; i < sortedShapes.length; i++) {
+    const shape = sortedShapes[i];
+    const parent = resizedParents[shape.parent];
+    if (parent) {
+      if (parentResized(parent)) result.push(resizeChild(childScaler(parent))(shape));
+      else result.push(resetChild(shape));
+      resizedParents[shape.id] = shape;
+    } else {
+      result.push(shape);
+    }
+  }
+  return result;
 };
 
 const getLeafs = (descendCondition, allShapes, shapes) =>
