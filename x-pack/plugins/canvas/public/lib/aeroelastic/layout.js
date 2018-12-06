@@ -1286,7 +1286,7 @@ const resizeChild = groupScale => s => {
 const resizeGroup = (shapes, element) => {
   const parentResized = Boolean(element.baseAB);
   const resizer = parentResized && resizeChild(childScaler(element));
-  const childToRescale = s => s.parent === element.id && s.type !== 'annotation';
+  const childToRescale = s => s.parent === element.id;
   const setChildIfNeeded = s => (childToRescale(s) ? resizer(s) : s);
   const resizeOrResetIfNeeded = s => (parentResized ? setChildIfNeeded(s) : resetChild(s));
   return shapes.map(resizeOrResetIfNeeded);
@@ -1368,7 +1368,13 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
   const elements = contentShapes(shapes, selectedShapes);
   if (elements.length === 1 && elements[0].type === 'group') {
     return configuration.groupResize
-      ? { shapes: resizeGroup(shapes, elements[0]), selectedShapes }
+      ? {
+          shapes: [
+            ...resizeGroup(shapes.filter(s => s.type !== 'annotation'), elements[0]),
+            ...shapes.filter(s => s.type === 'annotation'),
+          ],
+          selectedShapes,
+        }
       : preserveCurrentGroups(shapes, selectedShapes);
   }
   // group items or extend group bounding box (if enabled)
