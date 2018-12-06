@@ -1252,7 +1252,7 @@ const resetChild = s => {
   }
 };
 
-const childScaler = ({ a, b, baseAB }) => {
+const childScaler = ({ a, b }, baseAB) => {
   // a scaler of 0, encountered when element is shrunk to zero size, would result in a non-invertible transform matrix
   const epsilon = 1e-6;
   const groupScaleX = Math.max(a / baseAB[0], epsilon);
@@ -1305,13 +1305,14 @@ const resizeGroup = (shapes, rootElement) => {
 
   const resizedParents = { [rootElement.id]: rootElement };
   const sortedShapes = shapes.slice().sort((a, b) => a.ancestors.length - b.ancestors.length);
-  const parentResized = s => Boolean(s.baseAB);
+  const parentResized = s => Boolean(s.childBaseAB || s.baseAB);
   for (let i = 0; i < sortedShapes.length; i++) {
     const shape = sortedShapes[i];
     const parent = resizedParents[shape.parent];
     if (parent) {
       resizedParents[shape.id] = shape;
-      if (parentResized(parent)) resizeChild(childScaler(parent))(shape);
+      if (parentResized(parent))
+        resizeChild(childScaler(parent, parent.childBaseAB || parent.baseAB))(shape);
       else resetChild(shape);
     }
   }
