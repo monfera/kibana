@@ -11,7 +11,7 @@ export const plotly = () => ({
   //as: 'plotly',
   help: 'Create a plotly',
   context: {
-    types: ['pointseries'],
+    types: ['pointseries', 'datatable'],
   },
   args: {
     plotly: {
