@@ -76,54 +76,120 @@ const dataTableRender = (domNode, config, handlers) => {
 
   const countField = config.context.columns.find(f => f.name === 'count');
   const colorField = config.context.columns.find(f => f.name === 'color');
-  const data = [
-    {
-      type,
-      line: {
-        ...(type === 'parcoords' && {
-          showscale: true,
-          reversescale: true,
-          colorscale: 'Viridis',
-          color: config.context.rows.map(r => r[firstNumeric.name]),
-        }),
-        ...(type === 'parcats' &&
-          colorField && {
-            color: toNumbers(config.context.rows.map(r => r.color)).values,
-            //colorscale: [[0, 'lightsteelblue'], [distinct(toNumbers(config.context.rows.map(r => r['color'])).values).length - 1, 'mediumseagreen']],
-            //colorscale: 'Viridis' || 'Pastel2',
-            colorscale: Plotly.d3.scale
-              .category20()
-              .range()
-              .map((c, i) => [i / 19, c]),
+
+  const makeData = () => {
+    switch (type) {
+      case 'parcoords':
+        return {
+          type,
+          line: {
+            showscale: true,
+            reversescale: true,
+            colorscale: 'Viridis',
+            color: config.context.rows.map(r => r[firstNumeric.name]),
+          },
+          tickfont: { size: 14 },
+          dimensions: config.context.columns.map(d => {
+            if (d.type === 'number') {
+              return {
+                label: d.name,
+                values: config.context.rows.map(r => r[d.name]),
+              };
+            } else {
+              const { values, tickvals, ticktext } = toNumbers(
+                config.context.rows.map(r => r[d.name])
+              );
+              return {
+                label: d.name,
+                values,
+                tickvals,
+                ticktext,
+              };
+            }
           }),
-      },
-      ...(type === 'parcats' &&
-        countField && {
-          counts: config.context.rows.map(r => r.count),
-        }),
-      tickfont: { size: 14 },
-      dimensions: config.context.columns
-        .map(d => {
-          if (d.type === 'number' || type !== 'parcoords') {
-            return {
-              label: d.name,
-              values: config.context.rows.map(r => r[d.name]),
-            };
-          } else {
-            const { values, tickvals, ticktext } = toNumbers(
-              config.context.rows.map(r => r[d.name])
-            );
-            return {
-              label: d.name,
-              values,
-              tickvals,
-              ticktext,
-            };
-          }
-        })
-        .filter(dim => type !== 'parcats' || (dim.label !== 'count' && dim.label !== 'color')),
-    },
-  ];
+        };
+      case 'parcats':
+        return {
+          type,
+          line: {
+            ...(colorField && {
+              color: toNumbers(config.context.rows.map(r => r.color)).values,
+              //colorscale: [[0, 'lightsteelblue'], [distinct(toNumbers(config.context.rows.map(r => r['color'])).values).length - 1, 'mediumseagreen']],
+              //colorscale: 'Viridis' || 'Pastel2',
+              colorscale: Plotly.d3.scale
+                .category20()
+                .range()
+                .map((c, i) => [i / 19, c]),
+            }),
+          },
+          ...(countField && {
+            counts: config.context.rows.map(r => r.count),
+          }),
+          tickfont: { size: 14 },
+          dimensions: config.context.columns
+            .map(d => {
+              if (d.type === 'number' || type !== 'parcoords') {
+                return {
+                  label: d.name,
+                  values: config.context.rows.map(r => r[d.name]),
+                };
+              } else {
+                const { values, tickvals, ticktext } = toNumbers(
+                  config.context.rows.map(r => r[d.name])
+                );
+                return {
+                  label: d.name,
+                  values,
+                  tickvals,
+                  ticktext,
+                };
+              }
+            })
+            .filter(dim => dim.label !== 'count' && dim.label !== 'color'),
+        };
+      case 'sankey':
+        return {
+          type,
+          line: {
+            ...(colorField && {
+              color: toNumbers(config.context.rows.map(r => r.color)).values,
+              //colorscale: [[0, 'lightsteelblue'], [distinct(toNumbers(config.context.rows.map(r => r['color'])).values).length - 1, 'mediumseagreen']],
+              //colorscale: 'Viridis' || 'Pastel2',
+              colorscale: Plotly.d3.scale
+                .category20()
+                .range()
+                .map((c, i) => [i / 19, c]),
+            }),
+          },
+          ...(countField && {
+            counts: config.context.rows.map(r => r.count),
+          }),
+          tickfont: { size: 14 },
+          dimensions: config.context.columns
+            .map(d => {
+              if (d.type === 'number' || type !== 'parcoords') {
+                return {
+                  label: d.name,
+                  values: config.context.rows.map(r => r[d.name]),
+                };
+              } else {
+                const { values, tickvals, ticktext } = toNumbers(
+                  config.context.rows.map(r => r[d.name])
+                );
+                return {
+                  label: d.name,
+                  values,
+                  tickvals,
+                  ticktext,
+                };
+              }
+            })
+            .filter(dim => dim.label !== 'count' && dim.label !== 'color'),
+        };
+    }
+  };
+
+  const data = [makeData()];
 
   Plotly.newPlot(domNode, data, layout, { responsive: false });
 
