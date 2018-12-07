@@ -65,8 +65,9 @@ const dataTableRender = (domNode, config, handlers) => {
 
   const type = config.plotly || 'parcoords';
 
+  const distinct = a => a.filter((d, i) => a.indexOf(d) === i);
   const toNumbers = cardinalValues => {
-    const distinctValues = cardinalValues.filter((d, i, a) => a.indexOf(d) === i);
+    const distinctValues = distinct(cardinalValues);
     const sorted = distinctValues.sort(ascending);
     const map = {};
     sorted.forEach((v, i) => (map[v] = i));
@@ -76,31 +77,54 @@ const dataTableRender = (domNode, config, handlers) => {
     return { values, tickvals, ticktext };
   };
 
+  const countField = config.context.columns.find(f => f.name === 'count');
+  const colorField = config.context.columns.find(f => f.name === 'color');
   const data = [
     {
       type,
       line: {
-        showscale: true,
-        reversescale: true,
-        colorscale: 'Jet',
-        color: config.context.rows.map(r => r[firstNumeric.name]),
+        ...(type === 'parcoords' && {
+          showscale: true,
+          reversescale: true,
+          colorscale: 'Jet',
+          color: config.context.rows.map(r => r[firstNumeric.name]),
+        }),
+        ...(type === 'parcats' &&
+          colorField && {
+            color: toNumbers(config.context.rows.map(r => r.color)).values,
+            //colorscale: [[0, 'lightsteelblue'], [distinct(toNumbers(config.context.rows.map(r => r['color'])).values).length - 1, 'mediumseagreen']],
+            //colorscale: 'Viridis' || 'Pastel2',
+            colorscale: Plotly.d3.scale
+              .category20()
+              .range()
+              .map((c, i) => [i / 19, c]),
+          }),
       },
-      dimensions: config.context.columns.map(d => {
-        if (d.type === 'number') {
-          return {
-            label: d.name,
-            values: config.context.rows.map(r => r[d.name]),
-          };
-        } else {
-          const { values, tickvals, ticktext } = toNumbers(config.context.rows.map(r => r[d.name]));
-          return {
-            label: d.name,
-            values,
-            tickvals,
-            ticktext,
-          };
-        }
-      }),
+      ...(type === 'parcats' &&
+        countField && {
+          counts: config.context.rows.map(r => r.count),
+        }),
+      tickfont: { size: 14 },
+      dimensions: config.context.columns
+        .map(d => {
+          if (d.type === 'number' || type !== 'parcoords') {
+            return {
+              label: d.name,
+              values: config.context.rows.map(r => r[d.name]),
+            };
+          } else {
+            const { values, tickvals, ticktext } = toNumbers(
+              config.context.rows.map(r => r[d.name])
+            );
+            return {
+              label: d.name,
+              values,
+              tickvals,
+              ticktext,
+            };
+          }
+        })
+        .filter(dim => type !== 'parcats' || (dim.label !== 'count' && dim.label !== 'color')),
     },
   ];
 
