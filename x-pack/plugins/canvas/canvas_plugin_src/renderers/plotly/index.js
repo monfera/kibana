@@ -58,9 +58,6 @@ const dataTableRender = (domNode, config, handlers) => {
   const firstNumeric = config.context.columns.find(c => c.type === 'number');
   const layout = {
     title: config.title,
-    //    xaxis: { title: config.context.columns.x.expression },
-    //    yaxis: { title: config.context.columns.y.expression },
-    //    zaxis: { title: config.context.columns.z && config.context.columns.z.expression },
   };
 
   const type = config.plotly || 'parcoords';
@@ -86,7 +83,7 @@ const dataTableRender = (domNode, config, handlers) => {
         ...(type === 'parcoords' && {
           showscale: true,
           reversescale: true,
-          colorscale: 'Jet',
+          colorscale: 'Viridis',
           color: config.context.rows.map(r => r[firstNumeric.name]),
         }),
         ...(type === 'parcats' &&
