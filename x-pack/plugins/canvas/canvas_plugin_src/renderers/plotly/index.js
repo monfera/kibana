@@ -148,43 +148,55 @@ const dataTableRender = (domNode, config, handlers) => {
             .filter(dim => dim.label !== 'count' && dim.label !== 'color'),
         };
       case 'sankey':
+        let nodeIndex = 0;
+        const nodes = {};
+        const links = [];
+        for (let i = 0; i < config.context.rows.length; i++) {
+          const row = config.context.rows[i];
+          const propNames = Object.keys(row);
+          let prev = null;
+          for (let j = 0; j < propNames.length; j++) {
+            const propName = propNames[j];
+            if (['count', 'color'].indexOf(propName) >= 0) continue;
+            const value = row[propName];
+            const nodeKey = value + '_' + propName;
+            const currentNodeIndex = nodes[nodeKey] || (nodes[nodeKey] = nodeIndex++);
+            if (j > 0) {
+              links.push([
+                prev,
+                currentNodeIndex,
+                countField ? row.count : 1 /* count 1 by default */,
+                Object.entries(row)
+                  .map(([k, v]) => `${String(k).slice(0)}: ${String(v).slice(0)}`)
+                  .join('<br>') + '<br>',
+              ]);
+            }
+            prev = currentNodeIndex;
+          }
+        }
         return {
           type,
-          line: {
-            ...(colorField && {
-              color: toNumbers(config.context.rows.map(r => r.color)).values,
-              //colorscale: [[0, 'lightsteelblue'], [distinct(toNumbers(config.context.rows.map(r => r['color'])).values).length - 1, 'mediumseagreen']],
-              //colorscale: 'Viridis' || 'Pastel2',
-              colorscale: Plotly.d3.scale
-                .category20()
-                .range()
-                .map((c, i) => [i / 19, c]),
-            }),
+          orientation: 'h',
+          node: {
+            pad: 15,
+            thickness: 30,
+            line: {
+              color: 'black',
+              width: 0.5,
+            },
+            label: Object.entries(nodes)
+              .sort((a, b) => a[1] - b[1])
+              .map(([k]) => k),
+            //color: ['blue', 'blue', 'blue', 'blue', 'blue', 'blue'],
           },
-          ...(countField && {
-            counts: config.context.rows.map(r => r.count),
-          }),
+
+          link: {
+            source: links.map(l => l[0]),
+            target: links.map(l => l[1]),
+            value: links.map(l => l[2]),
+            label: links.map(l => l[3]),
+          },
           tickfont: { size: 14 },
-          dimensions: config.context.columns
-            .map(d => {
-              if (d.type === 'number' || type !== 'parcoords') {
-                return {
-                  label: d.name,
-                  values: config.context.rows.map(r => r[d.name]),
-                };
-              } else {
-                const { values, tickvals, ticktext } = toNumbers(
-                  config.context.rows.map(r => r[d.name])
-                );
-                return {
-                  label: d.name,
-                  values,
-                  tickvals,
-                  ticktext,
-                };
-              }
-            })
-            .filter(dim => dim.label !== 'count' && dim.label !== 'color'),
         };
     }
   };
