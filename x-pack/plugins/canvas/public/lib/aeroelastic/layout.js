@@ -971,16 +971,15 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   // fixme left active: snap wobble. right active: opposite side wobble.
   const a = snappedA(properShape);
   const b = snappedB(properShape);
-  const groupedShape = shape =>
-    shape.parent === properShape.id &&
-    shape.type !== 'annotation' &&
-    shape.type !== configuration.groupName;
-  // fixme broaden resizableChild to other multiples of 90 degrees
-  const resizableChild = shape =>
-    shallowEqual(
-      matrix.compositeComponent(shape.localTransformMatrix).map(applyTolerance),
-      matrix.UNITMATRIX
-    );
+  const groupedShape = shape => shape.parent === properShape.id && shape.type !== 'annotation';
+  const resizableChild = shape => {
+    const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
+    const multipleOf90deg =
+      applyTolerance(
+        Math.abs(Math.round(zRotation / (Math.PI / 2)) - zRotation / (Math.PI / 2))
+      ) === 0;
+    return multipleOf90deg;
+  };
   const allowResize =
     properShape.type !== 'group' ||
     (configuration.groupResize && shapes.filter(groupedShape).every(resizableChild));
