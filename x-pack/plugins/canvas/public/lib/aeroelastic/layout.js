@@ -977,12 +977,9 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
     const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
     const multipleOf90deg =
       Math.abs(Math.round(zRotation / (Math.PI / 2)) - zRotation / (Math.PI / 2)) < epsilon;
-    if (shape.type !== configuration.groupName || !multipleOf90deg) {
-      return multipleOf90deg;
-    } else {
-      // fixme DRY it up with self (`resizableChild`)
-      return shapes.filter(groupedShape(shape)).every(resizableChild);
-    }
+    return shape.type !== configuration.groupName || !multipleOf90deg
+      ? multipleOf90deg
+      : shapes.filter(groupedShape(shape)).every(resizableChild);
   };
   const allowResize =
     properShape.type !== 'group' ||
