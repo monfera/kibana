@@ -970,7 +970,8 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   // fixme left active: snap wobble. right active: opposite side wobble.
   const a = snappedA(properShape);
   const b = snappedB(properShape);
-  const groupedShape = shape => shape.parent === properShape.id && shape.type !== 'annotation';
+  const groupedShape = properShape => shape =>
+    shape.parent === properShape.id && shape.type !== 'annotation';
   const epsilon = configuration.rotationEpsilon;
   const resizableChild = shape => {
     const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
@@ -979,17 +980,13 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
     if (shape.type !== configuration.groupName || !multipleOf90deg) {
       return multipleOf90deg;
     } else {
-      return (
-        shapes
-          // fixme DRY it up with `groupedShape`
-          .filter(s => s.parent === shape.id && s.type !== 'annotation')
-          .every(resizableChild)
-      );
+      // fixme DRY it up with self (`resizableChild`)
+      return shapes.filter(groupedShape(shape)).every(resizableChild);
     }
   };
   const allowResize =
     properShape.type !== 'group' ||
-    (configuration.groupResize && shapes.filter(groupedShape).every(resizableChild));
+    (configuration.groupResize && shapes.filter(groupedShape(properShape)).every(resizableChild));
   const resizeVertices = allowResize
     ? [
         [-1, -1, 315],
