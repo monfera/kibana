@@ -939,6 +939,9 @@ const connectorVertices = [
 
 const cornerVertices = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
 
+const groupedShape = properShape => shape =>
+  shape.parent === properShape.id && shape.type !== 'annotation';
+
 function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   const foundShape = shapes.find(s => shape.id === s.id);
   const properShape =
@@ -970,8 +973,6 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   // fixme left active: snap wobble. right active: opposite side wobble.
   const a = snappedA(properShape);
   const b = snappedB(properShape);
-  const groupedShape = properShape => shape =>
-    shape.parent === properShape.id && shape.type !== 'annotation';
   const epsilon = configuration.rotationEpsilon;
   const resizableChild = shape => {
     const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
