@@ -27,6 +27,7 @@ const resizeAnnotationSize = 10;
 const resizeAnnotationConnectorOffset = 0; //resizeAnnotationSize //+ 2
 const resizeConnectorName = 'resizeConnector';
 const rotateAnnotationOffset = 12;
+const rotationEpsilon = 0.001;
 const rotationHandleName = 'rotationHandle';
 const rotationHandleSize = 14;
 const resizeHandleName = 'resizeHandle';
@@ -58,6 +59,7 @@ module.exports = {
   resizeConnectorName,
   resizeHandleName,
   rotateAnnotationOffset,
+  rotationEpsilon,
   rotateSnapInPixels,
   rotationHandleName,
   rotationHandleSize,

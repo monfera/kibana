@@ -81,7 +81,7 @@ const shapeToElement = shape => {
     top: shape.transformMatrix[13] - shape.b,
     width: shape.a * 2,
     height: shape.b * 2,
-    angle: Math.round(matrixToAngle(shape.transformMatrix)),
+    angle: (Math.round(matrixToAngle(shape.transformMatrix)) * 180) / Math.PI,
     parent: shape.parent || null, // shape.ancestors,
     ancestors: shape.ancestors.join('|'),
     localTransformMatrix: shape.localTransformMatrix,

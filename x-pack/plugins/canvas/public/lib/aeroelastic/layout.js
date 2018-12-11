@@ -27,7 +27,6 @@ const matrix = require('./matrix');
 const matrix2d = require('./matrix2d');
 
 const {
-  applyTolerance,
   disjunctiveUnion,
   identity,
   flatten,
@@ -972,13 +971,21 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   const a = snappedA(properShape);
   const b = snappedB(properShape);
   const groupedShape = shape => shape.parent === properShape.id && shape.type !== 'annotation';
+  const epsilon = configuration.rotationEpsilon;
   const resizableChild = shape => {
     const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
     const multipleOf90deg =
-      applyTolerance(
-        Math.abs(Math.round(zRotation / (Math.PI / 2)) - zRotation / (Math.PI / 2))
-      ) === 0;
-    return multipleOf90deg;
+      Math.abs(Math.round(zRotation / (Math.PI / 2)) - zRotation / (Math.PI / 2)) < epsilon;
+    if (shape.type !== configuration.groupName || !multipleOf90deg) {
+      return multipleOf90deg;
+    } else {
+      return (
+        shapes
+          // fixme DRY it up with `groupedShape`
+          .filter(s => s.parent === shape.id && s.type !== 'annotation')
+          .every(resizableChild)
+      );
+    }
   };
   const allowResize =
     properShape.type !== 'group' ||
@@ -1041,7 +1048,7 @@ const translateShapeSnap = (horizontalConstraint, verticalConstraint, draggedEle
     if (!snapOffsetX && !snapOffsetY) return shape;
     const snapOffset = matrix.translateComponent(
       matrix.multiply(
-        matrix.rotateZ((matrix.matrixToAngle(draggedElement.localTransformMatrix) / 180) * Math.PI),
+        matrix.rotateZ(matrix.matrixToAngle(draggedElement.localTransformMatrix)),
         matrix.translate(snapOffsetX, snapOffsetY, 0)
       )
     );
@@ -1071,7 +1078,7 @@ const resizeShapeSnap = (
   const snapOffsetY = constrainedY ? -verticalConstraint.signedDistance : 0;
   if (constrainedX || constrainedY) {
     const multiplier = symmetric ? 1 : 0.5;
-    const angle = (matrix.matrixToAngle(draggedElement.localTransformMatrix) / 180) * Math.PI;
+    const angle = matrix.matrixToAngle(draggedElement.localTransformMatrix);
     const horizontalSign = -resizeMultiplierHorizontal[horizontalPosition]; // fixme unify sign
     const verticalSign = resizeMultiplierVertical[verticalPosition];
     // todo turn it into matrix algebra via matrix2d.js
@@ -1498,7 +1505,7 @@ const cursor = select((configuration, shape, draggedPrimaryShape) => {
     case configuration.rotationHandleName:
       return 'crosshair';
     case configuration.resizeHandleName:
-      const angle = (matrix.matrixToAngle(shape.transformMatrix) + 360) % 360;
+      const angle = ((matrix.matrixToAngle(shape.transformMatrix) * 180) / Math.PI + 360) % 360;
       const screenProjectedAngle = angle + shape.cursorAngle;
       const discretizedAngle = (Math.round(screenProjectedAngle / 45) * 45 + 360) % 360;
       return bidirectionalCursors[discretizedAngle];
