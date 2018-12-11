@@ -942,6 +942,20 @@ const cornerVertices = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
 const groupedShape = properShape => shape =>
   shape.parent === properShape.id && shape.type !== 'annotation';
 
+const magic = (configuration, shape, properShape, shapes) => {
+  const epsilon = configuration.rotationEpsilon;
+  const integralOf = Math.PI * 2;
+  const resizableChild = shape => {
+    const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
+    const ratio = zRotation / integralOf;
+    const integerMultiple = Math.abs(Math.round(ratio) - ratio) < epsilon;
+    return shape.type !== configuration.groupName || !integerMultiple
+      ? integerMultiple
+      : shapes.filter(groupedShape(shape)).every(resizableChild);
+  };
+  return shapes.filter(groupedShape(properShape)).every(resizableChild);
+};
+
 function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   const foundShape = shapes.find(s => shape.id === s.id);
   const properShape =
@@ -973,18 +987,9 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   // fixme left active: snap wobble. right active: opposite side wobble.
   const a = snappedA(properShape);
   const b = snappedB(properShape);
-  const epsilon = configuration.rotationEpsilon;
-  const resizableChild = shape => {
-    const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
-    const multipleOf90deg =
-      Math.abs(Math.round(zRotation / (Math.PI / 2)) - zRotation / (Math.PI / 2)) < epsilon;
-    return shape.type !== configuration.groupName || !multipleOf90deg
-      ? multipleOf90deg
-      : shapes.filter(groupedShape(shape)).every(resizableChild);
-  };
   const allowResize =
     properShape.type !== 'group' ||
-    (configuration.groupResize && shapes.filter(groupedShape(properShape)).every(resizableChild));
+    (configuration.groupResize && magic(configuration, shape, properShape, shapes));
   const resizeVertices = allowResize
     ? [
         [-1, -1, 315],
