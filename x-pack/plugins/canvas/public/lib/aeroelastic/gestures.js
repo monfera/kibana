@@ -48,10 +48,6 @@ const metaHeld = select(appleKeyboard ? e => e.metaKey : e => e.altKey)(keyFromM
 const optionHeld = select(appleKeyboard ? e => e.altKey : e => e.ctrlKey)(keyFromMouse);
 const shiftHeld = select(e => e.shiftKey)(keyFromMouse);
 
-// retaining this for now to avoid removing dependent inactive code `keyTransformGesture` from layout.js
-// todo remove this, and `keyTransformGesture` from layout.js and do accessibility outside the layout engine
-const pressedKeys = () => ({});
-
 const cursorPosition = selectReduce((previous, position) => position || previous, { x: 0, y: 0 })(
   rawCursorPosition
 );
@@ -146,6 +142,5 @@ module.exports = {
   mouseDowned,
   mouseIsDown,
   optionHeld,
-  pressedKeys,
   shiftHeld,
 };

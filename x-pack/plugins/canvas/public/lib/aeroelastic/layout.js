@@ -17,7 +17,6 @@ const {
   mouseDowned,
   mouseIsDown,
   optionHeld,
-  pressedKeys,
   shiftHeld,
 } = require('./gestures');
 
@@ -95,59 +94,6 @@ const focusedShapes = select((shapes, focusedShape) =>
   shapes.filter(shape => focusedShape && shape.id === focusedShape.id)
 )(shapes, focusedShape);
 
-const keyTransformGesture = select(
-  (configuration, keys) =>
-    configuration.shortcuts
-      ? Object.keys(keys)
-          .map(keypress => {
-            switch (keypress) {
-              case 'KeyW':
-                return { transform: matrix.translate(0, -5, 0) };
-              case 'KeyA':
-                return { transform: matrix.translate(-5, 0, 0) };
-              case 'KeyS':
-                return { transform: matrix.translate(0, 5, 0) };
-              case 'KeyD':
-                return { transform: matrix.translate(5, 0, 0) };
-              case 'KeyF':
-                return { transform: matrix.translate(0, 0, -20) };
-              case 'KeyC':
-                return { transform: matrix.translate(0, 0, 20) };
-              case 'KeyX':
-                return { transform: matrix.rotateX(Math.PI / 45) };
-              case 'KeyY':
-                return { transform: matrix.rotateY(Math.PI / 45 / 1.3) };
-              case 'KeyZ':
-                return { transform: matrix.rotateZ(Math.PI / 45 / 1.6) };
-              case 'KeyI':
-                return { transform: matrix.scale(1, 1.05, 1) };
-              case 'KeyJ':
-                return { transform: matrix.scale(1 / 1.05, 1, 1) };
-              case 'KeyK':
-                return { transform: matrix.scale(1, 1 / 1.05, 1) };
-              case 'KeyL':
-                return { transform: matrix.scale(1.05, 1, 1) };
-              case 'KeyP':
-                return { transform: matrix.perspective(2000) };
-              case 'KeyR':
-                return { transform: matrix.shear(0.1, 0) };
-              case 'KeyT':
-                return { transform: matrix.shear(-0.1, 0) };
-              case 'KeyU':
-                return { transform: matrix.shear(0, 0.1) };
-              case 'KeyH':
-                return { transform: matrix.shear(0, -0.1) };
-              case 'KeyM':
-                return { transform: matrix.UNITMATRIX, sizes: [1.0, 0, 0, 0, 1.0, 0, 10, 0, 1] };
-              case 'Backspace':
-              case 'Delete':
-                return { transform: matrix.UNITMATRIX, delete: true };
-            }
-          })
-          .filter(identity)
-      : []
-)(configuration, pressedKeys);
-
 const alterSnapGesture = select(metaHeld => (metaHeld ? ['relax'] : []))(metaHeld);
 
 const multiselectModifier = shiftHeld; // todo abstract out keybindings
@@ -186,9 +132,7 @@ const mouseTransformGesture = select(tuple =>
     .map(({ transform, cumulativeTransform }) => ({ transform, cumulativeTransform }))
 )(mouseTransformState);
 
-const transformGestures = select((keyTransformGesture, mouseTransformGesture) =>
-  keyTransformGesture.concat(mouseTransformGesture)
-)(keyTransformGesture, mouseTransformGesture);
+const transformGestures = mouseTransformGesture;
 
 const restateShapesEvent = select(
   action => (action && action.type === 'restateShapesEvent' ? action.payload : null)
