@@ -942,18 +942,24 @@ const cornerVertices = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
 const groupedShape = properShape => shape =>
   shape.parent === properShape.id && shape.type !== 'annotation';
 
-const magic = (configuration, shape, properShape, shapes) => {
+const magic = (configuration, shape, shapes) => {
   const epsilon = configuration.rotationEpsilon;
   const integralOf = Math.PI * 2;
-  const resizableChild = shape => {
+
+  function recurse(shape) {
+    return shapes.filter(groupedShape(shape)).every(resizableChild);
+  }
+
+  function resizableChild(shape) {
     const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
     const ratio = zRotation / integralOf;
     const integerMultiple = Math.abs(Math.round(ratio) - ratio) < epsilon;
     return shape.type !== configuration.groupName || !integerMultiple
       ? integerMultiple
-      : shapes.filter(groupedShape(shape)).every(resizableChild);
-  };
-  return shapes.filter(groupedShape(properShape)).every(resizableChild);
+      : recurse(shape);
+  }
+
+  return recurse(shape);
 };
 
 function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
@@ -989,7 +995,7 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   const b = snappedB(properShape);
   const allowResize =
     properShape.type !== 'group' ||
-    (configuration.groupResize && magic(configuration, shape, properShape, shapes));
+    (configuration.groupResize && magic(configuration, properShape, shapes));
   const resizeVertices = allowResize
     ? [
         [-1, -1, 315],
