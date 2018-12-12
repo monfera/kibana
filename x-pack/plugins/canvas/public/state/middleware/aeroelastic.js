@@ -24,6 +24,7 @@ import { appReady } from '../actions/app';
 import { setWorkpad } from '../actions/workpad';
 import { getElements, getPages, getSelectedPage, getSelectedElement } from '../selectors/workpad';
 
+const persistGroups = false;
 const isGroupId = id => id.startsWith('group_');
 
 /**
@@ -56,7 +57,7 @@ const elementToShape = (element, i) => {
   // multiplying the angle with -1 as `transform: matrix3d` uses a left-handed coordinate system
   const angleRadians = (-position.angle / 180) * Math.PI;
   const localTransformMatrix =
-    position.localTransformMatrix ||
+    (persistGroups && position.localTransformMatrix) ||
     aero.matrix.multiply(aero.matrix.translate(cx, cy, z), aero.matrix.rotateZ(angleRadians));
   const isGroup = isGroupId(element.id);
   const parent = (element.position && element.position.parent) || null; // reserved for hierarchical (tree shaped) grouping
@@ -90,7 +91,10 @@ const shapeToElement = shape => {
 
 const updateGlobalPositions = (setMultiplePositions, { shapes, gestureEnd }, unsortedElements) => {
   const ascending = (a, b) => (a.id < b.id ? -1 : 1);
-  const relevant = s => s.type !== 'annotation' && s.subtype !== 'adHocGroup';
+  const relevant = s =>
+    s.type !== 'annotation' &&
+    s.subtype !== 'adHocGroup' &&
+    (persistGroups || s.subtype !== 'persistentGroup'); // don't persist groups for now
   const elements = unsortedElements.filter(relevant).sort(ascending);
   const repositionings = shapes
     .filter(relevant)
@@ -155,7 +159,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const selectedElement = getSelectedElement(getState());
 
     const shapes = nextScene.shapes;
-    const persistableGroups = shapes.filter(s => s.subtype === 'persistentGroup');
+    const persistableGroups = shapes.filter(s => persistGroups && s.subtype === 'persistentGroup');
     const persistedGroups = elements.filter(e => isGroupId(e.id));
 
     idDuplicateCheck(persistableGroups);
