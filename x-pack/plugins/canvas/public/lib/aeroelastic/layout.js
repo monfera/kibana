@@ -939,8 +939,7 @@ const connectorVertices = [
 
 const cornerVertices = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
 
-const groupedShape = properShape => shape =>
-  shape.parent === properShape.id && shape.type !== 'annotation';
+const groupedShape = properShape => shape => shape.parent === properShape.id;
 
 const magic = (configuration, shape, shapes) => {
   const epsilon = configuration.rotationEpsilon;
@@ -995,7 +994,8 @@ function resizeAnnotation(configuration, shapes, selectedShapes, shape) {
   const b = snappedB(properShape);
   const allowResize =
     properShape.type !== 'group' ||
-    (configuration.groupResize && magic(configuration, properShape, shapes));
+    (configuration.groupResize &&
+      magic(configuration, properShape, shapes.filter(s => s.type !== 'annotation')));
   const resizeVertices = allowResize
     ? [
         [-1, -1, 315],
