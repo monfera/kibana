@@ -944,15 +944,18 @@ const groupedShape = properShape => shape => shape.parent === properShape.id;
 const magic = (configuration, shape, shapes) => {
   const epsilon = configuration.rotationEpsilon;
   const integralOf = Math.PI * 2;
+  const isIntegerMultiple = shape => {
+    const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
+    const ratio = zRotation / integralOf;
+    return Math.abs(Math.round(ratio) - ratio) < epsilon;
+  };
 
   function recurse(shape) {
     return shapes.filter(groupedShape(shape)).every(resizableChild);
   }
 
   function resizableChild(shape) {
-    const zRotation = matrix.matrixToAngle(shape.localTransformMatrix);
-    const ratio = zRotation / integralOf;
-    const integerMultiple = Math.abs(Math.round(ratio) - ratio) < epsilon;
+    const integerMultiple = isIntegerMultiple(shape);
     return shape.type !== configuration.groupName || !integerMultiple
       ? integerMultiple
       : recurse(shape);
