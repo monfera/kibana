@@ -955,10 +955,7 @@ const magic = (configuration, shape, shapes) => {
   }
 
   function resizableChild(shape) {
-    const integerMultiple = isIntegerMultiple(shape);
-    return shape.type !== configuration.groupName || !integerMultiple
-      ? integerMultiple
-      : recurse(shape);
+    return isIntegerMultiple(shape) && recurse(shape);
   }
 
   return recurse(shape);
