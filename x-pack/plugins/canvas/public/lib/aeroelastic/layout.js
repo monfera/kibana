@@ -1332,6 +1332,42 @@ const adHocToPersistentGroup = (configuration, shapes, selectedShapes) => {
   };
 };
 
+const extendGroup = (
+  configuration,
+  preexistingAdHocGroups,
+  freshSelectedShapes,
+  freshNonSelectedShapes
+) => {
+  const group = axisAlignedBoundingBoxShape(configuration, freshSelectedShapes);
+  const selectedLeafShapes = getLeafs(
+    shape => shape.subtype === configuration.adHocGroupName,
+    shapes,
+    freshSelectedShapes
+  );
+  const parentedSelectedShapes = selectedLeafShapes.map(shape => ({
+    ...shape,
+    parent: group.id,
+    ancestors: [...group.ancestors, group.id],
+    localTransformMatrix: matrix.multiply(group.rigTransform, shape.transformMatrix),
+  }));
+  const nonGroupGraphConstituent = s =>
+    s.subtype !== configuration.adHocGroupName &&
+    !parentedSelectedShapes.find(ss => s.id === ss.id);
+  const dissociateFromParentIfAny = s =>
+    s.parent &&
+    s.parent.startsWith(configuration.groupName) &&
+    preexistingAdHocGroups.find(ahg => ahg.id === s.parent)
+      ? { ...s, parent: null, ancestors: [] }
+      : s;
+  const allTerminalShapes = parentedSelectedShapes.concat(
+    freshNonSelectedShapes.filter(nonGroupGraphConstituent).map(dissociateFromParentIfAny)
+  );
+  return {
+    shapes: allTerminalShapes.concat([group]),
+    selectedShapes: [group],
+  };
+};
+
 const grouping = select((configuration, shapes, selectedShapes, groupAction) => {
   const childOfGroup = shape => shape.parent && shape.parent.startsWith(configuration.groupName);
   const isAdHocGroup = shape =>
@@ -1380,41 +1416,16 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
         }
       : preserveCurrentGroups(shapes, selectedShapes);
   }
+
   // group items or extend group bounding box (if enabled)
-  if (selectedShapes.length < 2) {
-    // resize the group if needed (ad-hoc group resize is manipulated)
-    return preserveCurrentGroups(shapes, selectedShapes);
-  } else {
-    // group together the multiple items
-    const group = axisAlignedBoundingBoxShape(configuration, freshSelectedShapes);
-    const selectedLeafShapes = getLeafs(
-      shape => shape.subtype === configuration.adHocGroupName,
-      shapes,
-      freshSelectedShapes
-    );
-    const parentedSelectedShapes = selectedLeafShapes.map(shape => ({
-      ...shape,
-      parent: group.id,
-      ancestors: [...group.ancestors, group.id],
-      localTransformMatrix: matrix.multiply(group.rigTransform, shape.transformMatrix),
-    }));
-    const nonGroupGraphConstituent = s =>
-      s.subtype !== configuration.adHocGroupName &&
-      !parentedSelectedShapes.find(ss => s.id === ss.id);
-    const dissociateFromParentIfAny = s =>
-      s.parent &&
-      s.parent.startsWith(configuration.groupName) &&
-      preexistingAdHocGroups.find(ahg => ahg.id === s.parent)
-        ? { ...s, parent: null, ancestors: [] }
-        : s;
-    const allTerminalShapes = parentedSelectedShapes.concat(
-      freshNonSelectedShapes.filter(nonGroupGraphConstituent).map(dissociateFromParentIfAny)
-    );
-    return {
-      shapes: allTerminalShapes.concat([group]),
-      selectedShapes: [group],
-    };
-  }
+  return selectedShapes.length < 2
+    ? preserveCurrentGroups(shapes, selectedShapes)
+    : extendGroup(
+        configuration,
+        preexistingAdHocGroups,
+        freshSelectedShapes,
+        freshNonSelectedShapes
+      );
 })(configuration, constrainedShapesWithPreexistingAnnotations, selectedShapes, groupAction);
 
 const groupedSelectedShapes = select(({ selectedShapes }) => selectedShapes)(grouping);
