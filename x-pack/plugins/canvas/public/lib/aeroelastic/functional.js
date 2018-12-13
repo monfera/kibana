@@ -91,7 +91,12 @@ const subMultitree = (pk, fk, elements, roots) => {
   return getSubgraphs(roots);
 };
 
+const adjacentPairs = (a, fun = (l, r) => [l, r]) =>
+  // by default, just form pairs in arrays; otherwise, use the supplied function (l, r, index, array) => ...
+  a.map((d, i, a, next = a[i + 1]) => next && fun(d, next, i, a)).filter(identity);
+
 module.exports = {
+  adjacentPairs,
   arrayToMap,
   disjunctiveUnion,
   distinct,

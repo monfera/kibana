@@ -26,6 +26,7 @@ const matrix = require('./matrix');
 const matrix2d = require('./matrix2d');
 
 const {
+  adjacentPairs,
   arrayToMap,
   disjunctiveUnion,
   distinct,
@@ -610,14 +611,47 @@ const shapeCascadeProperties = shapes => shape => {
 
 const cascadeProperties = shapes => shapes.map(shapeCascadeProperties(shapes));
 
-const withHydratedGroups = shapes => {
-  const groupIds = distinct(identity, flatMap(shapes, s => s.ancestors));
-  const groupMap = arrayToMap(groupIds, id => ({ id }));
-  const groups = Object.values(groupMap);
+const withHydratedGroups = (configuration, shapes) => {
+  const links = flatMap(shapes, s =>
+    adjacentPairs([s.id, ...s.ancestors], (parent, child, index, ancestors) => {
+      return {
+        parent,
+        child,
+        leaf: ancestors[0],
+        lineageLength: s.ancestors.length - 1 - index,
+      };
+    })
+  ); // leftward: more atomic, rightward: more grouped
+
+  const childrenByParent = links.reduce((map, link) => {
+    const { parent } = link;
+    if (!parent) debugger;
+    if (!map[parent]) map[parent] = { group: parent, links: [], maxLineageLength: 0 };
+    map[parent].links.push(link);
+    map[parent].maxLineageLength = Math.max(map[parent].maxLineageLength, link.lineageLength);
+    return map;
+  }, {});
+
+  //const groupIds = distinct(identity, links.map(link => link[1]));
+  //const groupMap = arrayToMap(groupIds, id => ({ id }));
+  const protoGroups = Object.values(childrenByParent).sort(
+    (a, b) => -(a.maxLineageLength - b.maxLineageLength)
+  );
+
+  // sorted input is important so that we reestablish groups from bottom towards the top, otherwise transforms won't cascade
+  const groups = protoGroups.reduce((shapes, g) => {
+    const participantShapes = g.links
+      .map(link => link.leaf)
+      .map(s => shapes.find(shape => shape.id === s));
+    const newGroup = axisAlignedBoundingBoxShape(configuration, participantShapes);
+    //debugger;
+    //shapes.push()
+    return shapes;
+  }, shapes.slice());
 
   const result = [
     ...shapes.map(s => ({ ...s /*, parent: s.ancestors[s.ancestors.length - 1]*/ })),
-    ...groups.slice(0, 0),
+    // ...groups,
   ];
   return result;
 };
@@ -625,7 +659,7 @@ const withHydratedGroups = shapes => {
 const nextShapes = select((configuration, preexistingShapes, restated) => {
   if (restated && restated.newShapes) {
     return configuration.impliedPersistentGroups
-      ? withHydratedGroups(restated.newShapes) // group shapes must be added
+      ? withHydratedGroups(configuration, restated.newShapes) // group shapes must be added
       : restated.newShapes; // shapes are received directly as specified
   }
 
