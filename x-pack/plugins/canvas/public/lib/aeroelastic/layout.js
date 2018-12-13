@@ -1296,7 +1296,8 @@ const getAncestors = (idMap, shape) => {
   return recAncestors(shape);
 };
 
-const resizeGroup = (shapes, rootElement) => {
+const updateAncestors = inputShapes => {
+  const shapes = inputShapes.map(s => ({ ...s })); // immutability ftw
   const idMap = {};
   for (let i = 0; i < shapes.length; i++) {
     idMap[shapes[i].id] = shapes[i];
@@ -1304,7 +1305,11 @@ const resizeGroup = (shapes, rootElement) => {
   }
 
   for (let i = 0; i < shapes.length; i++) shapes[i].ancestors = getAncestors(idMap, shapes[i]);
+  return shapes;
+};
 
+const resizeGroup = (inputShapes, rootElement) => {
+  const shapes = updateAncestors(inputShapes);
   const resizedParents = { [rootElement.id]: rootElement };
   const sortedShapes = shapes.slice().sort((a, b) => a.ancestors.length - b.ancestors.length);
   const parentResized = s => Boolean(s.childBaseAB || s.baseAB);
