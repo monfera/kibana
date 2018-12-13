@@ -27,7 +27,6 @@ const matrix2d = require('./matrix2d');
 
 const {
   adjacentPairs,
-  arrayToMap,
   disjunctiveUnion,
   distinct,
   identity,
@@ -611,27 +610,98 @@ const shapeCascadeProperties = shapes => shape => {
 
 const cascadeProperties = shapes => shapes.map(shapeCascadeProperties(shapes));
 
+const idMatch = shape => s => s.id === shape.id;
+const idsMatch = selectedShapes => shape => selectedShapes.find(idMatch(shape));
+
+// fixme put it into geometry.js
+const extend = ([[xMin, yMin], [xMax, yMax]], [x0, y0], [x1, y1]) => [
+  [Math.min(xMin, x0, x1), Math.min(yMin, y0, y1)],
+  [Math.max(xMax, x0, x1), Math.max(yMax, y0, y1)],
+];
+
+// fixme put it into geometry.js
+const connectorVertices = [
+  [[-1, -1], [0, -1]],
+  [[0, -1], [1, -1]],
+  [[1, -1], [1, 0]],
+  [[1, 0], [1, 1]],
+  [[1, 1], [0, 1]],
+  [[0, 1], [-1, 1]],
+  [[-1, 1], [-1, 0]],
+  [[-1, 0], [-1, -1]],
+];
+
+// fixme put it into geometry.js
+const cornerVertices = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+
+// fixme put it into geometry.js
+const getAABB = shapes =>
+  shapes.reduce(
+    (prev, shape) => {
+      const shapeBounds = cornerVertices.reduce((prev, xyVertex) => {
+        const cornerPoint = matrix.normalize(
+          matrix.mvMultiply(shape.transformMatrix, [
+            shape.a * xyVertex[0],
+            shape.b * xyVertex[1],
+            0,
+            1,
+          ])
+        );
+        return extend(prev, cornerPoint, cornerPoint);
+      }, prev);
+      return extend(prev, ...shapeBounds);
+    },
+    [[Infinity, Infinity], [-Infinity, -Infinity]]
+  );
+
+const projectAABB = ([[xMin, yMin], [xMax, yMax]]) => {
+  const a = (xMax - xMin) / 2;
+  const b = (yMax - yMin) / 2;
+  const xTranslate = xMin + a;
+  const yTranslate = yMin + b;
+  const zTranslate = 0; // todo fix hack that ensures that grouped elements continue to be selectable
+  const localTransformMatrix = matrix.translate(xTranslate, yTranslate, zTranslate);
+  const rigTransform = matrix.translate(-xTranslate, -yTranslate, -zTranslate);
+  return { a, b, localTransformMatrix, rigTransform };
+};
+
+const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
+  const axisAlignedBoundingBox = getAABB(shapesToBox);
+  const { a, b, localTransformMatrix, rigTransform } = projectAABB(axisAlignedBoundingBox);
+  const id = configuration.groupName + '_' + makeUid();
+  const aabbShape = {
+    id,
+    type: configuration.groupName,
+    subtype: configuration.adHocGroupName,
+    a,
+    b,
+    localTransformMatrix,
+    rigTransform,
+    parent: null,
+    ancestors: [],
+  };
+  return aabbShape;
+};
+
 const withHydratedGroups = (configuration, shapes) => {
   const links = flatMap(shapes, s =>
-    adjacentPairs([s.id, ...s.ancestors], (parent, child, index, ancestors) => {
+    adjacentPairs([...s.ancestors, s.id], (parent, child, index, ancestors) => {
       return {
         parent,
         child,
-        leaf: ancestors[0],
-        lineageLength: s.ancestors.length - 1 - index,
+        leaf: ancestors[ancestors.length - 1],
+        lineageLength: index,
       };
     })
   ); // leftward: more atomic, rightward: more grouped
 
   const childrenByParent = links.reduce((map, link) => {
     const { parent } = link;
-    if (!parent) debugger;
     if (!map[parent]) map[parent] = { group: parent, links: [], maxLineageLength: 0 };
     map[parent].links.push(link);
     map[parent].maxLineageLength = Math.max(map[parent].maxLineageLength, link.lineageLength);
     return map;
   }, {});
-
   //const groupIds = distinct(identity, links.map(link => link[1]));
   //const groupMap = arrayToMap(groupIds, id => ({ id }));
   const protoGroups = Object.values(childrenByParent).sort(
@@ -639,21 +709,30 @@ const withHydratedGroups = (configuration, shapes) => {
   );
 
   // sorted input is important so that we reestablish groups from bottom towards the top, otherwise transforms won't cascade
-  const groups = protoGroups.reduce((shapes, g) => {
+  const shapesWithGroups = protoGroups.reduce((shapes, g) => {
     const participantShapes = g.links
-      .map(link => link.leaf)
+      .map(link => link.child)
+      .filter((d, i, a) => a.indexOf(d) === i) // distinct children
       .map(s => shapes.find(shape => shape.id === s));
     const newGroup = axisAlignedBoundingBoxShape(configuration, participantShapes);
-    //debugger;
-    //shapes.push()
-    return shapes;
-  }, shapes.slice());
+    newGroup.id = g.group;
+    newGroup.subtype = configuration.persistentGroupName; // fixme make aabbbs return either or none of the group subtypes
+    newGroup.transformMatrix = cascadeTransforms(shapes, newGroup); // needed for AABB calculation
 
-  const result = [
-    ...shapes.map(s => ({ ...s /*, parent: s.ancestors[s.ancestors.length - 1]*/ })),
-    // ...groups,
-  ];
-  return result;
+    // todo DRY up this block with the equivalent one in `extendGroup`
+    // some var names left as is after the copy/paste, to facilitate the DRY-up, ie. can be misnomers in this lexical scope
+    const group = newGroup; // unify var names
+    const selectedLeafShapes = participantShapes; // unify var names
+    selectedLeafShapes.forEach(shape => {
+      shape.localTransformMatrix = matrix.multiply(group.rigTransform, shape.transformMatrix);
+      shape.parent = g.group;
+    });
+
+    shapes.push(newGroup);
+    return shapes;
+  }, shapes.map(s => ({ ...s, parent: s.ancestors[s.ancestors.length - 1] || null })));
+
+  return shapesWithGroups;
 };
 
 const nextShapes = select((configuration, preexistingShapes, restated) => {
@@ -922,19 +1001,6 @@ const resizeEdgeAnnotations = (configuration, parent, a, b) => ([[x0, y0], [x1, 
   };
 };
 
-const connectorVertices = [
-  [[-1, -1], [0, -1]],
-  [[0, -1], [1, -1]],
-  [[1, -1], [1, 0]],
-  [[1, 0], [1, 1]],
-  [[1, 1], [0, 1]],
-  [[0, 1], [-1, 1]],
-  [[-1, 1], [-1, 0]],
-  [[-1, 0], [-1, -1]],
-];
-
-const cornerVertices = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
-
 const groupedShape = properShape => shape => shape.parent === properShape.id;
 
 const magic = (configuration, shape, shapes) => {
@@ -1166,42 +1232,6 @@ const constrainedShapesWithPreexistingAnnotations = select((snapped, transformed
   snapped.concat(transformed.filter(s => s.type === 'annotation'))
 )(snappedShapes, transformedShapes);
 
-const extend = ([[xMin, yMin], [xMax, yMax]], [x0, y0], [x1, y1]) => [
-  [Math.min(xMin, x0, x1), Math.min(yMin, y0, y1)],
-  [Math.max(xMax, x0, x1), Math.max(yMax, y0, y1)],
-];
-
-// fixme put it into geometry.js
-const getAABB = shapes =>
-  shapes.reduce(
-    (prev, shape) => {
-      const shapeBounds = cornerVertices.reduce((prev, xyVertex) => {
-        const cornerPoint = matrix.normalize(
-          matrix.mvMultiply(shape.transformMatrix, [
-            shape.a * xyVertex[0],
-            shape.b * xyVertex[1],
-            0,
-            1,
-          ])
-        );
-        return extend(prev, cornerPoint, cornerPoint);
-      }, prev);
-      return extend(prev, ...shapeBounds);
-    },
-    [[Infinity, Infinity], [-Infinity, -Infinity]]
-  );
-
-const projectAABB = ([[xMin, yMin], [xMax, yMax]]) => {
-  const a = (xMax - xMin) / 2;
-  const b = (yMax - yMin) / 2;
-  const xTranslate = xMin + a;
-  const yTranslate = yMin + b;
-  const zTranslate = 0; // todo fix hack that ensures that grouped elements continue to be selectable
-  const localTransformMatrix = matrix.translate(xTranslate, yTranslate, zTranslate);
-  const rigTransform = matrix.translate(-xTranslate, -yTranslate, -zTranslate);
-  return { a, b, localTransformMatrix, rigTransform };
-};
-
 const dissolveGroups = (groupsToDissolve, shapes) => {
   return {
     shapes: shapes.filter(s => !groupsToDissolve.find(g => s.id === g.id)).map(shape => {
@@ -1224,27 +1254,6 @@ const dissolveGroups = (groupsToDissolve, shapes) => {
     }),
     selectedShapes: [], // as an alternative, think of what Google Slides does: retain selection (via an adHocGroup)
   };
-};
-
-const idMatch = shape => s => s.id === shape.id;
-const idsMatch = selectedShapes => shape => selectedShapes.find(idMatch(shape));
-
-const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
-  const axisAlignedBoundingBox = getAABB(shapesToBox);
-  const { a, b, localTransformMatrix, rigTransform } = projectAABB(axisAlignedBoundingBox);
-  const id = configuration.groupName + '_' + makeUid();
-  const aabbShape = {
-    id,
-    type: configuration.groupName,
-    subtype: configuration.adHocGroupName,
-    a,
-    b,
-    localTransformMatrix,
-    rigTransform,
-    parent: null,
-    ancestors: [],
-  };
-  return aabbShape;
 };
 
 const resetChild = s => {
@@ -1409,7 +1418,7 @@ const extendGroup = (
   };
 };
 
-const grouping = select((configuration, shapes, selectedShapes, groupAction) => {
+const preGrouping = select((configuration, shapes, selectedShapes, groupAction) => {
   const childOfGroup = shape => shape.parent && shape.parent.startsWith(configuration.groupName);
   const isAdHocGroup = shape =>
     shape.type === configuration.groupName && shape.subtype === configuration.adHocGroupName;
@@ -1457,6 +1466,12 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
         freshNonSelectedShapes
       );
 })(configuration, constrainedShapesWithPreexistingAnnotations, selectedShapes, groupAction);
+
+const grouping = select(({ shapes: inputShapes, selectedShapes: inputSelectedShapes }) => {
+  const shapes = updateAncestors(inputShapes);
+  const selectedShapes = inputSelectedShapes.map(shape => shapes.find(s => s.id === shape.id));
+  return { shapes, selectedShapes };
+})(preGrouping);
 
 const groupedSelectedShapes = select(({ selectedShapes }) => selectedShapes)(grouping);
 
