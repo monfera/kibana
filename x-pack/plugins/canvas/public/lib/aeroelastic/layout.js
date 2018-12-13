@@ -1332,6 +1332,14 @@ const adHocToPersistentGroup = (configuration, shapes, selectedShapes) => {
   };
 };
 
+const resizeCurrentGroup = (shapes, selectedShapes, element) => ({
+  shapes: [
+    ...resizeGroup(shapes.filter(s => s.type !== 'annotation'), element),
+    ...shapes.filter(s => s.type === 'annotation'),
+  ],
+  selectedShapes,
+});
+
 const extendGroup = (
   configuration,
   preexistingAdHocGroups,
@@ -1407,13 +1415,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
   const elements = contentShapes(shapes, selectedShapes);
   if (elements.length === 1 && elements[0].type === 'group') {
     return configuration.groupResize
-      ? {
-          shapes: [
-            ...resizeGroup(shapes.filter(s => s.type !== 'annotation'), elements[0]),
-            ...shapes.filter(s => s.type === 'annotation'),
-          ],
-          selectedShapes,
-        }
+      ? resizeCurrentGroup(shapes, selectedShapes, elements[0])
       : preserveCurrentGroups(shapes, selectedShapes);
   }
 
