@@ -14,6 +14,8 @@
  */
 const flatten = arrays => [].concat(...arrays);
 
+const flatMap = (array, fun) => array.reduce((prev, next) => [...fun(next), ...prev], []);
+
 /**
  * identity
  *
@@ -76,10 +78,10 @@ const shallowEqual = (a, b) => {
 
 const not = fun => (...args) => !fun(...args);
 
-const removeDuplicates = (idFun, a) =>
-  a.filter((d, i) => a.findIndex(s => idFun(s) === idFun(d)) === i);
+const distinct = (idFun, a) => a.filter((d, i) => a.findIndex(s => idFun(s) === idFun(d)) === i);
 
-const arrayToMap = a => Object.assign({}, ...a.map(d => ({ [d]: true })));
+const arrayToMap = (a, makeValueFun = () => true) =>
+  Object.assign({}, ...a.map(d => ({ [d]: makeValueFun(d) })));
 
 const subMultitree = (pk, fk, elements, roots) => {
   const getSubgraphs = roots => {
@@ -92,6 +94,8 @@ const subMultitree = (pk, fk, elements, roots) => {
 module.exports = {
   arrayToMap,
   disjunctiveUnion,
+  distinct,
+  flatMap,
   flatten,
   subMultitree,
   identity,
@@ -99,6 +103,5 @@ module.exports = {
   map,
   mean,
   not,
-  removeDuplicates,
   shallowEqual,
 };

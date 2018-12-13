@@ -26,12 +26,14 @@ const matrix = require('./matrix');
 const matrix2d = require('./matrix2d');
 
 const {
+  //arrayToMap,
   disjunctiveUnion,
+  distinct,
   identity,
+  //flatMap,
   flatten,
   mean,
   not,
-  removeDuplicates,
   shallowEqual,
 } = require('./functional');
 
@@ -608,12 +610,26 @@ const shapeCascadeProperties = shapes => shape => {
 
 const cascadeProperties = shapes => shapes.map(shapeCascadeProperties(shapes));
 
-const nextShapes = select((preexistingShapes, restated) => {
-  if (restated && restated.newShapes) return restated.newShapes;
+const withHydratedGroups = shapes => {
+  //const groupIds = distinct(identity, flatMap(shapes, s => s.ancestors));
+  //const groupMap = arrayToMap(groupIds, id => ({ id }));
+  //const groups = Object.values(groups);
+
+  //debugger;
+  const result = [...shapes.map(s => ({ ...s /*, parent: s.ancestors[s.ancestors.length - 1]*/ }))];
+  return result;
+};
+
+const nextShapes = select((configuration, preexistingShapes, restated) => {
+  if (restated && restated.newShapes) {
+    return configuration.impliedPersistentGroups
+      ? withHydratedGroups(restated.newShapes) // group shapes must be added
+      : restated.newShapes; // shapes are received directly as specified
+  }
 
   // this is the per-shape model update at the current PoC level
   return preexistingShapes;
-})(shapes, restateShapesEvent);
+})(configuration, shapes, restateShapesEvent);
 
 const transformedShapes = select(applyLocalTransforms)(nextShapes, transformIntents);
 
@@ -1276,7 +1292,7 @@ const resizeGroup = (shapes, rootElement) => {
 };
 
 const getLeafs = (descendCondition, allShapes, shapes) =>
-  removeDuplicates(
+  distinct(
     s => s.id,
     flatten(
       shapes.map(
@@ -1292,6 +1308,28 @@ const groupAction = select(action => {
   return event === 'group' || event === 'ungroup' ? event : null;
 })(actionEvent);
 
+const adHocToPersistentGroup = (configuration, shapes, selectedShapes) => {
+  const selectedAdHocGroupsToPersist = selectedShapes.filter(
+    s => s.subtype === configuration.adHocGroupName
+  );
+  return {
+    shapes: shapes.map(
+      s =>
+        s.subtype === configuration.adHocGroupName
+          ? { ...s, subtype: configuration.persistentGroupName }
+          : s
+    ),
+    selectedShapes: selectedShapes
+      .filter(selected => selected.subtype !== configuration.adHocGroupName)
+      .concat(
+        selectedAdHocGroupsToPersist.map(shape => ({
+          ...shape,
+          subtype: configuration.persistentGroupName,
+        }))
+      ),
+  };
+};
+
 const grouping = select((configuration, shapes, selectedShapes, groupAction) => {
   const childOfGroup = shape => shape.parent && shape.parent.startsWith(configuration.groupName);
   const isAdHocGroup = shape =>
@@ -1306,27 +1344,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
   const someSelectedShapesAreGrouped = selectedShapes.some(isOrBelongsToGroup);
   const selectionOutsideGroup = !someSelectedShapesAreGrouped;
 
-  if (groupAction === 'group') {
-    const selectedAdHocGroupsToPersist = selectedShapes.filter(
-      s => s.subtype === configuration.adHocGroupName
-    );
-    return {
-      shapes: shapes.map(
-        s =>
-          s.subtype === configuration.adHocGroupName
-            ? { ...s, subtype: configuration.persistentGroupName }
-            : s
-      ),
-      selectedShapes: selectedShapes
-        .filter(selected => selected.subtype !== configuration.adHocGroupName)
-        .concat(
-          selectedAdHocGroupsToPersist.map(shape => ({
-            ...shape,
-            subtype: configuration.persistentGroupName,
-          }))
-        ),
-    };
-  }
+  if (groupAction === 'group') return adHocToPersistentGroup(configuration, shapes, selectedShapes);
 
   if (groupAction === 'ungroup') {
     return dissolveGroups(

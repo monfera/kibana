@@ -24,7 +24,7 @@ import { appReady } from '../actions/app';
 import { setWorkpad } from '../actions/workpad';
 import { getElements, getPages, getSelectedPage, getSelectedElement } from '../selectors/workpad';
 
-const persistGroups = false;
+const persistGroups = !defaultConfiguration.impliedPersistentGroups;
 const isGroupId = id => id.startsWith('group_');
 
 /**
