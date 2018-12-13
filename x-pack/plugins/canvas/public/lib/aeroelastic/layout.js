@@ -1202,7 +1202,7 @@ const projectAABB = ([[xMin, yMin], [xMax, yMax]]) => {
   return { a, b, localTransformMatrix, rigTransform };
 };
 
-const dissolveGroups = (groupsToDissolve, shapes, selectedShapes) => {
+const dissolveGroups = (groupsToDissolve, shapes) => {
   return {
     shapes: shapes.filter(s => !groupsToDissolve.find(g => s.id === g.id)).map(shape => {
       const preexistingGroupParent = groupsToDissolve.find(
@@ -1222,15 +1222,9 @@ const dissolveGroups = (groupsToDissolve, shapes, selectedShapes) => {
           }
         : shape;
     }),
-    selectedShapes,
+    selectedShapes: [], // as an alternative, think of what Google Slides does: retain selection (via an adHocGroup)
   };
 };
-
-// returns true if the shape is not a child of one of the shapes
-const hasNoParentWithin = shapes => shape => !shapes.some(g => shape.parent === g.id);
-
-const asYetUngroupedShapes = (preexistingAdHocGroups, selectedShapes) =>
-  selectedShapes.filter(hasNoParentWithin(preexistingAdHocGroups));
 
 const idMatch = shape => s => s.id === shape.id;
 const idsMatch = selectedShapes => shape => selectedShapes.find(idMatch(shape));
@@ -1429,8 +1423,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
   if (groupAction === 'ungroup') {
     return dissolveGroups(
       selectedShapes.filter(s => s.subtype === configuration.persistentGroupName),
-      shapes,
-      asYetUngroupedShapes(preexistingAdHocGroups, freshSelectedShapes)
+      shapes
     );
   }
 
@@ -1438,11 +1431,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
   if (preexistingAdHocGroups.length && selectionOutsideGroup) {
     // asYetUngroupedShapes will trivially be the empty set if case 1 is realized: user clicks aside -> selectedShapes === []
     // return preserveCurrentGroups(shapes, selectedShapes);
-    return dissolveGroups(
-      preexistingAdHocGroups,
-      shapes,
-      asYetUngroupedShapes(preexistingAdHocGroups, freshSelectedShapes)
-    );
+    return dissolveGroups(preexistingAdHocGroups, shapes);
   }
 
   // preserve the current selection if the sole ad hoc group is being manipulated
