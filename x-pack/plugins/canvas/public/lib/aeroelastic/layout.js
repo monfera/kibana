@@ -26,11 +26,11 @@ const matrix = require('./matrix');
 const matrix2d = require('./matrix2d');
 
 const {
-  //arrayToMap,
+  arrayToMap,
   disjunctiveUnion,
   distinct,
   identity,
-  //flatMap,
+  flatMap,
   flatten,
   mean,
   not,
@@ -611,12 +611,14 @@ const shapeCascadeProperties = shapes => shape => {
 const cascadeProperties = shapes => shapes.map(shapeCascadeProperties(shapes));
 
 const withHydratedGroups = shapes => {
-  //const groupIds = distinct(identity, flatMap(shapes, s => s.ancestors));
-  //const groupMap = arrayToMap(groupIds, id => ({ id }));
-  //const groups = Object.values(groups);
+  const groupIds = distinct(identity, flatMap(shapes, s => s.ancestors));
+  const groupMap = arrayToMap(groupIds, id => ({ id }));
+  const groups = Object.values(groupMap);
 
-  //debugger;
-  const result = [...shapes.map(s => ({ ...s /*, parent: s.ancestors[s.ancestors.length - 1]*/ }))];
+  const result = [
+    ...shapes.map(s => ({ ...s /*, parent: s.ancestors[s.ancestors.length - 1]*/ })),
+    ...groups.slice(0, 0),
+  ];
   return result;
 };
 
