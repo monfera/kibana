@@ -1235,11 +1235,8 @@ const resizeChild = groupScale => s => {
   s.baseLocalTransformMatrix = baseLocalTransformMatrix;
 };
 
-const getAncestors = (idMap, shape) => {
-  const recAncestors = shape => {
-    if (!shape.parent) return [];
-    return [...recAncestors(idMap[shape.parent]), shape.parent];
-  };
+const getAncestorsLength = (idMap, shape) => {
+  const recAncestors = shape => (shape.parent ? recAncestors(idMap[shape.parent]) + 1 : 0);
   return recAncestors(shape);
 };
 
@@ -1251,7 +1248,7 @@ const resizeGroup = (shapes, rootElement) => {
 
   const ancestorsLengths = {};
   for (let i = 0; i < shapes.length; i++)
-    ancestorsLengths[shapes[i].id] = getAncestors(idMap, shapes[i]).length;
+    ancestorsLengths[shapes[i].id] = getAncestorsLength(idMap, shapes[i]);
 
   const resizedParents = { [rootElement.id]: rootElement };
   const sortedShapes = shapes
