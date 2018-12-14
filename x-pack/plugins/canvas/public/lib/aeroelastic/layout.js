@@ -1235,25 +1235,18 @@ const resizeChild = groupScale => s => {
   s.baseLocalTransformMatrix = baseLocalTransformMatrix;
 };
 
-const getAncestorsLength = (idMap, shape) => {
-  const recAncestors = shape => (shape.parent ? recAncestors(idMap[shape.parent]) + 1 : 0);
-  return recAncestors(shape);
-};
-
 const resizeGroup = (shapes, rootElement) => {
   const idMap = {};
   for (let i = 0; i < shapes.length; i++) {
     idMap[shapes[i].id] = shapes[i];
   }
 
-  const ancestorsLengths = {};
-  for (let i = 0; i < shapes.length; i++)
-    ancestorsLengths[shapes[i].id] = getAncestorsLength(idMap, shapes[i]);
+  const depths = {};
+  const ancestorsLength = shape => (shape.parent ? ancestorsLength(idMap[shape.parent]) + 1 : 0);
+  for (let i = 0; i < shapes.length; i++) depths[shapes[i].id] = ancestorsLength(shapes[i]);
 
   const resizedParents = { [rootElement.id]: rootElement };
-  const sortedShapes = shapes
-    .slice()
-    .sort((a, b) => ancestorsLengths[a.id] - ancestorsLengths[b.id]);
+  const sortedShapes = shapes.slice().sort((a, b) => depths[a.id] - depths[b.id]);
   const parentResized = s => Boolean(s.childBaseAB || s.baseAB);
   for (let i = 0; i < sortedShapes.length; i++) {
     const shape = sortedShapes[i];
