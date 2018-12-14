@@ -685,7 +685,7 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
 
 const withHydratedGroups = (configuration, shapes) => {
   const links = flatMap(shapes, s =>
-    adjacentPairs([...s.ancestors.map(a => a.id), s.id], (parent, child, index) => {
+    adjacentPairs([...s.ancestors, s], (parent, child, index) => {
       return {
         parent,
         child,
@@ -696,13 +696,11 @@ const withHydratedGroups = (configuration, shapes) => {
 
   const childrenByParent = links.reduce((map, link) => {
     const { parent } = link;
-    if (!map[parent]) map[parent] = { group: parent, links: [], maxLineageLength: 0 };
-    map[parent].links.push(link);
-    map[parent].maxLineageLength = Math.max(map[parent].maxLineageLength, link.lineageLength);
+    if (!map[parent.id]) map[parent.id] = { group: parent, links: [], maxLineageLength: 0 };
+    map[parent.id].links.push(link);
+    map[parent.id].maxLineageLength = Math.max(map[parent.id].maxLineageLength, link.lineageLength);
     return map;
   }, {});
-  //const groupIds = distinct(identity, links.map(link => link[1]));
-  //const groupMap = arrayToMap(groupIds, id => ({ id }));
   const protoGroups = Object.values(childrenByParent).sort(
     (a, b) => -(a.maxLineageLength - b.maxLineageLength)
   );
@@ -712,12 +710,18 @@ const withHydratedGroups = (configuration, shapes) => {
     (shapes, g) => {
       const participantShapes = g.links
         .map(link => link.child)
-        .filter((d, i, a) => a.indexOf(d) === i) // distinct children
-        .map(s => shapes.find(shape => shape.id === s));
+        .filter((d, i, a) => a.findIndex(aa => aa.id === a.id) === i) // distinct children
+        .map(s => shapes.find(shape => shape.id === s.id));
       const newGroup = axisAlignedBoundingBoxShape(configuration, participantShapes);
-      newGroup.id = g.group;
+      newGroup.id = g.group.id;
       newGroup.subtype = configuration.persistentGroupName; // fixme make aabbbs return either or none of the group subtypes
-      newGroup.transformMatrix = cascadeTransforms(shapes, newGroup); // needed for AABB calculation
+      //newGroup.transformMatrix = cascadeTransforms(shapes, newGroup); // needed for AABB calculation
+      const parent = g.links[0].parent;
+      newGroup.localTransformMatrix = parent.localTransformMatrix;
+      newGroup.a = parent.a;
+      newGroup.b = parent.b;
+      newGroup.parent = null;
+      newGroup.transformMatrix = cascadeTransforms(shapes, newGroup);
 
       // todo DRY up this block with the equivalent one in `extendGroup`
       // some var names left as is after the copy/paste, to facilitate the DRY-up, ie. can be misnomers in this lexical scope
@@ -725,7 +729,7 @@ const withHydratedGroups = (configuration, shapes) => {
       const selectedLeafShapes = participantShapes; // unify var names
       selectedLeafShapes.forEach(shape => {
         shape.localTransformMatrix = matrix.multiply(group.rigTransform, shape.transformMatrix);
-        shape.parent = g.group;
+        shape.parent = g.group.id;
       });
 
       shapes.push(newGroup);
@@ -941,7 +945,7 @@ const rotationAnnotation = (configuration, shapes, selectedShapes, shape, i) => 
     subtype: configuration.rotationHandleName,
     interactive: true,
     parent: foundShape.id,
-    ancestors: [...foundShape.ancestors, { id: foundShape.id }],
+    ancestors: [...foundShape.ancestors, { id: foundShape.id, a: foundShape.a, b: foundShape.b }],
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,0,255,0.3)',
     a: configuration.rotationHandleSize,
@@ -968,7 +972,7 @@ const resizePointAnnotations = (configuration, parent, a, b) => ([x, y, cursorAn
     cursorAngle,
     interactive: true,
     parent: parent.id,
-    ancestors: [...parent.ancestors, { id: parent.id }],
+    ancestors: [...parent.ancestors, { id: parent.id, a: parent.a, b: parent.b }],
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,255,0,1)',
     a: configuration.resizeAnnotationSize,
@@ -998,7 +1002,7 @@ const resizeEdgeAnnotations = (configuration, parent, a, b) => ([[x0, y0], [x1, 
     subtype: configuration.resizeConnectorName,
     interactive: true,
     parent: parent.id,
-    ancestors: [...parent.ancestors, { id: parent.id }],
+    ancestors: [...parent.ancestors, { id: parent.id, a: parent.a, b: parent.b }],
     localTransformMatrix: transform,
     backgroundColor: configuration.devColor,
     a: horizontal ? sectionHalfLength : width,
@@ -1306,7 +1310,15 @@ const getAncestors = (idMap, shape) => {
   const recAncestors = shape => {
     if (shape.ancestors) return shape.ancestors;
     if (!shape.parent) return [];
-    return [...recAncestors(idMap[shape.parent]), shape.parent];
+    return [
+      ...recAncestors(idMap[shape.parent]),
+      {
+        id: shape.parent,
+        localTransformMatrix: shape.localTransformMatrix,
+        a: shape.a,
+        b: shape.b,
+      },
+    ];
   };
   return recAncestors(shape);
 };
@@ -1403,7 +1415,7 @@ const extendGroup = (
   const parentedSelectedShapes = selectedLeafShapes.map(shape => ({
     ...shape,
     parent: group.id,
-    ancestors: [...group.ancestors, { id: group.id }],
+    ancestors: [...group.ancestors, { id: group.id, a: group.a, b: group.b }],
     localTransformMatrix: matrix.multiply(group.rigTransform, shape.transformMatrix),
   }));
   const nonGroupGraphConstituent = s =>
