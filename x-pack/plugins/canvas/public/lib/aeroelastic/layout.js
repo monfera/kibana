@@ -1237,7 +1237,6 @@ const resizeChild = groupScale => s => {
 
 const getAncestors = (idMap, shape) => {
   const recAncestors = shape => {
-    if (shape.ancestors) return shape.ancestors;
     if (!shape.parent) return [];
     return [...recAncestors(idMap[shape.parent]), shape.parent];
   };
@@ -1248,13 +1247,16 @@ const resizeGroup = (shapes, rootElement) => {
   const idMap = {};
   for (let i = 0; i < shapes.length; i++) {
     idMap[shapes[i].id] = shapes[i];
-    shapes[i].ancestors = null;
   }
 
-  for (let i = 0; i < shapes.length; i++) shapes[i].ancestors = getAncestors(idMap, shapes[i]);
+  const ancestorsLengths = {};
+  for (let i = 0; i < shapes.length; i++)
+    ancestorsLengths[shapes[i].id] = getAncestors(idMap, shapes[i]).length;
 
   const resizedParents = { [rootElement.id]: rootElement };
-  const sortedShapes = shapes.slice().sort((a, b) => a.ancestors.length - b.ancestors.length);
+  const sortedShapes = shapes
+    .slice()
+    .sort((a, b) => ancestorsLengths[a.id] - ancestorsLengths[b.id]);
   const parentResized = s => Boolean(s.childBaseAB || s.baseAB);
   for (let i = 0; i < sortedShapes.length; i++) {
     const shape = sortedShapes[i];
