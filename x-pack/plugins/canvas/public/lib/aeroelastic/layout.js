@@ -1234,19 +1234,21 @@ const constrainedShapesWithPreexistingAnnotations = select((snapped, transformed
 
 const dissolveGroups = (groupsToDissolve, shapes) => {
   return {
-    shapes: shapes.filter(s => !groupsToDissolve.find(g => s.id === g.id)).map(shape => {
-      const preexistingGroupParent = groupsToDissolve.find(
+    shapes: shapes
+      .filter(s => !groupsToDissolve.find(g => s.id === g.id))
+      .map(shape => {
+        const preexistingGroupParent = groupsToDissolve.find(
           groupShape => groupShape.id === shape.parent
         );
         // if linked, dissociate from ad hoc group parent
-      return preexistingGroupParent
+        return preexistingGroupParent
           ? {
               ...shape,
               parent: null,
-            ancestors: [],
+              ancestors: [],
               localTransformMatrix: matrix.multiply(
-              // pulling preexistingGroupParent from `shapes` to get fresh matrices
-              shapes.find(s => s.id === preexistingGroupParent.id).localTransformMatrix, // reinstate the group offset onto the child
+                // pulling preexistingGroupParent from `shapes` to get fresh matrices
+                shapes.find(s => s.id === preexistingGroupParent.id).localTransformMatrix, // reinstate the group offset onto the child
                 shape.localTransformMatrix
               ),
             }
@@ -1357,11 +1359,10 @@ const adHocToPersistentGroup = (configuration, shapes, selectedShapes) => {
     s => s.subtype === configuration.adHocGroupName
   );
   return {
-    shapes: shapes.map(
-      s =>
-        s.subtype === configuration.adHocGroupName
-          ? { ...s, subtype: configuration.persistentGroupName }
-          : s
+    shapes: shapes.map(s =>
+      s.subtype === configuration.adHocGroupName
+        ? { ...s, subtype: configuration.persistentGroupName }
+        : s
     ),
     selectedShapes: selectedShapes
       .filter(selected => selected.subtype !== configuration.adHocGroupName)
