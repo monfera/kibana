@@ -77,8 +77,8 @@ const hoveredShapes = select((configuration, shapes, cursorPosition) =>
 )(configuration, shapes, cursorPosition);
 
 const depthIndex = 0;
-const hoveredShape = select(
-  hoveredShapes => (hoveredShapes.length ? hoveredShapes[depthIndex] : null)
+const hoveredShape = select(hoveredShapes =>
+  hoveredShapes.length ? hoveredShapes[depthIndex] : null
 )(hoveredShapes);
 
 const draggedShape = select(draggingShape)(scene, hoveredShape, mouseIsDown, mouseDowned);
@@ -134,14 +134,14 @@ const mouseTransformGesture = select(tuple =>
 
 const transformGestures = mouseTransformGesture;
 
-const restateShapesEvent = select(
-  action => (action && action.type === 'restateShapesEvent' ? action.payload : null)
+const restateShapesEvent = select(action =>
+  action && action.type === 'restateShapesEvent' ? action.payload : null
 )(primaryUpdate);
 
 // directSelect is an API entry point (via the `shapeSelect` action) that lets the client directly specify what thing
 // is selected, as otherwise selection is driven by gestures and knowledge of element positions
-const directSelect = select(
-  action => (action && action.type === 'shapeSelect' ? action.payload : null)
+const directSelect = select(action =>
+  action && action.type === 'shapeSelect' ? action.payload : null
 )(primaryUpdate);
 
 const selectedShapeObjects = select(scene => scene.selectedShapeObjects || [])(scene);
@@ -747,7 +747,6 @@ const alignmentGuideAnnotations = select(
           interactive: false,
           backgroundColor: 'magenta',
           parent: null,
-          ancestors: [],
         }))
       : [];
   }
@@ -771,7 +770,6 @@ const hoverAnnotations = select(
               matrix.translate(0, 0, configuration.hoverLift)
             ),
             parent: null, // consider linking to proper parent, eg. for more regular typing (ie. all shapes have all props)
-            ancestors: [],
           },
         ]
       : [];
@@ -805,7 +803,6 @@ const rotationAnnotation = (configuration, shapes, selectedShapes, shape, i) => 
     subtype: configuration.rotationHandleName,
     interactive: true,
     parent: foundShape.id,
-    ancestors: [...foundShape.ancestors, foundShape.id],
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,0,255,0.3)',
     a: configuration.rotationHandleSize,
@@ -832,7 +829,6 @@ const resizePointAnnotations = (configuration, parent, a, b) => ([x, y, cursorAn
     cursorAngle,
     interactive: true,
     parent: parent.id,
-    ancestors: [...parent.ancestors, parent.id],
     localTransformMatrix: transform,
     backgroundColor: 'rgb(0,255,0,1)',
     a: configuration.resizeAnnotationSize,
@@ -862,7 +858,6 @@ const resizeEdgeAnnotations = (configuration, parent, a, b) => ([[x0, y0], [x1, 
     subtype: configuration.resizeConnectorName,
     interactive: true,
     parent: parent.id,
-    ancestors: [...parent.ancestors, parent.id],
     localTransformMatrix: transform,
     backgroundColor: configuration.devColor,
     a: horizontal ? sectionHalfLength : width,
@@ -1152,24 +1147,25 @@ const projectAABB = ([[xMin, yMin], [xMax, yMax]]) => {
 
 const dissolveGroups = (groupsToDissolve, shapes, selectedShapes) => {
   return {
-    shapes: shapes.filter(s => !groupsToDissolve.find(g => s.id === g.id)).map(shape => {
-      const preexistingGroupParent = groupsToDissolve.find(
-        groupShape => groupShape.id === shape.parent
-      );
-      // if linked, dissociate from ad hoc group parent
-      return preexistingGroupParent
-        ? {
-            ...shape,
-            parent: null,
-            ancestors: [],
-            localTransformMatrix: matrix.multiply(
-              // pulling preexistingGroupParent from `shapes` to get fresh matrices
-              shapes.find(s => s.id === preexistingGroupParent.id).localTransformMatrix, // reinstate the group offset onto the child
-              shape.localTransformMatrix
-            ),
-          }
-        : shape;
-    }),
+    shapes: shapes
+      .filter(s => !groupsToDissolve.find(g => s.id === g.id))
+      .map(shape => {
+        const preexistingGroupParent = groupsToDissolve.find(
+          groupShape => groupShape.id === shape.parent
+        );
+        // if linked, dissociate from ad hoc group parent
+        return preexistingGroupParent
+          ? {
+              ...shape,
+              parent: null,
+              localTransformMatrix: matrix.multiply(
+                // pulling preexistingGroupParent from `shapes` to get fresh matrices
+                shapes.find(s => s.id === preexistingGroupParent.id).localTransformMatrix, // reinstate the group offset onto the child
+                shape.localTransformMatrix
+              ),
+            }
+          : shape;
+      }),
     selectedShapes,
   };
 };
@@ -1196,7 +1192,6 @@ const axisAlignedBoundingBoxShape = (configuration, shapesToBox) => {
     localTransformMatrix,
     rigTransform,
     parent: null,
-    ancestors: [],
   };
   return aabbShape;
 };
@@ -1244,7 +1239,6 @@ const getAncestors = (idMap, shape) => {
   const recAncestors = shape => {
     if (shape.ancestors) return shape.ancestors;
     if (!shape.parent) return [];
-    //if(idMap[shape.parent]) return [...idMap[shape.parent].ancestors, shape.parent]
     return [...recAncestors(idMap[shape.parent]), shape.parent];
   };
   return recAncestors(shape);
@@ -1279,8 +1273,8 @@ const getLeafs = (descendCondition, allShapes, shapes) =>
   removeDuplicates(
     s => s.id,
     flatten(
-      shapes.map(
-        shape => (descendCondition(shape) ? allShapes.filter(s => s.parent === shape.id) : shape)
+      shapes.map(shape =>
+        descendCondition(shape) ? allShapes.filter(s => s.parent === shape.id) : shape
       )
     )
   );
@@ -1311,11 +1305,10 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
       s => s.subtype === configuration.adHocGroupName
     );
     return {
-      shapes: shapes.map(
-        s =>
-          s.subtype === configuration.adHocGroupName
-            ? { ...s, subtype: configuration.persistentGroupName }
-            : s
+      shapes: shapes.map(s =>
+        s.subtype === configuration.adHocGroupName
+          ? { ...s, subtype: configuration.persistentGroupName }
+          : s
       ),
       selectedShapes: selectedShapes
         .filter(selected => selected.subtype !== configuration.adHocGroupName)
@@ -1375,7 +1368,6 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
     const parentedSelectedShapes = selectedLeafShapes.map(shape => ({
       ...shape,
       parent: group.id,
-      ancestors: [...group.ancestors, group.id],
       localTransformMatrix: matrix.multiply(group.rigTransform, shape.transformMatrix),
     }));
     const nonGroupGraphConstituent = s =>
@@ -1385,7 +1377,7 @@ const grouping = select((configuration, shapes, selectedShapes, groupAction) => 
       s.parent &&
       s.parent.startsWith(configuration.groupName) &&
       preexistingAdHocGroups.find(ahg => ahg.id === s.parent)
-        ? { ...s, parent: null, ancestors: [] }
+        ? { ...s, parent: null }
         : s;
     const allTerminalShapes = parentedSelectedShapes.concat(
       freshNonSelectedShapes.filter(nonGroupGraphConstituent).map(dissociateFromParentIfAny)
