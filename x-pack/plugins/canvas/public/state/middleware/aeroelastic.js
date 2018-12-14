@@ -61,12 +61,13 @@ const elementToShape = (element, i) => {
     aero.matrix.rotateZ(angleRadians)
   );
   const isGroup = isGroupId(element.id);
-  const ancestors = (element.position.ancestors && element.position.ancestors.map(a => a.id)) || []; // reserved for hierarchical (tree shaped) grouping
+  const ancestors = (element.position.ancestors && element.position.ancestors) || []; // reserved for hierarchical (tree shaped) grouping
+  const firstAncestor = ancestors[ancestors.length - 1] || null;
   return {
     id: element.id,
     type: isGroup ? 'group' : 'rectangleElement',
     subtype: isGroup ? 'persistentGroup' : '',
-    parent: ancestors[ancestors.length - 1] || null,
+    parent: firstAncestor ? firstAncestor.id : null,
     ancestors,
     localTransformMatrix: localTransformMatrix,
     transformMatrix: localTransformMatrix,
@@ -82,7 +83,12 @@ const shapeToElement = shape => {
     width: shape.a * 2,
     height: shape.b * 2,
     angle: (Math.round(matrixToAngle(shape.transformMatrix)) * 180) / Math.PI,
-    ancestors: shape.ancestors.map(a => ({ id: a })),
+    ancestors: shape.ancestors.map(a => ({
+      id: a,
+      localTransformMatrix: shape.localTransformMatrix,
+      a: shape.a,
+      b: shape.b,
+    })),
   };
 };
 
