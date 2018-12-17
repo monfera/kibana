@@ -10,7 +10,8 @@ import { compose, withState, withProps } from 'recompose';
 import { notify } from '../../lib/notify';
 import { aeroelastic } from '../../lib/aeroelastic_kibana';
 import { setClipboardData, getClipboardData } from '../../lib/clipboard';
-import { removeElements, duplicateElement } from '../../state/actions/elements';
+import { cloneSubgraphs } from '../../lib/clone_subgraphs';
+import { removeElements, rawDuplicateElement } from '../../state/actions/elements';
 import { getFullscreen, canUserWrite } from '../../state/selectors/app';
 import { getNodes, isWriteable } from '../../state/selectors/workpad';
 import { flatten } from '../../lib/aeroelastic/functional';
@@ -26,8 +27,8 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch => {
   return {
-    duplicateElement: pageId => selectedElement =>
-      dispatch(duplicateElement(selectedElement, pageId)),
+    rawDuplicateElement: pageId => selectedElement =>
+      dispatch(rawDuplicateElement(selectedElement, pageId)),
     removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
   };
 };
@@ -73,8 +74,8 @@ export const WorkpadPage = compose(
       setUpdateCount,
       page,
       elements: pageElements,
+      rawDuplicateElement,
       removeElements,
-      duplicateElement,
     }) => {
       const { shapes, selectedPrimaryShapes = [], cursor } = aeroelastic.getStore(
         page.id
@@ -130,7 +131,8 @@ export const WorkpadPage = compose(
         },
         pasteElements: () => {
           const elements = JSON.parse(getClipboardData());
-          if (elements) elements.map(element => duplicateElement(page.id)(element));
+          const clonedElements = elements && cloneSubgraphs(elements);
+          if (clonedElements) clonedElements.map(element => rawDuplicateElement(page.id)(element));
         },
       };
     }
