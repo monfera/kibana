@@ -9,7 +9,7 @@ import { plotlys } from '../../renderers/plotly/plotlys';
 export const plotly = () => ({
   name: 'plotly',
   displayName: 'Plotly',
-  modelArgs: [],
+  modelArgs: [['_', { label: 'Chart type' }]],
   requiresContext: false,
   args: [
     {
