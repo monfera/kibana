@@ -89,6 +89,10 @@ export function getSelectedElement(state) {
   return getElementById(state, getSelectedElementId(state));
 }
 
+export function getSelectedNode(state) {
+  return getNodeById(state, getSelectedElementId(state));
+}
+
 export function getElements(state, pageId, withAst = true) {
   const id = pageId || getSelectedPage(state);
   if (!id) {
@@ -113,9 +117,9 @@ export function getElements(state, pageId, withAst = true) {
 }
 
 const augment = type => n => ({
+  ...(type === 'group' && { expression: '' }), // will get overridden below if n.expression exists
   ...n,
   position: { ...n.position, type },
-  ...(type === 'group' && { expression: 'shape fill="rgba(255,255,255,0)" | render' }), // fixme unify with mw/aeroelastic
 });
 
 const getNodesOfPage = page =>

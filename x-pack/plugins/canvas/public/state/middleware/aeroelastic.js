@@ -176,7 +176,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
         const partialElement = {
           id: g.id,
           filter: undefined,
-          expression: 'shape fill="rgba(255,255,255,0)" | render',
+          expression: '',
           position: {
             ...shapeToElement(g),
           },
@@ -206,7 +206,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
     // set the selected element on the global store, if one element is selected
     const selectedShape = nextScene.selectedPrimaryShapes[0];
-    if (nextScene.selectedShapes.length === 1 && !isGroupId(selectedShape)) {
+    if (nextScene.selectedShapes.length === 1 /* && !isGroupId(selectedShape)*/) {
       if (selectedShape !== (selectedElement && selectedElement.id)) {
         dispatch(selectElement(selectedShape));
       }
@@ -216,7 +216,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
       if (selectedElement) {
         const shape = shapes.find(s => s.id === selectedShape);
         // don't reset if eg. we're in the middle of converting an ad hoc group into a persistent one
-        if (!shape || shape.subtype !== 'adHocGroup') {
+        if (!shape /*|| shape.subtype !== 'adHocGroup'*/) {
           dispatch(selectElement(null));
         }
       }

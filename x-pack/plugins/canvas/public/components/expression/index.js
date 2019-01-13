@@ -16,7 +16,7 @@ import {
   renderComponent,
 } from 'recompose';
 import { fromExpression } from '@kbn/interpreter/common';
-import { getSelectedPage, getSelectedElement } from '../../state/selectors/workpad';
+import { getSelectedPage, getSelectedNode } from '../../state/selectors/workpad';
 import { setExpression, flushContext } from '../../state/actions/elements';
 import { getFunctionDefinitions } from '../../lib/function_definitions';
 import { getWindow } from '../../lib/get_window';
@@ -28,7 +28,7 @@ const storage = new Storage(getWindow().localStorage);
 
 const mapStateToProps = state => ({
   pageId: getSelectedPage(state),
-  element: getSelectedElement(state),
+  element: getSelectedNode(state),
   functionDefinitionsPromise: getFunctionDefinitions(state),
 });
 

@@ -16,7 +16,7 @@ import {
   deleteArgumentAtIndex,
 } from '../../state/actions/elements';
 import {
-  getSelectedElement,
+  getSelectedNode,
   getSelectedPage,
   getContextForIndex,
 } from '../../state/selectors/workpad';
@@ -25,7 +25,7 @@ import { FunctionForm as Component } from './function_form';
 
 const mapStateToProps = (state, { expressionIndex }) => ({
   context: getContextForIndex(state, expressionIndex),
-  element: getSelectedElement(state),
+  element: getSelectedNode(state),
   pageId: getSelectedPage(state),
   assets: getAssets(state),
 });

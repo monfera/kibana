@@ -7,14 +7,14 @@
 import { connect } from 'react-redux';
 import { cloneSubgraphs } from '../../lib/clone_subgraphs';
 import { insertNodes, elementLayer } from '../../state/actions/elements';
-import { getSelectedPage, getSelectedElement } from '../../state/selectors/workpad';
+import { getSelectedPage, getSelectedNode } from '../../state/selectors/workpad';
 import { selectElement } from './../../state/actions/transient';
 
 import { Sidebar as Component } from './sidebar';
 
 const mapStateToProps = state => ({
   selectedPage: getSelectedPage(state),
-  selectedElement: getSelectedElement(state),
+  selectedElement: getSelectedNode(state),
 });
 
 const mapDispatchToProps = dispatch => ({
