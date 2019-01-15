@@ -227,13 +227,17 @@ const selectionState = select(
   ) => {
     const uidUnchanged = uid === prev.uid;
     const mouseButtonUp = !down;
-    const updateFromDirectSelect =
-      directSelect &&
-      directSelect.shapes &&
-      !shallowEqual(directSelect.shapes, selectedShapeObjects.map(shape => shape.id));
-    if (updateFromDirectSelect) {
+    const directSelectedShapes =
+      directSelect && directSelect.shapes
+        ? directSelect.shapes.filter(s => allShapes.find(a => a.id === s))
+        : [];
+    const updateFromDirectSelect = !shallowEqual(
+      directSelectedShapes,
+      selectedShapeObjects.map(shape => shape.id)
+    );
+    if (directSelect && updateFromDirectSelect) {
       return {
-        shapes: reselectShapes(allShapes, directSelect.shapes),
+        shapes: reselectShapes(allShapes, directSelectedShapes),
         uid: directSelect.uid,
         depthIndex: prev.depthIndex,
         down: prev.down,
