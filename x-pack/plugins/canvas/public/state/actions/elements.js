@@ -110,8 +110,8 @@ export const fetchContext = createThunk(
   }
 );
 
-const fetchRenderableWithContextFn = ({ dispatch }, element, ast, context) => {
-  const argumentPath = [element.id, 'expressionRenderable'];
+const fetchRenderableWithContextFn = ({ dispatch }, node, ast, context) => {
+  const argumentPath = [node.id, 'expressionRenderable'];
 
   dispatch(
     args.setLoading({
@@ -125,7 +125,7 @@ const fetchRenderableWithContextFn = ({ dispatch }, element, ast, context) => {
       value: renderable,
     });
 
-  return runInterpreter(ast, context, { castToRender: true })
+  return runInterpreter(ast, context, { castToRender: !node.id.startsWith('group-') })
     .then(renderable => {
       dispatch(getAction(renderable));
     })
@@ -140,10 +140,10 @@ export const fetchRenderableWithContext = createThunk(
   fetchRenderableWithContextFn
 );
 
-export const fetchRenderable = createThunk('fetchRenderable', ({ dispatch }, element) => {
-  const ast = element.ast || safeElementFromExpression(element.expression);
+export const fetchRenderable = createThunk('fetchRenderable', ({ dispatch }, node) => {
+  const ast = node.ast || safeElementFromExpression(node.expression);
 
-  dispatch(fetchRenderableWithContext(element, ast, null));
+  dispatch(fetchRenderableWithContext(node, ast, null));
 });
 
 export const fetchAllRenderables = createThunk(
@@ -158,18 +158,45 @@ export const fetchAllRenderables = createThunk(
     dispatch(args.inFlightActive());
 
     function fetchElementsOnPages(pages) {
-      const elements = [];
+      const nodes = [];
       pages.forEach(page => {
-        page.elements.forEach(element => {
-          elements.push(element);
-        });
+        page.groups.forEach(node => nodes.push(node));
+        page.elements.forEach(node => nodes.push(node));
       });
+      // combine nodes and groups to yield nodes; toposort nodes outside nodes.js
+      const renderablePromises = nodes.map(node => {
+        const ast = node.ast || safeElementFromExpression(node.expression);
+        const argumentPath = [node.id, 'expressionRenderable'];
+        //const parent = nodes.find(e => e.id === node.position.parent);
 
-      const renderablePromises = elements.map(element => {
-        const ast = element.ast || safeElementFromExpression(element.expression);
-        const argumentPath = [element.id, 'expressionRenderable'];
-
-        return runInterpreter(ast, null, { castToRender: true })
+        return runInterpreter(
+          ast,
+          {
+            type: 'datatable',
+            columns: [
+              {
+                name: 'country',
+                type: 'string',
+              },
+            ],
+            rows: [
+              {
+                country: 'GY',
+              },
+              {
+                country: 'CN',
+              },
+              {
+                country: 'NO',
+              },
+            ],
+          },
+          {
+            castToRender: !node.id.startsWith(
+              'group-'
+            ) /* don't cast to render group expression results */,
+          }
+        )
           .then(renderable => ({ path: argumentPath, value: renderable }))
           .catch(err => {
             notify.error(err);
@@ -256,15 +283,15 @@ export const setFilter = createThunk(
 );
 
 export const setExpression = createThunk('setExpression', setExpressionFn);
-function setExpressionFn({ dispatch, getState }, expression, elementId, pageId, doRender = true) {
+function setExpressionFn({ dispatch, getState }, expression, nodeId, pageId, doRender = true) {
   // dispatch action to update the element in state
   const _setExpression = createAction('setExpression');
-  dispatch(_setExpression({ expression, elementId, pageId }));
+  dispatch(_setExpression({ expression, nodeId, pageId }));
 
   // read updated element from state and fetch renderable
-  const updatedElement = getNodeById(getState(), elementId, pageId);
+  const updatedNode = getNodeById(getState(), nodeId, pageId);
   if (doRender === true) {
-    dispatch(fetchRenderable(updatedElement));
+    dispatch(fetchRenderable(updatedNode));
   }
 }
 

@@ -12,7 +12,7 @@ import { ShowDebugging } from './show_debugging';
 
 export const Error = ({ payload }) => {
   const message = get(payload, 'error.message');
-
+debugger
   return (
     <EuiCallOut
       style={{ maxWidth: 500 }}

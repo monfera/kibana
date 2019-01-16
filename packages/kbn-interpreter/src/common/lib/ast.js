@@ -140,5 +140,6 @@ export function toExpression(astObj, type = 'expression') {
   }
 
   const expArgs = getExpressionArgs(astObj);
+  debugger
   return fnWithArgs(astObj.function, expArgs);
 }

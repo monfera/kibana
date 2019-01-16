@@ -19,6 +19,7 @@ import { notify } from './notify';
  * @returns {promise}
  */
 export function runInterpreter(ast, context = null, options = {}) {
+  if(context === null && ast.chain.length === 3) debugger
   return interpretAst(ast, context)
     .then(renderable => {
       if (getType(renderable) === 'render') {
