@@ -8,6 +8,7 @@ import { resolve } from 'path';
 import init from './init';
 import './server/build_fix';
 import { mappings } from './server/mappings';
+import canvasMappings from './mappings';
 import { CANVAS_APP } from './common/lib';
 
 export function canvas(kibana) {
@@ -30,7 +31,7 @@ export function canvas(kibana) {
         'plugins/canvas/lib/window_error_handler.js',
       ],
       home: ['plugins/canvas/register_feature'],
-      mappings,
+      mappings: { ...mappings, ...canvasMappings },
     },
 
     config: Joi => {

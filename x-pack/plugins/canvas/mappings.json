@@ -1,0 +1,33 @@
+{
+  "canvas": {
+    "properties": {
+      "name": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 2048
+          }
+        }
+      },
+      "id": {
+        "type": "text"
+      },
+      "description": {
+        "type": "text"
+      },
+      "initials": {
+        "type": "keyword"
+      },
+      "color": {
+        "type": "keyword"
+      },
+      "enabled": {
+        "type": "boolean"
+      },
+      "_reserved": {
+        "type": "boolean"
+      }
+    }
+  }
+}

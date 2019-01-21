@@ -5,6 +5,7 @@
  */
 
 import { withHandlers } from 'recompose';
+import persistNode from './persist_node';
 
 const ancestorElement = element => {
   if (!element) {
@@ -160,6 +161,9 @@ const handleKeyPress = (commit, e, isEditable) => {
     commit('actionEvent', {
       event: upcaseKey === 'G' ? 'group' : 'ungroup',
     });
+  }
+  if (isEditable && !isTextInput(target) && 'S'.indexOf(upcaseKey) !== -1) {
+    persistNode();
   }
 };
 
