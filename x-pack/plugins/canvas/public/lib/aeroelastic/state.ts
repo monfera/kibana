@@ -4,7 +4,7 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-const { shallowEqual } = require('./functional');
+import { shallowEqual } from './functional';
 
 /**
  * PoC action dispatch

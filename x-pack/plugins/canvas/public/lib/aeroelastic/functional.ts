@@ -35,18 +35,6 @@ export const identity = d => d;
 export const map = fun => array => array.map(value => fun(value));
 
 /**
- * log
- *
- * @param d
- * @param {Function} printerFun
- * @returns d
- */
-export const log = (d, printerFun = identity) => {
-  console.log(printerFun(d));
-  return d;
-};
-
-/**
  * disjunctiveUnion
  *
  * @param {Function} keyFun
