@@ -49,15 +49,18 @@ function runServerFunctions(server) {
       },
       validate: {
         payload: Joi.object({
-          functions: Joi.array().items(
-            Joi.object()
-              .keys({
+          functions: Joi.array()
+            .items(
+              Joi.object().keys({
                 id: Joi.number().required(),
                 functionName: Joi.string().required(),
                 args: Joi.object().default({}),
-                context: Joi.object().allow(null).default({}),
-              }),
-          ).required(),
+                context: Joi.object()
+                  .allow(null)
+                  .default({}),
+              })
+            )
+            .required(),
         }).required(),
       },
     },
@@ -116,12 +119,12 @@ function runServerFunctions(server) {
  * A helper function for bundling up errors.
  */
 function batchError(id, message, statusCode = 500) {
-  return {
-    id,
+            return {
+              id,
     statusCode,
     result: { statusCode, message },
-  };
-}
+            };
+          }
 
 /**
  * Register the endpoint that returns the list of server-only functions.

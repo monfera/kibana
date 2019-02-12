@@ -9,6 +9,7 @@ import PropTypes from 'prop-types';
 import { ElementWrapper } from '../element_wrapper';
 import { AlignmentGuide } from '../alignment_guide';
 import { HoverAnnotation } from '../hover_annotation';
+import { DragBoxAnnotation } from '../dragbox_annotation';
 import { TooltipAnnotation } from '../tooltip_annotation';
 import { RotationHandle } from '../rotation_handle';
 import { BorderConnection } from '../border_connection';
@@ -23,7 +24,7 @@ export class WorkpadPage extends PureComponent {
       style: PropTypes.object,
     }).isRequired,
     className: PropTypes.string.isRequired,
-    animationStyle: PropTypes.object.isRequired,
+    animationStyle: PropTypes.object,
     elements: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.string.isRequired,
@@ -36,7 +37,7 @@ export class WorkpadPage extends PureComponent {
     cursor: PropTypes.string,
     height: PropTypes.number.isRequired,
     width: PropTypes.number.isRequired,
-    isEditable: PropTypes.bool.isRequired,
+    isEditable: PropTypes.bool,
     onDoubleClick: PropTypes.func,
     onKeyDown: PropTypes.func,
     onMouseDown: PropTypes.func,
@@ -150,6 +151,8 @@ export class WorkpadPage extends PureComponent {
                 case 'adHocChildAnnotation': // now sharing aesthetics but may diverge in the future
                 case 'hoverAnnotation': // fixme: with the upcoming TS work, use enumerative types here
                   return <HoverAnnotation {...props} />;
+                case 'dragBoxAnnotation':
+                  return <DragBoxAnnotation {...props} />;
                 case 'rotationHandle':
                   return <RotationHandle {...props} />;
                 case 'resizeHandle':
@@ -162,6 +165,7 @@ export class WorkpadPage extends PureComponent {
                   return [];
               }
             } else if (element.type !== 'group') {
+              //console.log(element.id, element.transformMatrix)
               return <ElementWrapper key={element.id} element={element} />;
             }
           })

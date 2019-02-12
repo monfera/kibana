@@ -7,7 +7,6 @@
 import { applyMiddleware, compose } from 'redux';
 import thunkMiddleware from 'redux-thunk';
 import { getWindow } from '../../lib/get_window';
-import { aeroelastic } from './aeroelastic';
 import { breadcrumbs } from './breadcrumbs';
 import { esPersistMiddleware } from './es_persist';
 import { fullscreen } from './fullscreen';
@@ -16,21 +15,20 @@ import { inFlight } from './in_flight';
 import { workpadUpdate } from './workpad_update';
 import { workpadRefresh } from './workpad_refresh';
 import { appReady } from './app_ready';
-import { elementStats } from './element_stats';
+import { aeroelastic } from './aeroelastic2';
 
 const middlewares = [
   applyMiddleware(
     thunkMiddleware,
-    elementStats,
     esPersistMiddleware,
     historyMiddleware,
-    aeroelastic,
     breadcrumbs,
     fullscreen,
     inFlight,
     appReady,
     workpadUpdate,
-    workpadRefresh
+    workpadRefresh,
+    aeroelastic
   ),
 ];
 
