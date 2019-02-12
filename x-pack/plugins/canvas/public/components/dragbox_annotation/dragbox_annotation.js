@@ -8,18 +8,19 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { matrixToCSS } from '../../lib/dom';
 
-export const HoverAnnotation = ({ transformMatrix, text }) => {
+export const DragBoxAnnotation = ({ transformMatrix, width, height }) => {
   const newStyle = {
-    transform: `${matrixToCSS(transformMatrix)} translate(1em, -1em)`,
+    width,
+    height,
+    marginLeft: -width / 2,
+    marginTop: -height / 2,
+    transform: matrixToCSS(transformMatrix),
   };
-  return (
-    <div className="tooltipAnnotation canvasLayoutAnnotation" style={newStyle}>
-      <p>{text}°</p>
-    </div>
-  );
+  return <div className="canvasDragBoxAnnotation canvasLayoutAnnotation" style={newStyle} />;
 };
 
-HoverAnnotation.propTypes = {
+DragBoxAnnotation.propTypes = {
   transformMatrix: PropTypes.arrayOf(PropTypes.number).isRequired,
-  text: PropTypes.string.isRequired,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
 };

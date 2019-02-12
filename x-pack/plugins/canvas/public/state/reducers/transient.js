@@ -50,6 +50,10 @@ export const transientReducer = handleActions(
     [setRefreshInterval]: (transientState, { payload }) => {
       return { ...transientState, refresh: { interval: Number(payload) || 0 } };
     },
+
+    [actions.setAeroelastic]: (transientState, { payload }) => {
+      return set(transientState, 'aeroelastic', payload);
+    },
   },
   {}
 );

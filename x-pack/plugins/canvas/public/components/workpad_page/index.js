@@ -6,40 +6,56 @@
 
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { compose, withState, withProps, withHandlers } from 'recompose';
-import { aeroelastic } from '../../lib/aeroelastic_kibana';
-import { removeElements, insertNodes, elementLayer } from '../../state/actions/elements';
-import { getFullscreen, canUserWrite } from '../../state/selectors/app';
+import { compose, withHandlers, withProps, withState } from 'recompose';
+import { canUserWrite, getFullscreen } from '../../state/selectors/app';
 import { getNodes, isWriteable } from '../../state/selectors/workpad';
-import { flatten } from '../../lib/aeroelastic/functional';
+import { nextScene } from '../../lib/aeroelastic/layout';
+import {
+  addElement,
+  elementLayer,
+  insertNodes,
+  removeElements,
+  setMultiplePositions,
+} from '../../state/actions/elements';
+import {
+  componentLayoutLocalState,
+  makeUid,
+  reduxToAero,
+  shapeToElement,
+  updateGlobalPositions,
+} from './aeroelastic_redux_helpers';
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
 import { selectElement } from './../../state/actions/transient';
+import { setAeroelastic } from '../../state/actions/transient';
 
 const mapStateToProps = (state, ownProps) => {
+  const elements = getNodes(state, ownProps.page.id);
   return {
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
-    elements: getNodes(state, ownProps.page.id),
+    elements,
+    aeroelastic: state.transient.aeroelastic || reduxToAero({ elements }),
   };
 };
 
-const mapDispatchToProps = dispatch => {
-  return {
-    insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
-    removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
-    selectElement: selectedElement => dispatch(selectElement(selectedElement)),
-    // TODO: Abstract this out. This is the same code as in sidebar/index.js
-    elementLayer: (pageId, selectedElement, movement) => {
-      dispatch(
-        elementLayer({
-          pageId,
-          elementId: selectedElement.id,
-          movement,
-        })
-      );
-    },
-  };
-};
+const mapDispatchToProps = dispatch => ({
+  insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
+  removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
+  addElement: pageId => element => dispatch(addElement(pageId, element)),
+  setMultiplePositions: positions => dispatch(setMultiplePositions(positions)),
+  selectElement: selectedElement => dispatch(selectElement(selectedElement)),
+  // TODO: Abstract this out. This is the same code as in sidebar/index.js
+  elementLayer: (pageId, selectedElement, movement) => {
+    dispatch(
+      elementLayer({
+        pageId,
+        elementId: selectedElement.id,
+        movement,
+      })
+    );
+  },
+  setAeroelastic: newState => dispatch(setAeroelastic(newState)),
+});
 
 const getRootElementId = (lookup, id) => {
   if (!lookup.has(id)) {
@@ -52,90 +68,162 @@ const getRootElementId = (lookup, id) => {
     : element.id;
 };
 
+const isSelectedAnimation = ({ isSelected, animation }) => {
+  function getClassName() {
+    if (animation) {
+      return animation.name;
+    }
+    return isSelected ? 'canvasPage--isActive' : 'canvasPage--isInactive';
+  }
+
+  function getAnimationStyle() {
+    if (!animation) {
+      return {};
+    }
+    return {
+      animationDirection: animation.direction,
+      // TODO: Make this configurable
+      animationDuration: '1s',
+    };
+  }
+
+  return {
+    className: getClassName(),
+    animationStyle: getAnimationStyle(),
+  };
+};
+
 export const WorkpadPage = compose(
   connect(
     mapStateToProps,
-    mapDispatchToProps
+    mapDispatchToProps,
+    undefined,
+    {
+      //pure: true,
+      /*
+      areStatesEqual: (next, prev) => {
+        console.log('state eq check...');
+        return false;
+      },
+*/
+    }
   ),
-  withProps(({ isSelected, animation }) => {
-    function getClassName() {
-      if (animation) {
-        return animation.name;
-      }
-      return isSelected ? 'canvasPage--isActive' : 'canvasPage--isInactive';
-    }
-
-    function getAnimationStyle() {
-      if (!animation) {
-        return {};
-      }
+  withProps(isSelectedAnimation),
+  withState('handlers', 'setHandlers', calculateHandlers),
+  withPropsprops => {
+    const {
+            aeroelastic,
+            setAeroelastic,
+            handlers,
+            setHandlers,
+            page,
+            elements,
+            addElement,
+            setMultiplePositions,
+            removeElements,
+          } = props;
+    const previousAeroelasticState = aeroelastic;
+    const { shapes, cursor } = previousAeroelasticState;
+    const elementLookup = new Map(elements.map(element => [element.id, element]));
+    const shapesToRender = shapes.map(shape => {
+      const pageElement = elementLookup.has(shape.id) && elementLookup.get(shape.id);
+      // instead of just combining `pageElement` with `shape`, we make property transfer explicit
       return {
-        animationDirection: animation.direction,
-        // TODO: Make this configurable
-        animationDuration: '1s',
+        ...(pageElement ? { ...shape, filter: pageElement.filter } : shape),
+        width: shape.a * 2,
+        height: shape.b * 2,
       };
-    }
-
-    return {
-      className: getClassName(),
-      animationStyle: getAnimationStyle(),
-    };
-  }),
-  withState('updateCount', 'setUpdateCount', 0), // TODO: remove this, see setUpdateCount below
-  withProps(({ updateCount, setUpdateCount, page, elements: pageElements }) => {
-    const { shapes, selectedPrimaryShapes = [], cursor } = aeroelastic.getStore(
-      page.id
-    ).currentScene;
-    const elementLookup = new Map(pageElements.map(element => [element.id, element]));
-    const recurseGroupTree = shapeId => {
-      return [
-        shapeId,
-        ...flatten(
-          shapes
-            .filter(s => s.parent === shapeId && s.type !== 'annotation')
-            .map(s => s.id)
-            .map(recurseGroupTree)
-        ),
-      ];
-    };
-
-    const selectedPrimaryShapeObjects = selectedPrimaryShapes
-      .map(id => shapes.find(s => s.id === id))
-      .filter(shape => shape);
-
-    const selectedPersistentPrimaryShapes = flatten(
-      selectedPrimaryShapeObjects.map(shape =>
-        shape.subtype === 'adHocGroup'
-          ? shapes.filter(s => s.parent === shape.id && s.type !== 'annotation').map(s => s.id)
-          : [shape.id]
-      )
-    );
-    const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree));
-    const selectedElements = [];
-    const elements = shapes.map(shape => {
-      let element = null;
-      if (elementLookup.has(shape.id)) {
-        element = elementLookup.get(shape.id);
-        if (selectedElementIds.indexOf(shape.id) > -1) {
-          selectedElements.push({ ...element, id: shape.id });
-        }
-      }
-      // instead of just combining `element` with `shape`, we make property transfer explicit
-      return element ? { ...shape, filter: element.filter } : shape;
     });
     return {
-      elements,
+      elements: shapesToRender,
       cursor,
-      selectedElementIds,
-      selectedElements,
-      selectedPrimaryShapes,
-      commit: (...args) => {
-        aeroelastic.commit(page.id, ...args);
-        // TODO: remove this, it's a hack to force react to rerender
-        setUpdateCount(updateCount + 1);
+      commit: (type, payload) => {
+        const uid = makeUid();
+        const newScenePrep = {
+          currentScene: aeroelastic,
+          primaryUpdate: { type, payload: { ...payload, uid } },
+        };
+        console.log(newScenePrep.primaryUpdate.payload.uid);
+        setAeroelastic(nextScene(newScenePrep));
+        if (0)
+          setAeroelastic(state => {
+            const previousAeroelasticState = state;
+            const reduxSyncedAeroelasticState = previousAeroelasticState || {
+              ...previousAeroelasticState,
+              currentScene: {
+                ...previousAeroelasticState.currentScene,
+                shapes: componentLayoutLocalState({ elements }).currentScene.shapes.concat(
+                  previousAeroelasticState.currentScene.shapes.filter(s => s.type === 'annotation')
+                ),
+              },
+            };
+
+            const currentScene = nextScene({
+              ...reduxSyncedAeroelasticState,
+              primaryUpdate: { type, payload: { ...payload, uid: makeUid() } },
+            });
+            if (false && currentScene.gestureEnd) {
+              // annotations don't need Redux persisting
+              const primaryShapes = currentScene.shapes.filter(
+                shape => shape.type !== 'annotation'
+              );
+
+              // persistent groups
+              const persistableGroups = primaryShapes.filter(s => s.subtype === 'persistentGroup');
+
+              // remove all group elements
+              const elementsToRemove = elements.filter(
+                e => e.position.type === 'group' && !persistableGroups.find(p => p.id === e.id)
+              );
+              if (elementsToRemove.length) {
+                // console.log('removing groups', elementsToRemove.map(e => e.id).join(', '));
+                removeElements(page.id)(elementsToRemove.map(e => e.id));
+              }
+
+              // create all needed groups
+              persistableGroups
+                .filter(p => !elements.find(e => p.id === e.id))
+                .forEach(g => {
+                  const partialElement = {
+                    id: g.id,
+                    filter: undefined,
+                    expression: 'shape fill="rgba(255,255,255,0)" | render', // https://github.com/elastic/kibana/pull/28796
+                    position: shapeToElement(g),
+                  };
+                  addElement(page.id)(partialElement);
+                });
+
+              // update the position of possibly changed elements
+              updateGlobalPositions(
+                positions => setMultiplePositions(positions.map(p => ({ ...p, pageId: page.id }))),
+                currentScene,
+                elements
+              );
+
+              // handlers can only change if there's change to Redux (checked by proxy of putting it in
+              // the if(currentScene.gestureEnd) {...}
+              // todo consider somehow putting it in or around `connect`, to more directly tie it to Redux change
+              setHandlers(() =>
+                calculateHandlers({
+                  aeroelastic,
+                  page,
+                  insertNodes,
+                  removeElements,
+                  selectElement,
+                  elementLayer,
+                })
+              );
+            }
+
+            return {
+              ...state,
+              currentScene,
+            };
+          });
       },
+      ...handlers,
     };
-  }), // Updates states; needs to have both local and global
+  }, // Updates states; needs to have both local and global
   withHandlers({
     groupElements: ({ commit }) => () =>
       commit('actionEvent', {
