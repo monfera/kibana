@@ -24,6 +24,7 @@ import {
 import {
   componentLayoutLocalState,
   makeUid,
+  reduxToAero,
   shapeToElement,
   updateGlobalPositions,
 } from './aeroelastic_redux_helpers';
@@ -35,6 +36,7 @@ const mapStateToProps = (state, ownProps) => {
   return {
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
     elements: getNodes(state, ownProps.page.id),
+    globalState: state,
   };
 };
 
@@ -191,10 +193,16 @@ const calculateHandlers = ({
 export const WorkpadPage = compose(
   connect(
     mapStateToProps,
-    mapDispatchToProps
+    mapDispatchToProps,
+    undefined,
+    {
+      pure: true,
+      areOwnPropsEqual: (next, prev) =>
+        next.page.id === prev.page.id && next.lastStoreToUpdate === prev.lastStoreToUpdate,
+    }
   ),
   withProps(isSelectedAnimation),
-  withState('aeroelastic', 'setAeroelastic', componentLayoutLocalState),
+  withState('aeroelastic', 'setAeroelastic', reduxToAero),
   withState('handlers', 'setHandlers', calculateHandlers),
   withProps(props => {
     const {
@@ -203,33 +211,44 @@ export const WorkpadPage = compose(
       handlers,
       setHandlers,
       page,
-      elements: pageElements,
+      elements,
       addElement,
       setMultiplePositions,
       removeElements,
     } = props;
-    const { shapes, cursor } = aeroelastic.currentScene;
-    const elementLookup = new Map(pageElements.map(element => [element.id, element]));
-    const elements = shapes.map(shape => {
-      const element = elementLookup.has(shape.id) && elementLookup.get(shape.id);
-      // instead of just combining `element` with `shape`, we make property transfer explicit
-      const result = {
-        ...(element ? { ...shape, filter: element.filter } : shape),
+    const previousAeroelasticState = aeroelastic;
+    const { shapes, cursor } = previousAeroelasticState.currentScene;
+    const elementLookup = new Map(elements.map(element => [element.id, element]));
+    const shapesToRender = shapes.map(shape => {
+      const pageElement = elementLookup.has(shape.id) && elementLookup.get(shape.id);
+      // instead of just combining `pageElement` with `shape`, we make property transfer explicit
+      return {
+        ...(pageElement ? { ...shape, filter: pageElement.filter } : shape),
         width: shape.a * 2,
         height: shape.b * 2,
       };
-      return result;
     });
     return {
-      elements,
+      elements: shapesToRender,
       cursor,
       commit: (type, payload) => {
         setAeroelastic(state => {
+          const previousAeroelasticState = state;
+          const reduxSyncedAeroelasticState = previousAeroelasticState || {
+            ...previousAeroelasticState,
+            currentScene: {
+              ...previousAeroelasticState.currentScene,
+              shapes: componentLayoutLocalState({ elements }).currentScene.shapes.concat(
+                previousAeroelasticState.currentScene.shapes.filter(s => s.type === 'annotation')
+              ),
+            },
+          };
+
           const currentScene = nextScene({
-            ...state,
+            ...reduxSyncedAeroelasticState,
             primaryUpdate: { type, payload: { ...payload, uid: makeUid() } },
           });
-          if (currentScene.gestureEnd) {
+          if (false && currentScene.gestureEnd) {
             // annotations don't need Redux persisting
             const primaryShapes = currentScene.shapes.filter(shape => shape.type !== 'annotation');
 
@@ -237,7 +256,7 @@ export const WorkpadPage = compose(
             const persistableGroups = primaryShapes.filter(s => s.subtype === 'persistentGroup');
 
             // remove all group elements
-            const elementsToRemove = pageElements.filter(
+            const elementsToRemove = elements.filter(
               e => e.position.type === 'group' && !persistableGroups.find(p => p.id === e.id)
             );
             if (elementsToRemove.length) {
@@ -247,7 +266,7 @@ export const WorkpadPage = compose(
 
             // create all needed groups
             persistableGroups
-              .filter(p => !pageElements.find(e => p.id === e.id))
+              .filter(p => !elements.find(e => p.id === e.id))
               .forEach(g => {
                 const partialElement = {
                   id: g.id,
@@ -262,7 +281,7 @@ export const WorkpadPage = compose(
             updateGlobalPositions(
               positions => setMultiplePositions(positions.map(p => ({ ...p, pageId: page.id }))),
               currentScene,
-              pageElements
+              elements
             );
 
             // handlers can only change if there's change to Redux (checked by proxy of putting it in

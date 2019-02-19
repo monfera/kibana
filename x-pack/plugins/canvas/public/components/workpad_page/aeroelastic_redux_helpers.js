@@ -159,6 +159,7 @@ export const updateGlobalPositions = (setPositions, { shapes, gestureEnd }, unso
     })
     .filter(identity);
   if (repositionings.length) {
+    console.log('updating positions');
     setPositions(repositionings);
   }
 };
@@ -175,9 +176,9 @@ const getRootElementId = (lookup, id) => {
     : element.id;
 };
 
-export const componentLayoutLocalState = props => {
+export const componentLayoutLocalState = ({ elements }) => {
   // console.log('setting aero state on component!!!');
-  const shapes = props.elements
+  const shapes = elements
     .map(elementToShape)
     .filter((d, i, a) => !d.id.startsWith('group') || a.find(s => s.parent === d.id));
   // todo delete these
@@ -195,5 +196,32 @@ export const componentLayoutLocalState = props => {
   return {
     primaryUpdate: null,
     currentScene: { shapes, configuration: aeroelasticConfiguration },
+  };
+};
+
+export const reduxToAero = (
+  redux,
+  aero = { currentScene: { configuration: aeroelasticConfiguration } }
+) => {
+  const elements = redux.elements;
+  const shapes = elements
+    .map(elementToShape)
+    .filter((d, i, a) => !d.id.startsWith('group') || a.find(s => s.parent === d.id));
+  // todo delete these
+  idDuplicateCheck(shapes);
+  missingParentCheck(shapes);
+  shapes.forEach(shape => {
+    shape.localTransformMatrix = shape.parent
+      ? multiply(
+          invert(shapes.find(s => s.id === shape.parent).transformMatrix),
+          shape.transformMatrix
+        )
+      : shape.transformMatrix;
+  });
+  // todo move this initial state in a file under `aeroelastic/`
+  return {
+    ...aero,
+    primaryUpdate: null,
+    currentScene: { ...aero.currentScene, shapes },
   };
 };

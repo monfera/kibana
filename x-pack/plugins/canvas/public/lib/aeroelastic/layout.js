@@ -143,6 +143,7 @@ const transformIntents = select(getTransformIntents)(
 
 // "cumulative" is the effect of the ongoing interaction; "baseline" is sans "cumulative", plain "localTransformMatrix"
 
+// todo delete obsolete `restate` code path
 const nextShapes = select(getNextShapes)(shapes, restateShapesEvent);
 
 const transformedShapes = select(applyLocalTransforms)(nextShapes, transformIntents);
