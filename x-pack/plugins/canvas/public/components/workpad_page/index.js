@@ -31,12 +31,15 @@ import {
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
 import { selectElement } from './../../state/actions/transient';
+import { setAeroelastic } from '../../state/actions/transient';
 
 const mapStateToProps = (state, ownProps) => {
+  const elements = getNodes(state, ownProps.page.id);
   return {
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
-    elements: getNodes(state, ownProps.page.id),
+    elements,
     globalState: state,
+    aeroelastic: state.transient.aeroelastic || reduxToAero({ elements }),
   };
 };
 
@@ -56,6 +59,7 @@ const mapDispatchToProps = dispatch => ({
       })
     );
   },
+  setAeroelastic: newState => dispatch(setAeroelastic(newState)),
 });
 
 const isSelectedAnimation = ({ isSelected, animation }) => {
@@ -196,13 +200,16 @@ export const WorkpadPage = compose(
     mapDispatchToProps,
     undefined,
     {
-      pure: true,
-      areOwnPropsEqual: (next, prev) =>
-        next.page.id === prev.page.id && next.lastStoreToUpdate === prev.lastStoreToUpdate,
+      //pure: true,
+      /*
+      areStatesEqual: (next, prev) => {
+        console.log('state eq check...');
+        return false;
+      },
+*/
     }
   ),
   withProps(isSelectedAnimation),
-  withState('aeroelastic', 'setAeroelastic', reduxToAero),
   withState('handlers', 'setHandlers', calculateHandlers),
   withProps(props => {
     const {
@@ -232,78 +239,88 @@ export const WorkpadPage = compose(
       elements: shapesToRender,
       cursor,
       commit: (type, payload) => {
-        setAeroelastic(state => {
-          const previousAeroelasticState = state;
-          const reduxSyncedAeroelasticState = previousAeroelasticState || {
-            ...previousAeroelasticState,
-            currentScene: {
-              ...previousAeroelasticState.currentScene,
-              shapes: componentLayoutLocalState({ elements }).currentScene.shapes.concat(
-                previousAeroelasticState.currentScene.shapes.filter(s => s.type === 'annotation')
-              ),
-            },
-          };
-
-          const currentScene = nextScene({
-            ...reduxSyncedAeroelasticState,
+        setAeroelastic({
+          currentScene: nextScene({
+            ...aeroelastic,
             primaryUpdate: { type, payload: { ...payload, uid: makeUid() } },
-          });
-          if (false && currentScene.gestureEnd) {
-            // annotations don't need Redux persisting
-            const primaryShapes = currentScene.shapes.filter(shape => shape.type !== 'annotation');
+          }),
+          primaryUpdate: null,
+        });
+        if (0)
+          setAeroelastic(state => {
+            const previousAeroelasticState = state;
+            const reduxSyncedAeroelasticState = previousAeroelasticState || {
+              ...previousAeroelasticState,
+              currentScene: {
+                ...previousAeroelasticState.currentScene,
+                shapes: componentLayoutLocalState({ elements }).currentScene.shapes.concat(
+                  previousAeroelasticState.currentScene.shapes.filter(s => s.type === 'annotation')
+                ),
+              },
+            };
 
-            // persistent groups
-            const persistableGroups = primaryShapes.filter(s => s.subtype === 'persistentGroup');
+            const currentScene = nextScene({
+              ...reduxSyncedAeroelasticState,
+              primaryUpdate: { type, payload: { ...payload, uid: makeUid() } },
+            });
+            if (false && currentScene.gestureEnd) {
+              // annotations don't need Redux persisting
+              const primaryShapes = currentScene.shapes.filter(
+                shape => shape.type !== 'annotation'
+              );
 
-            // remove all group elements
-            const elementsToRemove = elements.filter(
-              e => e.position.type === 'group' && !persistableGroups.find(p => p.id === e.id)
-            );
-            if (elementsToRemove.length) {
-              // console.log('removing groups', elementsToRemove.map(e => e.id).join(', '));
-              removeElements(page.id)(elementsToRemove.map(e => e.id));
+              // persistent groups
+              const persistableGroups = primaryShapes.filter(s => s.subtype === 'persistentGroup');
+
+              // remove all group elements
+              const elementsToRemove = elements.filter(
+                e => e.position.type === 'group' && !persistableGroups.find(p => p.id === e.id)
+              );
+              if (elementsToRemove.length) {
+                // console.log('removing groups', elementsToRemove.map(e => e.id).join(', '));
+                removeElements(page.id)(elementsToRemove.map(e => e.id));
+              }
+
+              // create all needed groups
+              persistableGroups
+                .filter(p => !elements.find(e => p.id === e.id))
+                .forEach(g => {
+                  const partialElement = {
+                    id: g.id,
+                    filter: undefined,
+                    expression: 'shape fill="rgba(255,255,255,0)" | render', // https://github.com/elastic/kibana/pull/28796
+                    position: shapeToElement(g),
+                  };
+                  addElement(page.id)(partialElement);
+                });
+
+              // update the position of possibly changed elements
+              updateGlobalPositions(
+                positions => setMultiplePositions(positions.map(p => ({ ...p, pageId: page.id }))),
+                currentScene,
+                elements
+              );
+
+              // handlers can only change if there's change to Redux (checked by proxy of putting it in
+              // the if(currentScene.gestureEnd) {...}
+              // todo consider somehow putting it in or around `connect`, to more directly tie it to Redux change
+              setHandlers(() =>
+                calculateHandlers({
+                  aeroelastic,
+                  page,
+                  insertNodes,
+                  removeElements,
+                  selectElement,
+                  elementLayer,
+                })
+              );
             }
 
-            // create all needed groups
-            persistableGroups
-              .filter(p => !elements.find(e => p.id === e.id))
-              .forEach(g => {
-                const partialElement = {
-                  id: g.id,
-                  filter: undefined,
-                  expression: 'shape fill="rgba(255,255,255,0)" | render', // https://github.com/elastic/kibana/pull/28796
-                  position: shapeToElement(g),
-                };
-                addElement(page.id)(partialElement);
-              });
-
-            // update the position of possibly changed elements
-            updateGlobalPositions(
-              positions => setMultiplePositions(positions.map(p => ({ ...p, pageId: page.id }))),
+            return {
+              ...state,
               currentScene,
-              elements
-            );
-
-            // handlers can only change if there's change to Redux (checked by proxy of putting it in
-            // the if(currentScene.gestureEnd) {...}
-            // todo consider somehow putting it in or around `connect`, to more directly tie it to Redux change
-            setHandlers(() =>
-              calculateHandlers({
-                aeroelastic,
-                page,
-                insertNodes,
-                removeElements,
-                selectElement,
-                elementLayer,
-              })
-            );
-          }
-
-          return {
-            ...state,
-            currentScene,
-          };
-        });
+            };
+          });
       },
       ...handlers,
     };
