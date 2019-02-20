@@ -95,7 +95,7 @@ const calculateHandlers = ({
   selectElement,
   elementLayer,
 }) => {
-  const { shapes, selectedPrimaryShapes = [] } = aeroelastic.currentScene;
+  const { shapes, selectedPrimaryShapes = [] } = aeroelastic;
   const recurseGroupTree = shapeId => {
     return [
       shapeId,
@@ -224,7 +224,7 @@ export const WorkpadPage = compose(
       removeElements,
     } = props;
     const previousAeroelasticState = aeroelastic;
-    const { shapes, cursor } = previousAeroelasticState.currentScene;
+    const { shapes, cursor } = previousAeroelasticState;
     const elementLookup = new Map(elements.map(element => [element.id, element]));
     const shapesToRender = shapes.map(shape => {
       const pageElement = elementLookup.has(shape.id) && elementLookup.get(shape.id);
@@ -239,13 +239,13 @@ export const WorkpadPage = compose(
       elements: shapesToRender,
       cursor,
       commit: (type, payload) => {
-        setAeroelastic({
-          currentScene: nextScene({
-            ...aeroelastic,
-            primaryUpdate: { type, payload: { ...payload, uid: makeUid() } },
-          }),
-          primaryUpdate: null,
-        });
+        const uid = makeUid();
+        const newScenePrep = {
+          currentScene: aeroelastic,
+          primaryUpdate: { type, payload: { ...payload, uid } },
+        };
+        console.log(newScenePrep.primaryUpdate.payload.uid)
+        setAeroelastic(nextScene(newScenePrep));
         if (0)
           setAeroelastic(state => {
             const previousAeroelasticState = state;

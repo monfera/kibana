@@ -21,6 +21,7 @@ const appleKeyboard = Boolean(
 
 const gestureStatePrev = select(
   scene =>
+    console.log('scene.gestureState', JSON.stringify(scene.gestureState)) ||
     scene.gestureState || {
       cursor: {
         x: 0,
@@ -31,21 +32,24 @@ const gestureStatePrev = select(
     }
 )(scene);
 
-export const gestureEnd = select(
-  action =>
+export const gestureEnd = select(action => {
+  console.log('in gestureEnd', action.payload.uid);
+  return (
     action &&
     (action.type === 'actionEvent' ||
       (action.type === 'mouseEvent' && action.payload.event === 'mouseUp'))
-)(primaryUpdate);
+  );
+})(primaryUpdate);
 
 /**
  * Gestures - derived selectors for transient state
  */
 
 // dispatch the various types of actions
-const rawCursorPosition = select(action =>
-  action.type === 'cursorPosition' ? action.payload : null
-)(primaryUpdate);
+const rawCursorPosition = select(action => {
+  console.log(action.type, action.payload.uid);
+  return action.type === 'cursorPosition' ? action.payload : null;
+})(primaryUpdate);
 
 const mouseButtonEvent = select(action => (action.type === 'mouseEvent' ? action.payload : null))(
   primaryUpdate
@@ -59,7 +63,7 @@ export const metaHeld = select(appleKeyboard ? e => e.metaKey : e => e.altKey)(k
 export const optionHeld = select(appleKeyboard ? e => e.altKey : e => e.ctrlKey)(keyFromMouse);
 export const shiftHeld = select(e => e.shiftKey)(keyFromMouse);
 
-export const cursorPosition = select(({ cursor }, position) => position || cursor)(
+export const cursorPosition = select(({ cursor }, position) => console.log('hehh', (position || cursor).uid) || position || cursor)(
   gestureStatePrev,
   rawCursorPosition
 );
@@ -148,7 +152,7 @@ export const actionEvent = select(action =>
   action.type === 'actionEvent' ? action.payload : null
 )(primaryUpdate);
 
-export const gestureState = select((cursor, mouseIsDown, mouseButtonState) => ({
+export const gestureState = select((cursor, mouseIsDown, mouseButtonState) => console.log('gesture ennnd', cursor.uid) || ({
   cursor,
   mouseIsDown,
   mouseButtonState,

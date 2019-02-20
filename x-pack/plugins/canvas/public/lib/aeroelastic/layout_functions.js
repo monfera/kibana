@@ -1474,7 +1474,7 @@ export const getNextScene = (
   selectedShapes,
   gestureState
 ) => {
-  console.log(gestureState.mouseButtonState)
+  console.log('in getNextScene', gestureState.cursor.uid)
   const selectedLeafShapes = getLeafs(
     shape => shape.type === config.groupName,
     shapes,
