@@ -108,9 +108,9 @@ const calculateHandlers = ({
     ];
   };
 
-  const selectedPrimaryShapeObjects = selectedPrimaryShapes.map(id =>
-    shapes.find(s => s.id === id)
-  );
+  const selectedPrimaryShapeObjects = selectedPrimaryShapes
+    .map(id => shapes.find(s => s.id === id))
+    .filter(shape => shape);
   const selectedPersistentPrimaryShapes = flatten(
     selectedPrimaryShapeObjects.map(shape =>
       shape.subtype === 'adHocGroup'
@@ -244,7 +244,7 @@ export const WorkpadPage = compose(
           currentScene: aeroelastic,
           primaryUpdate: { type, payload: { ...payload, uid } },
         };
-        console.log(newScenePrep.primaryUpdate.payload.uid)
+        console.log(newScenePrep.primaryUpdate.payload.uid);
         setAeroelastic(nextScene(newScenePrep));
         if (0)
           setAeroelastic(state => {
@@ -325,7 +325,17 @@ export const WorkpadPage = compose(
       ...handlers,
     };
   }), // Updates states; needs to have both local and global
-  withHandlers(eventHandlers) // Captures user intent, needs to have reconciled state
+  withHandlers(eventHandlers), // Captures user intent, needs to have reconciled state
+  withHandlers({
+    groupElements: ({ commit }) => () =>
+      commit('actionEvent', {
+        event: 'group',
+      }),
+    ungroupElements: ({ commit }) => () =>
+      commit('actionEvent', {
+        event: 'ungroup',
+      }),
+  })
 )(Component);
 
 WorkpadPage.propTypes = {
