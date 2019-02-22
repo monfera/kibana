@@ -21,7 +21,6 @@ const appleKeyboard = Boolean(
 
 const gestureStatePrev = select(
   scene =>
-    console.log('scene.gestureState', JSON.stringify(scene.gestureState)) ||
     scene.gestureState || {
       cursor: {
         x: 0,
@@ -33,7 +32,6 @@ const gestureStatePrev = select(
 )(scene);
 
 export const gestureEnd = select(action => {
-  console.log('in gestureEnd', action.payload.uid);
   return (
     action &&
     (action.type === 'actionEvent' ||
@@ -47,7 +45,6 @@ export const gestureEnd = select(action => {
 
 // dispatch the various types of actions
 const rawCursorPosition = select(action => {
-  console.log(action.type, action.payload.uid);
   return action.type === 'cursorPosition' ? action.payload : null;
 })(primaryUpdate);
 
@@ -63,7 +60,7 @@ export const metaHeld = select(appleKeyboard ? e => e.metaKey : e => e.altKey)(k
 export const optionHeld = select(appleKeyboard ? e => e.altKey : e => e.ctrlKey)(keyFromMouse);
 export const shiftHeld = select(e => e.shiftKey)(keyFromMouse);
 
-export const cursorPosition = select(({ cursor }, position) => console.log('hehh', (position || cursor).uid) || position || cursor)(
+export const cursorPosition = select(({ cursor }, position) => position || cursor)(
   gestureStatePrev,
   rawCursorPosition
 );
@@ -144,7 +141,6 @@ export const dragVector = select(({ buttonState, downX, downY }, { x, y }) => {
     x1: x,
     y1: y,
   };
-  //console.log(result);
   return result;
 })(mouseButtonState, cursorPosition);
 
@@ -152,7 +148,7 @@ export const actionEvent = select(action =>
   action.type === 'actionEvent' ? action.payload : null
 )(primaryUpdate);
 
-export const gestureState = select((cursor, mouseIsDown, mouseButtonState) => console.log('gesture ennnd', cursor.uid) || ({
+export const gestureState = select((cursor, mouseIsDown, mouseButtonState) => ({
   cursor,
   mouseIsDown,
   mouseButtonState,

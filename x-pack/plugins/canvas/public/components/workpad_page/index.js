@@ -66,7 +66,6 @@ export const WorkpadPage = compose(
       //pure: true,
       /*
       areStatesEqual: (next, prev) => {
-        console.log('state eq check...');
         return false;
       },
 */
@@ -106,7 +105,6 @@ export const WorkpadPage = compose(
           currentScene: aeroelastic,
           primaryUpdate: { type, payload: { ...payload, uid } },
         };
-        console.log(newScenePrep.primaryUpdate.payload.uid);
         setAeroelastic(nextScene(newScenePrep));
         if (0) {
           setAeroelastic(state => {
@@ -139,7 +137,6 @@ export const WorkpadPage = compose(
                 e => e.position.type === 'group' && !persistableGroups.find(p => p.id === e.id)
               );
               if (elementsToRemove.length) {
-                // console.log('removing groups', elementsToRemove.map(e => e.id).join(', '));
                 removeElements(page.id)(elementsToRemove.map(e => e.id));
               }
 
