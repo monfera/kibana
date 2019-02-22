@@ -6,7 +6,7 @@
 
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { compose, withHandlers, withProps, withState } from 'recompose';
+import { compose, withHandlers, withProps /*, withState*/ } from 'recompose';
 import { canUserWrite, getFullscreen } from '../../state/selectors/app';
 import { getNodes, isWriteable } from '../../state/selectors/workpad';
 import { nextScene } from '../../lib/aeroelastic/layout';
@@ -17,8 +17,10 @@ import {
   removeElements,
   setMultiplePositions,
 } from '../../state/actions/elements';
+import { selectElement, setAeroelastic } from './../../state/actions/transient';
 import {
   componentLayoutLocalState,
+  isSelectedAnimation,
   makeUid,
   reduxToAero,
   shapeToElement,
@@ -26,8 +28,6 @@ import {
 } from './aeroelastic_redux_helpers';
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
-import { selectElement } from './../../state/actions/transient';
-import { setAeroelastic } from '../../state/actions/transient';
 
 const mapStateToProps = (state, ownProps) => {
   const elements = getNodes(state, ownProps.page.id);
@@ -57,42 +57,6 @@ const mapDispatchToProps = dispatch => ({
   setAeroelastic: newState => dispatch(setAeroelastic(newState)),
 });
 
-const getRootElementId = (lookup, id) => {
-  if (!lookup.has(id)) {
-    return null;
-  }
-
-  const element = lookup.get(id);
-  return element.parent && element.parent.subtype !== 'adHocGroup'
-    ? getRootElementId(lookup, element.parent)
-    : element.id;
-};
-
-const isSelectedAnimation = ({ isSelected, animation }) => {
-  function getClassName() {
-    if (animation) {
-      return animation.name;
-    }
-    return isSelected ? 'canvasPage--isActive' : 'canvasPage--isInactive';
-  }
-
-  function getAnimationStyle() {
-    if (!animation) {
-      return {};
-    }
-    return {
-      animationDirection: animation.direction,
-      // TODO: Make this configurable
-      animationDuration: '1s',
-    };
-  }
-
-  return {
-    className: getClassName(),
-    animationStyle: getAnimationStyle(),
-  };
-};
-
 export const WorkpadPage = compose(
   connect(
     mapStateToProps,
@@ -109,19 +73,18 @@ export const WorkpadPage = compose(
     }
   ),
   withProps(isSelectedAnimation),
-  withState('handlers', 'setHandlers', calculateHandlers),
-  withPropsprops => {
+  //withState('handlers', 'setHandlers', calculateHandlers),
+  withProps(props => {
     const {
-            aeroelastic,
-            setAeroelastic,
-            handlers,
-            setHandlers,
-            page,
-            elements,
-            addElement,
-            setMultiplePositions,
-            removeElements,
-          } = props;
+      aeroelastic,
+      setAeroelastic,
+      handlers /*setHandlers,*/,
+      page,
+      elements,
+      addElement,
+      setMultiplePositions,
+      removeElements,
+    } = props;
     const previousAeroelasticState = aeroelastic;
     const { shapes, cursor } = previousAeroelasticState;
     const elementLookup = new Map(elements.map(element => [element.id, element]));
@@ -145,7 +108,7 @@ export const WorkpadPage = compose(
         };
         console.log(newScenePrep.primaryUpdate.payload.uid);
         setAeroelastic(nextScene(newScenePrep));
-        if (0)
+        if (0) {
           setAeroelastic(state => {
             const previousAeroelasticState = state;
             const reduxSyncedAeroelasticState = previousAeroelasticState || {
@@ -195,7 +158,13 @@ export const WorkpadPage = compose(
 
               // update the position of possibly changed elements
               updateGlobalPositions(
-                positions => setMultiplePositions(positions.map(p => ({ ...p, pageId: page.id }))),
+                positions =>
+                  setMultiplePositions(
+                    positions.map(p => ({
+                      ...p,
+                      pageId: page.id,
+                    }))
+                  ),
                 currentScene,
                 elements
               );
@@ -203,7 +172,7 @@ export const WorkpadPage = compose(
               // handlers can only change if there's change to Redux (checked by proxy of putting it in
               // the if(currentScene.gestureEnd) {...}
               // todo consider somehow putting it in or around `connect`, to more directly tie it to Redux change
-              setHandlers(() =>
+              /*setHandlers(() =>
                 calculateHandlers({
                   aeroelastic,
                   page,
@@ -212,7 +181,7 @@ export const WorkpadPage = compose(
                   selectElement,
                   elementLayer,
                 })
-              );
+              )*/
             }
 
             return {
@@ -220,10 +189,11 @@ export const WorkpadPage = compose(
               currentScene,
             };
           });
+        }
       },
       ...handlers,
     };
-  }, // Updates states; needs to have both local and global
+  }), // Updates states; needs to have both local and global
   withHandlers({
     groupElements: ({ commit }) => () =>
       commit('actionEvent', {

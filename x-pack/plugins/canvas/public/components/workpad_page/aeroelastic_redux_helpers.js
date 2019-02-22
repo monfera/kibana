@@ -221,3 +221,28 @@ export const reduxToAero = (
   // todo move this initial state in a file under `aeroelastic/`
   return { ...aero.currentScene, shapes };
 };
+
+export const isSelectedAnimation = ({ isSelected, animation }) => {
+  function getClassName() {
+    if (animation) {
+      return animation.name;
+    }
+    return isSelected ? 'canvasPage--isActive' : 'canvasPage--isInactive';
+  }
+
+  function getAnimationStyle() {
+    if (!animation) {
+      return {};
+    }
+    return {
+      animationDirection: animation.direction,
+      // TODO: Make this configurable
+      animationDuration: '1s',
+    };
+  }
+
+  return {
+    className: getClassName(),
+    animationStyle: getAnimationStyle(),
+  };
+};
