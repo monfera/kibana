@@ -24,7 +24,7 @@ export class WorkpadPage extends PureComponent {
       style: PropTypes.object,
     }).isRequired,
     className: PropTypes.string.isRequired,
-    animationStyle: PropTypes.object.isRequired,
+    animationStyle: PropTypes.object,
     elements: PropTypes.arrayOf(
       PropTypes.shape({
         id: PropTypes.string.isRequired,
@@ -37,7 +37,7 @@ export class WorkpadPage extends PureComponent {
     cursor: PropTypes.string,
     height: PropTypes.number.isRequired,
     width: PropTypes.number.isRequired,
-    isEditable: PropTypes.bool.isRequired,
+    isEditable: PropTypes.bool,
     onDoubleClick: PropTypes.func,
     onKeyDown: PropTypes.func,
     onMouseDown: PropTypes.func,
@@ -165,6 +165,7 @@ export class WorkpadPage extends PureComponent {
                   return [];
               }
             } else if (element.type !== 'group') {
+              console.log(element.id, element.transformMatrix)
               return <ElementWrapper key={element.id} element={element} />;
             }
           })
