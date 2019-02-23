@@ -21,7 +21,7 @@ const appleKeyboard = Boolean(
 
 const gestureStatePrev = select(
   scene =>
-    /*console.log(JSON.stringify(scene.gestureState)) || */ scene.gestureState || {
+    scene.gestureState || {
       cursor: {
         x: 0,
         y: 0,
@@ -45,7 +45,7 @@ export const gestureEnd = select(action => {
 
 // dispatch the various types of actions
 const rawCursorPosition = select(action => {
-  return action.type === 'cursorPosition' ? console.log(action.payload) || action.payload : null;
+  return action.type === 'cursorPosition' ? action.payload : null;
 })(primaryUpdate);
 
 const mouseButtonEvent = select(action => (action.type === 'mouseEvent' ? action.payload : null))(
@@ -114,7 +114,7 @@ export const mouseButton = select(next => {
 })(mouseButtonEvent);
 
 export const mouseIsDown = select(({ mouseIsDown }, next) =>
-  console.log('next:', next) || next ? next.event === 'mouseDown' : console.log('mouseIsDown:', mouseIsDown) || mouseIsDown
+  next ? next.event === 'mouseDown' : mouseIsDown
 )(gestureStatePrev, mouseButtonEvent);
 
 const mouseButtonState = select(

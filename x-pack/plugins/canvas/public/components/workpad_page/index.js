@@ -53,7 +53,7 @@ export const WorkpadPage = compose(
       elements: shapesToRender,
       cursor,
       commit: (type, payload) =>
-        console.log('heya', type, payload) || dispatch(commitAeroelastic({ type, payload: { ...payload, uid: makeUid() } })),
+        dispatch(commitAeroelastic({ type, payload: { ...payload, uid: makeUid() } })),
       ...handlers,
     };
   }),

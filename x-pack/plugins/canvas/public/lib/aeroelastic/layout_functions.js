@@ -349,7 +349,6 @@ const fromScreen = currentTransform => transform => {
 };
 
 const shapeApplyLocalTransforms = intents => shape => {
-  if (intents.length && intents[0].cumulativeTransforms.length) console.log(intents[0]);
   const transformIntents = flatten(
     intents
       .map(
@@ -1206,7 +1205,7 @@ export const getCursor = (config, shape, draggedPrimaryShape) => {
 /**
  * Selectors directly from a state object
  */
-export const getPrimaryUpdate = state => console.log(JSON.stringify(state.primaryUpdate)) || state.primaryUpdate;
+export const getPrimaryUpdate = state => state.primaryUpdate;
 
 export const getSelectedShapesPrev = scene =>
   scene.selectionState || {
@@ -1484,7 +1483,7 @@ export const getNextScene = (
   )
     .filter(shape => shape.type !== 'annotation')
     .map(s => s.id);
-  console.log('yielding gestureState.mouseIsDown for new state', gestureState.mouseIsDown)
+
   return {
     configuration: config,
     hoveredShape,
