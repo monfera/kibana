@@ -6,7 +6,5 @@
 
 import { createAction } from 'redux-actions';
 
-export const setCanUserWrite = createAction('setCanUserWrite');
-export const setFullscreen = createAction('setFullscreen');
-export const selectElement = createAction('selectElement');
-export const setFirstLoad = createAction('setFirstLoad');
+// actions to set the application state
+export const commitAeroelastic = createAction('commitAeroelastic');

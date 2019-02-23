@@ -165,7 +165,7 @@ export class WorkpadPage extends PureComponent {
                   return [];
               }
             } else if (element.type !== 'group') {
-              console.log(element.id, element.transformMatrix)
+              //console.log(element.id, element.transformMatrix)
               return <ElementWrapper key={element.id} element={element} />;
             }
           })

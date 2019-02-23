@@ -8,8 +8,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { compose, withHandlers, withProps } from 'recompose';
 import { getNodes } from '../../state/selectors/workpad';
-import { nextScene } from '../../lib/aeroelastic/layout';
-import { setAeroelastic } from './../../state/actions/transient';
+import { commitAeroelastic } from './../../state/actions/canvas';
 import { makeUid, reduxToAero } from './aeroelastic_redux_helpers';
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
@@ -23,14 +22,10 @@ const mapStateToProps = (state, ownProps) => {
   };
 };
 
-const mapDispatchToProps = dispatch => ({
-  setAeroelastic: newState => dispatch(setAeroelastic(newState)),
-});
-
 export const WorkpadPage = compose(
   connect(
     mapStateToProps,
-    mapDispatchToProps,
+    null,
     undefined,
     {
       //pure: true,
@@ -42,9 +37,8 @@ export const WorkpadPage = compose(
     }
   ),
   withProps(props => {
-    const { aeroelastic, setAeroelastic, handlers, elements } = props;
-    const previousAeroelasticState = aeroelastic;
-    const { shapes, cursor } = previousAeroelasticState;
+    const { aeroelastic, handlers, elements, dispatch } = props;
+    const { shapes, cursor } = aeroelastic;
     const elementLookup = new Map(elements.map(element => [element.id, element]));
     const shapesToRender = shapes.map(shape => {
       const pageElement = elementLookup.has(shape.id) && elementLookup.get(shape.id);
@@ -58,14 +52,8 @@ export const WorkpadPage = compose(
       className: 'canvasPage--isActive',
       elements: shapesToRender,
       cursor,
-      commit: (type, payload) => {
-        const uid = makeUid();
-        const newScenePrep = {
-          currentScene: aeroelastic,
-          primaryUpdate: { type, payload: { ...payload, uid } },
-        };
-        setAeroelastic(nextScene(newScenePrep));
-      },
+      commit: (type, payload) =>
+        console.log('heya', type, payload) || dispatch(commitAeroelastic({ type, payload: { ...payload, uid: makeUid() } })),
       ...handlers,
     };
   }),
