@@ -76,6 +76,7 @@ export const removeDuplicates = (idFun, a) =>
   a.filter((d, i) => a.findIndex(s => idFun(s) === idFun(d)) === i);
 
 export const arrayToMap = a => Object.assign({}, ...a.map(d => ({ [d]: true })));
+export const arrayToLookup = (keyFun, a) => Object.assign({}, ...a.map(d => ({ [keyFun(d)]: d })));
 
 export const subMultitree = (pk, fk, elements, inputRoots) => {
   const getSubgraphs = roots => {
