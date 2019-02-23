@@ -219,7 +219,7 @@ export const reduxToAero = (
       : shape.transformMatrix;
   });
   // todo move this initial state in a file under `aeroelastic/`
-  return { ...aero.currentScene, shapes };
+  return { ...aero.currentScene, shapes, selectedShapes: [], selectedPrimaryShapes: [] };
 };
 
 export const isSelectedAnimation = ({ isSelected, animation }) => {
