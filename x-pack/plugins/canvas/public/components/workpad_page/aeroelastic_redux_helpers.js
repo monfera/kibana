@@ -4,9 +4,8 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import { shallowEqual } from 'recompose';
 import { invert, matrixToAngle, multiply, rotateZ, translate } from '../../lib/aeroelastic/matrix';
-import { arrayToMap, identity } from '../../lib/aeroelastic/functional';
+import { arrayToMap } from '../../lib/aeroelastic/functional';
 
 export const aeroelasticConfiguration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -106,64 +105,6 @@ export const elementToShape = (element, i) => {
   };
 };
 
-export const shapeToElement = shape => {
-  let angle = Math.round((matrixToAngle(shape.transformMatrix) * 180) / Math.PI);
-  if (1 / angle === -Infinity) {
-    angle = 0;
-  }
-  return {
-    left: shape.transformMatrix[12] - shape.a,
-    top: shape.transformMatrix[13] - shape.b,
-    width: shape.a * 2,
-    height: shape.b * 2,
-    angle,
-    parent: shape.parent || null,
-    type: shape.type === 'group' ? 'group' : 'element',
-  };
-};
-
-export const updateGlobalPositions = (setPositions, { shapes, gestureEnd }, unsortedElements) => {
-  const ascending = (a, b) => (a.id < b.id ? -1 : 1);
-  const relevant = s => s.type !== 'annotation' && s.subtype !== 'adHocGroup';
-  const elements = unsortedElements.filter(relevant).sort(ascending);
-  const repositionings = shapes
-    .filter(relevant)
-    .sort(ascending)
-    .map((shape, i) => {
-      const element = elements[i];
-      const elemPos = element && element.position;
-      if (elemPos && gestureEnd) {
-        // get existing position information from element
-        const oldProps = {
-          left: elemPos.left,
-          top: elemPos.top,
-          width: elemPos.width,
-          height: elemPos.height,
-          angle: Math.round(elemPos.angle),
-          type: elemPos.type,
-          parent: elemPos.parent || null,
-        };
-
-        // cast shape into element-like object to compare
-        const newProps = shapeToElement(shape);
-
-        if (1 / newProps.angle === -Infinity) {
-          newProps.angle = 0;
-        } // recompose.shallowEqual discerns between 0 and -0
-
-        const result = shallowEqual(oldProps, newProps)
-          ? null
-          : { position: newProps, elementId: shape.id };
-        return result;
-      }
-    })
-    .filter(identity);
-  if (repositionings.length) {
-    console.log('updating positions');
-    setPositions(repositionings);
-  }
-};
-
 // todo check past usage and eliminate
 const getRootElementId = (lookup, id) => {
   if (!lookup.has(id)) {
@@ -246,3 +187,20 @@ export const isSelectedAnimation = ({ isSelected, animation }) => {
     animationStyle: getAnimationStyle(),
   };
 };
+
+export const shapeToPosition = shape => {
+  let angle = Math.round((matrixToAngle(shape.transformMatrix) * 180) / Math.PI);
+  if (1 / angle === -Infinity) {
+    angle = 0;
+  }
+  return {
+    left: shape.transformMatrix[12] - shape.a,
+    top: shape.transformMatrix[13] - shape.b,
+    width: shape.a * 2,
+    height: shape.b * 2,
+    angle,
+    parent: shape.parent || null,
+  };
+};
+
+export const isGroupId = id => id.startsWith('group');
