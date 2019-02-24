@@ -5,7 +5,7 @@
  */
 
 import { handleActions } from 'redux-actions';
-import { commitAeroelastic } from '../actions/canvas';
+import { commitAeroelastic, updateAeroelastic } from '../actions/canvas';
 import { nextScene } from '../../lib/aeroelastic/layout';
 import {
   isGroupId,
@@ -18,22 +18,19 @@ import { arrayToLookup } from '../../lib/aeroelastic/functional';
 
 export const canvasReducer = handleActions(
   {
-    [commitAeroelastic]: (canvas, { payload }) => {
+    [updateAeroelastic]: (canvas, { payload }) => {
       const workpad = canvas.persistent.workpad;
       const pages = workpad.pages;
       const pageId = workpad.page;
       const page = pages[pageId];
       const previousAeroelastic = canvas.transient.aeroelastic || reduxToAero([]);
-      const previousGestureEnd = previousAeroelastic.gestureEnd;
-      const draggedShape = previousAeroelastic.draggedShape;
-      const updateFromRedux = !draggedShape && !previousGestureEnd; // todo now it's true too often, can be optimized!
       const pageElements = page.elements;
-      const canvasAdHocGroups =
-        updateFromRedux &&
-        previousAeroelastic.shapes.filter(s => s.subtype === 'adHocGroup').map(shapeToGroupNode);
-      const elementLookup =
-        updateFromRedux && arrayToLookup(e => e.id, pageElements.concat(canvasAdHocGroups));
-      const canvasShapes = updateFromRedux && {
+      const canvasAdHocGroups = previousAeroelastic.shapes
+        .filter(s => s.subtype === 'adHocGroup')
+        .map(shapeToGroupNode);
+      const elementLookup = arrayToLookup(e => e.id, pageElements.concat(canvasAdHocGroups));
+      const currentScene = {
+        ...previousAeroelastic,
         shapes: reduxToAeroShapes(pageElements.concat(canvasAdHocGroups))
           .filter(s => s.subtype !== 'adHocGroup')
           .concat(
@@ -44,10 +41,31 @@ export const canvasReducer = handleActions(
             )
           ),
       };
-      const currentScene = {
-        ...previousAeroelastic,
-        ...canvasShapes,
+      const aeroelastic = nextScene({
+        currentScene,
+        primaryUpdate: payload,
+      });
+      const selectedShapes = aeroelastic.selectedPrimaryShapes;
+      const selected = selectedShapes[0];
+      const selectedElement = selectedShapes.length === 1 && !isGroupId(selected) ? selected : null;
+
+      return {
+        ...canvas,
+        transient: {
+          ...canvas.transient,
+          selectedElement,
+          aeroelastic,
+        },
       };
+    },
+    [commitAeroelastic]: (canvas, { payload }) => {
+      const workpad = canvas.persistent.workpad;
+      const pages = workpad.pages;
+      const pageId = workpad.page;
+      const page = pages[pageId];
+      const previousAeroelastic = canvas.transient.aeroelastic || reduxToAero([]);
+      const pageElements = page.elements;
+      const currentScene = previousAeroelastic;
       const aeroelastic = nextScene({ currentScene, primaryUpdate: payload });
       const selectedShapes = aeroelastic.selectedPrimaryShapes;
       const selected = selectedShapes[0];

@@ -15,6 +15,7 @@ import { inFlight } from './in_flight';
 import { workpadUpdate } from './workpad_update';
 import { workpadRefresh } from './workpad_refresh';
 import { appReady } from './app_ready';
+import { aeroelastic } from './aeroelastic2';
 
 const middlewares = [
   applyMiddleware(
@@ -26,7 +27,8 @@ const middlewares = [
     inFlight,
     appReady,
     workpadUpdate,
-    workpadRefresh
+    workpadRefresh,
+    aeroelastic
   ),
 ];
 
