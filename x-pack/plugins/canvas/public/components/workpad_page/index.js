@@ -18,7 +18,7 @@ const mapStateToProps = (state, ownProps) => {
   return {
     isEditable: true,
     elements,
-    aeroelastic: state.transient.aeroelastic || reduxToAero({ elements }),
+    aeroelastic: state.transient.aeroelastic || reduxToAero(elements),
   };
 };
 

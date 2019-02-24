@@ -10,6 +10,8 @@ import { nextScene } from '../../lib/aeroelastic/layout';
 import {
   isGroupId,
   reduxToAero,
+  reduxToAeroShapes,
+  shapeToGroupNode,
   shapeToPosition,
 } from '../../components/workpad_page/aeroelastic_redux_helpers';
 import { arrayToLookup } from '../../lib/aeroelastic/functional';
@@ -18,37 +20,63 @@ export const canvasReducer = handleActions(
   {
     [commitAeroelastic]: (canvas, { payload }) => {
       const workpad = canvas.persistent.workpad;
-      const currentScene =
-        canvas.transient.aeroelastic ||
-        reduxToAero({ elements: workpad.pages[workpad.page].elements });
-      const selectedShapes = currentScene.selectedPrimaryShapes;
+      const pages = workpad.pages;
+      const pageId = workpad.page;
+      const page = pages[pageId];
+      const previousAeroelastic = canvas.transient.aeroelastic || reduxToAero([]);
+      const previousGestureEnd = previousAeroelastic.gestureEnd;
+      const draggedShape = previousAeroelastic.draggedShape;
+      const updateFromRedux = !draggedShape && !previousGestureEnd; // todo now it's true too often, can be optimized!
+      const pageElements = page.elements;
+      const adHocGroupElements =
+        updateFromRedux &&
+        previousAeroelastic.shapes.filter(s => s.subtype === 'adHocGroup').map(shapeToGroupNode);
+      const elementLookup =
+        updateFromRedux && arrayToLookup(e => e.id, pageElements.concat(adHocGroupElements));
+      const canvasShapes = updateFromRedux && {
+        shapes: reduxToAeroShapes(pageElements.concat(adHocGroupElements))
+          .filter(s => s.subtype !== 'adHocGroup')
+          .concat(
+            previousAeroelastic.shapes.filter(
+              s =>
+                (s.type === 'annotation' && (!s.parent || elementLookup[s.parent])) || // if parent-bound, check if it remained
+                s.subtype === 'adHocGroup'
+            )
+          ),
+      };
+      const currentScene = {
+        ...previousAeroelastic,
+        ...canvasShapes,
+      };
+      const aeroelastic = nextScene({ currentScene, primaryUpdate: payload });
+      const selectedShapes = aeroelastic.selectedPrimaryShapes;
       const selected = selectedShapes[0];
       const selectedElement = selectedShapes.length === 1 && !isGroupId(selected) ? selected : null;
-      const aeroelastic = nextScene({ currentScene, primaryUpdate: payload });
+      const gestureEnd = aeroelastic.gestureEnd;
 
-      const lookup =
-        currentScene.gestureEnd &&
-        arrayToLookup(s => s.id, currentScene.shapes.filter(s => s.type !== 'annotation'));
+      const shapeLookup =
+        gestureEnd &&
+        arrayToLookup(s => s.id, aeroelastic.shapes.filter(s => s.type !== 'annotation'));
 
       const elements =
-        currentScene.gestureEnd &&
-        workpad.pages[workpad.page].elements.map(e => ({
+        gestureEnd &&
+        pageElements.map(e => ({
           ...e,
-          position: shapeToPosition(lookup[e.id]),
+          position: shapeToPosition(shapeLookup[e.id]),
         }));
 
-      const persistent = currentScene.gestureEnd
+      const persistent = gestureEnd
         ? {
             ...canvas.persistent,
             workpad: {
               ...workpad,
-              pages: workpad.pages.map((page, i) =>
-                i === workpad.page
+              pages: pages.map((p, i) =>
+                i === pageId
                   ? {
-                      ...workpad.pages[workpad.page],
+                      ...p,
                       elements,
                     }
-                  : page
+                  : p
               ),
             },
           }

@@ -117,8 +117,7 @@ const getRootElementId = (lookup, id) => {
     : element.id;
 };
 
-export const componentLayoutLocalState = ({ elements }) => {
-  // console.log('setting aero state on component!!!');
+export const reduxToAeroShapes = elements => {
   const shapes = elements
     .map(elementToShape)
     .filter((d, i, a) => !d.id.startsWith('group') || a.find(s => s.parent === d.id));
@@ -134,34 +133,39 @@ export const componentLayoutLocalState = ({ elements }) => {
       : shape.transformMatrix;
   });
   // todo move this initial state in a file under `aeroelastic/`
+  return shapes;
+};
+
+export const reduxToAero = elements => ({
+  configuration: aeroelasticConfiguration,
+  shapes: reduxToAeroShapes(elements),
+  selectedShapes: [],
+  selectedPrimaryShapes: [],
+  gestureEnd: false,
+  draggedShape: false,
+});
+
+export const shapeToPosition = shape => {
+  let angle = Math.round((matrixToAngle(shape.transformMatrix) * 180) / Math.PI);
+  if (1 / angle === -Infinity) {
+    angle = 0;
+  }
   return {
-    primaryUpdate: null,
-    currentScene: { shapes, configuration: aeroelasticConfiguration },
+    left: shape.transformMatrix[12] - shape.a,
+    top: shape.transformMatrix[13] - shape.b,
+    width: shape.a * 2,
+    height: shape.b * 2,
+    angle,
+    parent: shape.parent || null,
   };
 };
 
-export const reduxToAero = (
-  redux,
-  aero = { currentScene: { configuration: aeroelasticConfiguration } }
-) => {
-  const elements = redux.elements;
-  const shapes = elements
-    .map(elementToShape)
-    .filter((d, i, a) => !d.id.startsWith('group') || a.find(s => s.parent === d.id));
-  // todo delete these
-  idDuplicateCheck(shapes);
-  missingParentCheck(shapes);
-  shapes.forEach(shape => {
-    shape.localTransformMatrix = shape.parent
-      ? multiply(
-          invert(shapes.find(s => s.id === shape.parent).transformMatrix),
-          shape.transformMatrix
-        )
-      : shape.transformMatrix;
-  });
-  // todo move this initial state in a file under `aeroelastic/`
-  return { ...aero.currentScene, shapes, selectedShapes: [], selectedPrimaryShapes: [] };
-};
+export const shapeToGroupNode = s => ({
+  id: s.id,
+  filter: undefined,
+  expression: 'shape fill="rgba(255,255,255,0)" | render',
+  position: shapeToPosition(s),
+});
 
 export const isSelectedAnimation = ({ isSelected, animation }) => {
   function getClassName() {
@@ -185,21 +189,6 @@ export const isSelectedAnimation = ({ isSelected, animation }) => {
   return {
     className: getClassName(),
     animationStyle: getAnimationStyle(),
-  };
-};
-
-export const shapeToPosition = shape => {
-  let angle = Math.round((matrixToAngle(shape.transformMatrix) * 180) / Math.PI);
-  if (1 / angle === -Infinity) {
-    angle = 0;
-  }
-  return {
-    left: shape.transformMatrix[12] - shape.a,
-    top: shape.transformMatrix[13] - shape.b,
-    width: shape.a * 2,
-    height: shape.b * 2,
-    angle,
-    parent: shape.parent || null,
   };
 };
 

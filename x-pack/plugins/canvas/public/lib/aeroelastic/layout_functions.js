@@ -1483,7 +1483,7 @@ export const getNextScene = (
   )
     .filter(shape => shape.type !== 'annotation')
     .map(s => s.id);
-
+  //console.log(draggedShape)
   return {
     configuration: config,
     hoveredShape,
