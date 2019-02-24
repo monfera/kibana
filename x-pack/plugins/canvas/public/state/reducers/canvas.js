@@ -28,13 +28,13 @@ export const canvasReducer = handleActions(
       const draggedShape = previousAeroelastic.draggedShape;
       const updateFromRedux = !draggedShape && !previousGestureEnd; // todo now it's true too often, can be optimized!
       const pageElements = page.elements;
-      const adHocGroupElements =
+      const canvasAdHocGroups =
         updateFromRedux &&
         previousAeroelastic.shapes.filter(s => s.subtype === 'adHocGroup').map(shapeToGroupNode);
       const elementLookup =
-        updateFromRedux && arrayToLookup(e => e.id, pageElements.concat(adHocGroupElements));
+        updateFromRedux && arrayToLookup(e => e.id, pageElements.concat(canvasAdHocGroups));
       const canvasShapes = updateFromRedux && {
-        shapes: reduxToAeroShapes(pageElements.concat(adHocGroupElements))
+        shapes: reduxToAeroShapes(pageElements.concat(canvasAdHocGroups))
           .filter(s => s.subtype !== 'adHocGroup')
           .concat(
             previousAeroelastic.shapes.filter(
