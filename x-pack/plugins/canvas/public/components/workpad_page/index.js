@@ -8,10 +8,13 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { compose, withHandlers, withProps } from 'recompose';
 import { getNodes } from '../../state/selectors/workpad';
+import { flatten } from '../../lib/aeroelastic/functional';
+import { elementLayer, insertNodes, removeElements } from '../../state/actions/elements';
 import { commitAeroelastic } from './../../state/actions/canvas';
 import { isSelectedAnimation, makeUid, reduxToAero } from './aeroelastic_redux_helpers';
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
+import { selectElement } from './../../state/actions/transient';
 
 const mapStateToProps = (state, ownProps) => {
   const elements = getNodes(state, ownProps.page.id);
@@ -22,10 +25,29 @@ const mapStateToProps = (state, ownProps) => {
   };
 };
 
+const mapDispatchToProps = dispatch => {
+  return {
+    commitAeroelastic: aeroAction => dispatch(commitAeroelastic(aeroAction)),
+    insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
+    removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
+    selectElement: selectedElement => dispatch(selectElement(selectedElement)),
+    // TODO: Abstract this out. This is the same code as in sidebar/index.js
+    elementLayer: (pageId, selectedElement, movement) => {
+      dispatch(
+        elementLayer({
+          pageId,
+          elementId: selectedElement.id,
+          movement,
+        })
+      );
+    },
+  };
+};
+
 export const WorkpadPage = compose(
   connect(
     mapStateToProps,
-    null,
+    mapDispatchToProps,
     undefined,
     {
       //pure: true,
@@ -38,23 +60,57 @@ export const WorkpadPage = compose(
   ),
   withProps(isSelectedAnimation),
   withProps(props => {
-    const { aeroelastic, handlers, elements, dispatch } = props;
-    const { shapes, cursor } = aeroelastic;
+    const { aeroelastic, commitAeroelastic, handlers, elements } = props;
+    const { shapes, selectedPrimaryShapes = [], cursor } = aeroelastic;
+
+    const recurseGroupTree = shapeId => {
+      return [
+        shapeId,
+        ...flatten(
+          shapes
+            .filter(s => s.parent === shapeId && s.type !== 'annotation')
+            .map(s => s.id)
+            .map(recurseGroupTree)
+        ),
+      ];
+    };
+
+    const selectedPrimaryShapeObjects = selectedPrimaryShapes
+      .map(id => shapes.find(s => s.id === id))
+      .filter(shape => shape);
+
+    const selectedPersistentPrimaryShapes = flatten(
+      selectedPrimaryShapeObjects.map(shape =>
+        shape.subtype === 'adHocGroup'
+          ? shapes.filter(s => s.parent === shape.id && s.type !== 'annotation').map(s => s.id)
+          : [shape.id]
+      )
+    );
+    const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree));
+
+    const selectedElements = [];
     const elementLookup = new Map(elements.map(element => [element.id, element]));
-    const shapesToRender = shapes.map(shape => {
-      const pageElement = elementLookup.has(shape.id) && elementLookup.get(shape.id);
-      return {
-        ...(pageElement ? { ...shape, filter: pageElement.filter } : shape),
-        width: shape.a * 2,
-        height: shape.b * 2,
-      };
+    const pageElements = shapes.map(shape => {
+      let element = null;
+      if (elementLookup.has(shape.id)) {
+        element = elementLookup.get(shape.id);
+        if (selectedElementIds.indexOf(shape.id) > -1) {
+          selectedElements.push({ ...element, id: shape.id });
+        }
+      }
+      // instead of just combining `element` with `shape`, we make property transfer explicit
+      return element ? { ...shape, filter: element.filter } : shape;
     });
+
     return {
       className: 'canvasPage--isActive',
-      elements: shapesToRender,
+      elements: pageElements,
       cursor,
+      selectedElementIds,
+      selectedElements,
+      selectedPrimaryShapes,
       commit: (type, payload) =>
-        dispatch(commitAeroelastic({ type, payload: { ...payload, uid: makeUid() } })),
+        commitAeroelastic({ type, payload: { ...payload, uid: makeUid() } }),
       ...handlers,
     };
   }),
