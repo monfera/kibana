@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
 import { compose, withHandlers, withProps } from 'recompose';
 import { getNodes } from '../../state/selectors/workpad';
 import { commitAeroelastic } from './../../state/actions/canvas';
-import { makeUid, reduxToAero } from './aeroelastic_redux_helpers';
+import { isSelectedAnimation, makeUid, reduxToAero } from './aeroelastic_redux_helpers';
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
 
@@ -36,6 +36,7 @@ export const WorkpadPage = compose(
 */
     }
   ),
+  withProps(isSelectedAnimation),
   withProps(props => {
     const { aeroelastic, handlers, elements, dispatch } = props;
     const { shapes, cursor } = aeroelastic;
