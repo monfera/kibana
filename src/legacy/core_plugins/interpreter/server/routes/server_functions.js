@@ -43,17 +43,24 @@ function runServerFunctions(server) {
     method: 'POST',
     path: `${API_ROUTE}/fns`,
     options: {
+      payload: {
+        allow: 'application/json',
+        maxBytes: 26214400, // 25MB payload limit
+      },
       validate: {
         payload: Joi.object({
-          functions: Joi.array().items(
-            Joi.object()
-              .keys({
+          functions: Joi.array()
+            .items(
+              Joi.object().keys({
                 id: Joi.number().required(),
                 functionName: Joi.string().required(),
                 args: Joi.object().default({}),
-                context: Joi.object().allow(null).default({}),
-              }),
-          ).required(),
+                context: Joi.object()
+                  .allow(null)
+                  .default({}),
+              })
+            )
+            .required(),
         }).required(),
       },
     },
@@ -63,29 +70,34 @@ function runServerFunctions(server) {
 
       // Process each function individually, and bundle up respones / errors into
       // the format expected by the front-end batcher.
-      const results = await Promise.all(functions.map(async ({ id, ...fnCall }) => {
-        const result = await runFunction(server, handlers, fnCall)
-          .catch(err => {
+      const results = await Promise.all(
+        functions.map(async ({ id, ...fnCall }) => {
+          const result = await runFunction(server, handlers, fnCall).catch(err => {
             if (Boom.isBoom(err)) {
               return { err, statusCode: err.statusCode, message: err.output.payload };
             }
-            return { err: 'Internal Server Error', statusCode: 500, message: 'See server logs for details.' };
+            return {
+              err: 'Internal Server Error',
+              statusCode: 500,
+              message: 'See server logs for details.',
+            };
           });
 
-        if (result == null) {
-          const { functionName } = fnCall;
-          return {
-            id,
-            result: {
-              err: `No result from '${functionName}'`,
-              statusCode: 500,
-              message: `Function '${functionName}' did not return anything`
-            }
-          };
-        }
+          if (result == null) {
+            const { functionName } = fnCall;
+            return {
+              id,
+              result: {
+                err: `No result from '${functionName}'`,
+                statusCode: 500,
+                message: `Function '${functionName}' did not return anything`,
+              },
+            };
+          }
 
-        return { id, result };
-      }));
+          return { id, result };
+        })
+      );
 
       return { results };
     },

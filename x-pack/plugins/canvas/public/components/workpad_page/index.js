@@ -9,6 +9,7 @@ import PropTypes from 'prop-types';
 import { compose, withHandlers, withProps } from 'recompose';
 import { getNodes } from '../../state/selectors/workpad';
 import { flatten } from '../../lib/aeroelastic/functional';
+import { multiply, rotateZ, translate } from '../../lib/aeroelastic/matrix';
 import { elementLayer, insertNodes, removeElements } from '../../state/actions/elements';
 import { commitAeroelastic } from './../../state/actions/canvas';
 import { isSelectedAnimation, makeUid, reduxToAero } from './aeroelastic_redux_helpers';
@@ -17,10 +18,22 @@ import { WorkpadPage as Component } from './workpad_page';
 import { selectElement } from './../../state/actions/transient';
 
 const mapStateToProps = (state, ownProps) => {
-  const elements = getNodes(state, ownProps.page.id);
+  const pageId = ownProps.page.id;
+  const pageIndex = state.persistent.workpad.pages.findIndex(p => p.id === pageId);
+  const elements = getNodes(state, pageId);
+  const reduxPageIndex = state.persistent.workpad.page;
+  console.log(
+    'mapStateToProps says: pageId, pageIndex, reduxPageIndex:',
+    pageId,
+    pageIndex,
+    reduxPageIndex
+  );
   return {
     isEditable: true,
     elements,
+    onCurrentPage: pageIndex === reduxPageIndex,
+    ownPropsPageId: pageIndex,
+    reduxPageId: reduxPageIndex,
     aeroelastic: state.transient.aeroelastic || reduxToAero(elements),
   };
 };
@@ -60,7 +73,15 @@ export const WorkpadPage = compose(
   ),
   withProps(isSelectedAnimation),
   withProps(props => {
-    const { aeroelastic, commitAeroelastic, handlers, elements } = props;
+    const {
+      aeroelastic,
+      commitAeroelastic,
+      handlers,
+      elements,
+      onCurrentPage,
+      ownPropsPageId,
+      reduxPageId,
+    } = props;
     const { shapes, selectedPrimaryShapes = [], cursor } = aeroelastic;
 
     const recurseGroupTree = shapeId => {
@@ -90,17 +111,32 @@ export const WorkpadPage = compose(
 
     const selectedElements = [];
     const elementLookup = new Map(elements.map(element => [element.id, element]));
-    const pageElements = shapes.map(shape => {
-      let element = null;
-      if (elementLookup.has(shape.id)) {
-        element = elementLookup.get(shape.id);
-        if (selectedElementIds.indexOf(shape.id) > -1) {
-          selectedElements.push({ ...element, id: shape.id });
-        }
-      }
-      // instead of just combining `element` with `shape`, we make property transfer explicit
-      return element ? { ...shape, filter: element.filter } : shape;
-    });
+    const pageElements = onCurrentPage
+      ? shapes.map(shape => {
+          let element = null;
+          if (elementLookup.has(shape.id)) {
+            element = elementLookup.get(shape.id);
+            if (selectedElementIds.indexOf(shape.id) > -1) {
+              selectedElements.push({ ...element, id: shape.id });
+            }
+          }
+          // instead of just combining `element` with `shape`, we make property transfer explicit
+          return element ? { ...shape, filter: element.filter } : shape;
+        })
+      : elements.map((element, i) => {
+          const position = element.position;
+          const width = position.width;
+          const a = width / 2;
+          const height = position.height;
+          const b = height / 2;
+          const cx = position.left + a;
+          const cy = position.top + b;
+          const z = i; // painter's algo: latest item goes to top
+          // multiplying the angle with -1 as `transform: matrix3d` uses a left-handed coordinate system
+          const angleRadians = (-position.angle / 180) * Math.PI;
+          const transformMatrix = multiply(translate(cx, cy, z), rotateZ(angleRadians));
+          return { id: element.id, width, height, transformMatrix };
+        });
 
     return {
       className: 'canvasPage--isActive',
@@ -110,7 +146,14 @@ export const WorkpadPage = compose(
       selectedElements,
       selectedPrimaryShapes,
       commit: (type, payload) =>
-        commitAeroelastic({ type, payload: { ...payload, uid: makeUid() } }),
+        onCurrentPage
+          ? commitAeroelastic({ type, payload: { ...payload, uid: makeUid() } })
+          : console.log('not my page') &&
+            console.log(
+              'trying to aero commit, ownPropsPageId, reduxPageId:',
+              ownPropsPageId,
+              reduxPageId
+            ),
       ...handlers,
     };
   }),
