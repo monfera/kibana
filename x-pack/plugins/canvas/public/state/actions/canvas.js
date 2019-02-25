@@ -9,3 +9,4 @@ import { createAction } from 'redux-actions';
 // actions to set the application state
 export const updateAeroelastic = createAction('updateAeroelastic');
 export const commitAeroelastic = createAction('commitAeroelastic');
+export const persistAeroelastic = createAction('persistAeroelastic');

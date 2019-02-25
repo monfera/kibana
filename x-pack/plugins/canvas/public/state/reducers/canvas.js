@@ -5,7 +5,7 @@
  */
 
 import { handleActions } from 'redux-actions';
-import { commitAeroelastic, updateAeroelastic } from '../actions/canvas';
+import { commitAeroelastic, persistAeroelastic, updateAeroelastic } from '../actions/canvas';
 import { nextScene } from '../../lib/aeroelastic/layout';
 import {
   isGroupId,
@@ -67,6 +67,55 @@ export const canvasReducer = handleActions(
       const pageElements = page.elements;
       const currentScene = previousAeroelastic;
       const aeroelastic = nextScene({ currentScene, primaryUpdate: payload });
+      const selectedShapes = aeroelastic.selectedPrimaryShapes;
+      const selected = selectedShapes[0];
+      const selectedElement = selectedShapes.length === 1 && !isGroupId(selected) ? selected : null;
+      const gestureEnd = aeroelastic.gestureEnd;
+
+      const shapeLookup =
+        gestureEnd &&
+        arrayToLookup(s => s.id, aeroelastic.shapes.filter(s => s.type !== 'annotation'));
+
+      const elements =
+        gestureEnd &&
+        pageElements.map(e => ({
+          ...e,
+          position: shapeToPosition(shapeLookup[e.id]),
+        }));
+
+      const persistent = gestureEnd
+        ? {
+            ...canvas.persistent,
+            workpad: {
+              ...workpad,
+              pages: pages.map((p, i) =>
+                i === pageId
+                  ? {
+                      ...p,
+                      elements,
+                    }
+                  : p
+              ),
+            },
+          }
+        : canvas.persistent;
+
+      return {
+        ...canvas,
+        persistent,
+        transient: {
+          ...canvas.transient,
+          selectedElement,
+          aeroelastic,
+        },
+      };
+    },
+    [persistAeroelastic]: (canvas, { payload: aeroelastic }) => {
+      const workpad = canvas.persistent.workpad;
+      const pages = workpad.pages;
+      const pageId = workpad.page;
+      const page = pages[pageId];
+      const pageElements = page.elements;
       const selectedShapes = aeroelastic.selectedPrimaryShapes;
       const selected = selectedShapes[0];
       const selectedElement = selectedShapes.length === 1 && !isGroupId(selected) ? selected : null;
