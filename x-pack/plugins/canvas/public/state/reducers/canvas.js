@@ -120,6 +120,7 @@ export const canvasReducer = handleActions(
       const selected = selectedShapes[0];
       const selectedElement = selectedShapes.length === 1 && !isGroupId(selected) ? selected : null;
       const gestureEnd = aeroelastic.gestureEnd;
+      if(!gestureEnd) console.log('not gestureend')
 
       const shapeLookup =
         gestureEnd &&

@@ -25,12 +25,10 @@ const mapStateToProps = (state, ownProps) => {
   const pageIndex = state.persistent.workpad.pages.findIndex(p => p.id === pageId);
   const elements = getNodes(state, pageId);
   const reduxPageIndex = state.persistent.workpad.page;
-  if (0)
+  if (1)
     console.log(
-      'mapStateToProps says: pageId, pageIndex, reduxPageIndex:',
-      pageId,
-      pageIndex,
-      reduxPageIndex
+      'mapstatetoprops says, there are so many elements',
+      state.persistent.workpad.pages[state.persistent.workpad.page].elements.length
     );
   return {
     isEditable: true,
