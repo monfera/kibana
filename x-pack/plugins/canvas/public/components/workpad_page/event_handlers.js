@@ -131,3 +131,11 @@ export const eventHandlers = {
   onWheel: props => e => handleWheel(props.commit, e, props.isEditable),
   resetHandler: () => () => resetHandler(),
 };
+
+export const eventHandlers2 = props => ({
+  onMouseDown: e => handleMouseDown(props.commit, e, props.isEditable),
+  onMouseMove: e => handleMouseMove(props.commit, e, props.isEditable),
+  onKeyDown: () => props.commit('keyboardEvent'), // dummy event
+  onWheel: e => handleWheel(props.commit, e, props.isEditable),
+  resetHandler: () => resetHandler(),
+});

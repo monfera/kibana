@@ -13,12 +13,13 @@ import { multiply, rotateZ, translate } from '../../lib/aeroelastic/matrix';
 import { elementLayer, insertNodes, removeElements } from '../../state/actions/elements';
 import { commitAeroelastic } from './../../state/actions/canvas';
 import { isSelectedAnimation, makeUid, reduxToAero } from './aeroelastic_redux_helpers';
-import { eventHandlers } from './event_handlers';
+import { eventHandlers, eventHandlers2 } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
 import { selectElement } from './../../state/actions/transient';
 import { nextAeroScene } from '../../state/reducers/canvas';
 import { nextScene } from '../../lib/aeroelastic/layout';
 import { persistAeroelastic } from '../../state/actions/canvas';
+import * as React from 'react';
 
 const mapStateToProps = (state, ownProps) => {
   const pageId = ownProps.page.id;
@@ -59,7 +60,147 @@ const mapDispatchToProps = dispatch => {
   };
 };
 
-export const WorkpadPage = compose(
+const aerator = props => {
+  const {
+    aeroelastic,
+    localAero,
+    setLocalAero,
+    commitAeroelastic,
+    persistAeroelastic,
+    handlers,
+    elements,
+    ownPropsPageIndex,
+    reduxPageIndex,
+  } = props;
+
+  const { shapes, selectedPrimaryShapes = [], cursor } = localAero;
+
+  const recurseGroupTree = shapeId => {
+    return [
+      shapeId,
+      ...flatten(
+        shapes
+          .filter(s => s.parent === shapeId && s.type !== 'annotation')
+          .map(s => s.id)
+          .map(recurseGroupTree)
+      ),
+    ];
+  };
+
+  const selectedPrimaryShapeObjects = selectedPrimaryShapes
+    .map(id => shapes.find(s => s.id === id))
+    .filter(shape => shape);
+
+  const selectedPersistentPrimaryShapes = flatten(
+    selectedPrimaryShapeObjects.map(shape =>
+      shape.subtype === 'adHocGroup'
+        ? shapes.filter(s => s.parent === shape.id && s.type !== 'annotation').map(s => s.id)
+        : [shape.id]
+    )
+  );
+  const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree));
+  const selectedElements = [];
+  const elementLookup = new Map(elements.map(element => [element.id, element]));
+  const pageElements =
+    true && true
+      ? shapes.map(shape => {
+          let element = null;
+          if (elementLookup.has(shape.id)) {
+            element = elementLookup.get(shape.id);
+            if (selectedElementIds.indexOf(shape.id) > -1) {
+              selectedElements.push({ ...element, id: shape.id });
+            }
+          }
+          // instead of just combining `element` with `shape`, we make property transfer explicit
+          return element ? { ...shape, filter: element.filter } : shape;
+        })
+      : elements.map((element, i) => {
+          const position = element.position;
+          const width = position.width;
+          const a = width / 2;
+          const height = position.height;
+          const b = height / 2;
+          const cx = position.left + a;
+          const cy = position.top + b;
+          const z = i; // painter's algo: latest item goes to top
+          // multiplying the angle with -1 as `transform: matrix3d` uses a left-handed coordinate system
+          const angleRadians = (-position.angle / 180) * Math.PI;
+          const transformMatrix = multiply(translate(cx, cy, z), rotateZ(angleRadians));
+          return { id: element.id, width, height, transformMatrix };
+        });
+
+  return {
+    className: 'canvasPage--isActive',
+    elements: pageElements,
+    cursor,
+    selectedElementIds,
+    selectedElements,
+    selectedPrimaryShapes,
+    commit: (type, payload) => {
+      if (reduxPageIndex === ownPropsPageIndex) {
+        setLocalAero(localAero => {
+          const aeroAction = { type, payload: { ...payload, uid: makeUid() } };
+          const newScene = nextScene({
+            currentScene: localAero,
+            primaryUpdate: aeroAction,
+          });
+          if (newScene.gestureEnd) {
+            persistAeroelastic(newScene);
+          }
+          return newScene;
+        });
+      }
+    },
+    ...handlers,
+  };
+};
+
+const groupigator = {
+  groupElements: ({ commit }) => () =>
+    commit('actionEvent', {
+      event: 'group',
+    }),
+  ungroupElements: ({ commit }) => () =>
+    commit('actionEvent', {
+      event: 'ungroup',
+    }),
+};
+
+const PlainWorkpadPage = class ElementWrapper extends React.Component {
+  static propTypes = {};
+
+  state = {
+    localAero: this.props.aeroelastic,
+    // handlers: null,
+  };
+
+  componentDidMount() {
+    // this.setState({ handlers: eventHandlers2 });
+  }
+
+  render() {
+    const result1 = {
+      ...this.props,
+      ...aerator({
+        ...this.props,
+        localAero: this.state.localAero,
+        setLocalAero: valueFun => this.setState({ localAero: valueFun(this.state.localAero) }),
+      }),
+    };
+    const result = {
+      ...result1,
+      ...eventHandlers2(result1),
+    };
+    return <Component {...result} />;
+  }
+};
+
+export const WorkpadPage = connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(PlainWorkpadPage);
+
+export const WorkpadPageOld = compose(
   connect(
     mapStateToProps,
     mapDispatchToProps,
@@ -75,110 +216,8 @@ export const WorkpadPage = compose(
   ),
   withState('localAero', 'setLocalAero', ({ aeroelastic }) => aeroelastic),
   withProps(isSelectedAnimation),
-  withProps(props => {
-    const {
-      aeroelastic,
-      localAero,
-      setLocalAero,
-      commitAeroelastic,
-      persistAeroelastic,
-      handlers,
-      elements,
-      ownPropsPageIndex,
-      reduxPageIndex,
-    } = props;
-
-    const { shapes, selectedPrimaryShapes = [], cursor } = localAero;
-
-    const recurseGroupTree = shapeId => {
-      return [
-        shapeId,
-        ...flatten(
-          shapes
-            .filter(s => s.parent === shapeId && s.type !== 'annotation')
-            .map(s => s.id)
-            .map(recurseGroupTree)
-        ),
-      ];
-    };
-
-    const selectedPrimaryShapeObjects = selectedPrimaryShapes
-      .map(id => shapes.find(s => s.id === id))
-      .filter(shape => shape);
-
-    const selectedPersistentPrimaryShapes = flatten(
-      selectedPrimaryShapeObjects.map(shape =>
-        shape.subtype === 'adHocGroup'
-          ? shapes.filter(s => s.parent === shape.id && s.type !== 'annotation').map(s => s.id)
-          : [shape.id]
-      )
-    );
-    const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree));
-    const selectedElements = [];
-    const elementLookup = new Map(elements.map(element => [element.id, element]));
-    const pageElements =
-      true && true
-        ? shapes.map(shape => {
-            let element = null;
-            if (elementLookup.has(shape.id)) {
-              element = elementLookup.get(shape.id);
-              if (selectedElementIds.indexOf(shape.id) > -1) {
-                selectedElements.push({ ...element, id: shape.id });
-              }
-            }
-            // instead of just combining `element` with `shape`, we make property transfer explicit
-            return element ? { ...shape, filter: element.filter } : shape;
-          })
-        : elements.map((element, i) => {
-            const position = element.position;
-            const width = position.width;
-            const a = width / 2;
-            const height = position.height;
-            const b = height / 2;
-            const cx = position.left + a;
-            const cy = position.top + b;
-            const z = i; // painter's algo: latest item goes to top
-            // multiplying the angle with -1 as `transform: matrix3d` uses a left-handed coordinate system
-            const angleRadians = (-position.angle / 180) * Math.PI;
-            const transformMatrix = multiply(translate(cx, cy, z), rotateZ(angleRadians));
-            return { id: element.id, width, height, transformMatrix };
-          });
-
-    return {
-      className: 'canvasPage--isActive',
-      elements: pageElements,
-      cursor,
-      selectedElementIds,
-      selectedElements,
-      selectedPrimaryShapes,
-      commit: (type, payload) => {
-        if (reduxPageIndex === ownPropsPageIndex) {
-          setLocalAero(localAero => {
-            const aeroAction = { type, payload: { ...payload, uid: makeUid() } };
-            const newScene = nextScene({
-              currentScene: localAero,
-              primaryUpdate: aeroAction,
-            });
-            if (newScene.gestureEnd) {
-              persistAeroelastic(newScene);
-            }
-            return newScene;
-          });
-        }
-      },
-      ...handlers,
-    };
-  }),
-  withHandlers({
-    groupElements: ({ commit }) => () =>
-      commit('actionEvent', {
-        event: 'group',
-      }),
-    ungroupElements: ({ commit }) => () =>
-      commit('actionEvent', {
-        event: 'ungroup',
-      }),
-  }),
+  withProps(aerator),
+  withHandlers(groupigator),
   withHandlers(eventHandlers)
 )(Component);
 
