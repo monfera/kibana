@@ -73,8 +73,8 @@ export const WorkpadPage = compose(
 */
     }
   ),
-  withProps(isSelectedAnimation),
   withState('localAero', 'setLocalAero', ({ aeroelastic }) => aeroelastic),
+  withProps(isSelectedAnimation),
   withProps(props => {
     const {
       aeroelastic,
