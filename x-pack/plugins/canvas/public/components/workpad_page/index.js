@@ -34,6 +34,7 @@ const mapStateToProps = (state, ownProps) => {
   return {
     isEditable: true,
     elements,
+    aeroelasticFlags: state.transient.aeroelasticFlags,
     ownPropsPageIndex: pageIndex,
     reduxPageIndex: reduxPageIndex,
     aeroelastic: state.transient.aeroelastic || reduxToAero(elements),
@@ -172,7 +173,6 @@ const PlainWorkpadPage = class ElementWrapper extends React.Component {
   static getDerivedStateFromProps(nextProps, prevState) {
     const { aeroelasticFlags, elements } = nextProps;
     const { localAero: previousLocalAero, reduxActionCount } = prevState;
-if(aeroelasticFlags) debugger
     const newReduxActionCount = aeroelasticFlags ? aeroelasticFlags.length : 0;
     const mustUpdateLocalStateFromRedux =
       !aeroelasticFlags || newReduxActionCount > reduxActionCount;
