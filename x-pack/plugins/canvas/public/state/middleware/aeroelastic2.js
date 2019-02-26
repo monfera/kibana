@@ -4,7 +4,7 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import { commitAeroelastic, updateAeroelastic } from '../actions/canvas';
+import {commitAeroelastic, flagAeroelastic, persistAeroelastic, updateAeroelastic} from '../actions/canvas';
 import { makeUid } from '../../components/workpad_page/aeroelastic_redux_helpers';
 
 export const aeroelastic = ({ dispatch }) => {
@@ -16,12 +16,14 @@ export const aeroelastic = ({ dispatch }) => {
     // move transient structures (eg. mid-drag info) into component state
     // to eliminate the need for any middleware or update here
     if (
+      action.type !== flagAeroelastic.toString() &&
       action.type !== updateAeroelastic.toString() &&
-      action.type !== commitAeroelastic.toString()
+      action.type !== commitAeroelastic.toString() &&
+      action.type !== persistAeroelastic.toString()
     ) {
       // fixme make layout state update work without actions
       // (this'll automatically happen once we remove actions from aero)
-      dispatch(updateAeroelastic({ type: 'keyboardEvent', payload: { uid: makeUid() } }));
+      dispatch(flagAeroelastic(action.type));
     }
   };
 };

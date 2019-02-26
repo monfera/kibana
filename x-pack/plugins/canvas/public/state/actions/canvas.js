@@ -10,3 +10,4 @@ import { createAction } from 'redux-actions';
 export const updateAeroelastic = createAction('updateAeroelastic');
 export const commitAeroelastic = createAction('commitAeroelastic');
 export const persistAeroelastic = createAction('persistAeroelastic');
+export const flagAeroelastic = createAction('flagAeroelastic');

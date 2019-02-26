@@ -16,7 +16,7 @@ import { isSelectedAnimation, makeUid, reduxToAero } from './aeroelastic_redux_h
 import { eventHandlers, eventHandlers2 } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
 import { selectElement } from './../../state/actions/transient';
-import { nextAeroScene } from '../../state/reducers/canvas';
+import { nextAeroScene, updateAeroelastic2 } from '../../state/reducers/canvas';
 import { nextScene } from '../../lib/aeroelastic/layout';
 import { persistAeroelastic } from '../../state/actions/canvas';
 import * as React from 'react';
@@ -170,18 +170,28 @@ const PlainWorkpadPage = class ElementWrapper extends React.Component {
   static propTypes = {};
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    const { aeroelastic: nextAeroelastic, elements: nextElements } = nextProps;
-    const { localAero: previousLocalAero } = prevState;
+    const { aeroelasticFlags, elements } = nextProps;
+    const { localAero: previousLocalAero, reduxActionCount } = prevState;
+if(aeroelasticFlags) debugger
+    const newReduxActionCount = aeroelasticFlags ? aeroelasticFlags.length : 0;
+    const mustUpdateLocalStateFromRedux =
+      !aeroelasticFlags || newReduxActionCount > reduxActionCount;
 
-    if()
+    console.log('newReduxActionCount', newReduxActionCount);
 
-    return {
-      localAero: nextAeroelastic,
-    };
+    if (mustUpdateLocalStateFromRedux) {
+      return {
+        localAero: updateAeroelastic2(previousLocalAero, elements, { type: 'keyboardEvent' }),
+        reduxActionCount: newReduxActionCount,
+      };
+    } else {
+      return null;
+    }
   }
 
   state = {
     localAero: this.props.aeroelastic,
+    reduxActionCount: 0,
     // handlers: null,
   };
 
