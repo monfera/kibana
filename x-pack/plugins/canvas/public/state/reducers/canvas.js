@@ -6,23 +6,23 @@
 
 import { handleActions } from 'redux-actions';
 import {
-  commitAeroelastic,
+  /*commitAeroelastic,*/
   flagAeroelastic,
   persistAeroelastic,
-  updateAeroelastic,
+  /*updateAeroelastic,*/
 } from '../actions/canvas';
 import { nextScene } from '../../lib/aeroelastic/layout';
 import {
   isGroupId,
   makeUid,
-  reduxToAero,
+  /*reduxToAero,*/
   reduxToAeroShapes,
   shapeToGroupNode,
   shapeToPosition,
 } from '../../components/workpad_page/aeroelastic_redux_helpers';
 import { arrayToLookup } from '../../lib/aeroelastic/functional';
 
-export const updateAeroelastic2 = (previousAeroelastic, pageElements, primaryUpdate) => {
+export const updateAeroelastic2 = (previousAeroelastic, pageElements) => {
   const canvasAdHocGroups = previousAeroelastic.shapes
     .filter(s => s.subtype === 'adHocGroup')
     .map(shapeToGroupNode);
@@ -49,14 +49,14 @@ export const updateAeroelastic2 = (previousAeroelastic, pageElements, primaryUpd
 
 export const canvasReducer = handleActions(
   {
-    [updateAeroelastic]: (canvas, { payload }) => {
+    /*    [updateAeroelastic]: (canvas, { payload }) => {
       const workpad = canvas.persistent.workpad;
       const pages = workpad.pages;
       const pageId = workpad.page;
       const page = pages[pageId];
       const previousAeroelastic = canvas.transient.aeroelastic || reduxToAero([]);
       const pageElements = page.elements;
-      const aeroelastic = updateAeroelastic2(previousAeroelastic, pageElements, payload);
+      const aeroelastic = updateAeroelastic2(previousAeroelastic, pageElements);
       const selectedShapes = aeroelastic.selectedPrimaryShapes;
       const selected = selectedShapes[0];
       const selectedElement = selectedShapes.length === 1 && !isGroupId(selected) ? selected : null;
@@ -69,7 +69,7 @@ export const canvasReducer = handleActions(
           aeroelastic,
         },
       };
-    },
+    },*/
     [flagAeroelastic]: (canvas, { payload }) => {
       return {
         ...canvas,
@@ -79,7 +79,7 @@ export const canvasReducer = handleActions(
         },
       };
     },
-    [commitAeroelastic]: (canvas, { payload }) => {
+    /*    [commitAeroelastic]: (canvas, { payload }) => {
       const workpad = canvas.persistent.workpad;
       const pages = workpad.pages;
       const pageId = workpad.page;
@@ -130,7 +130,7 @@ export const canvasReducer = handleActions(
           aeroelastic,
         },
       };
-    },
+    },*/
     [persistAeroelastic]: (canvas, { payload: aeroelastic }) => {
       const workpad = canvas.persistent.workpad;
       const pages = workpad.pages;
@@ -141,7 +141,6 @@ export const canvasReducer = handleActions(
       const selected = selectedShapes[0];
       const selectedElement = selectedShapes.length === 1 && !isGroupId(selected) ? selected : null;
       const gestureEnd = aeroelastic.gestureEnd;
-      if (!gestureEnd) console.log('not gestureend');
 
       const shapeLookup =
         gestureEnd &&

@@ -4,8 +4,10 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import {commitAeroelastic, flagAeroelastic, persistAeroelastic, updateAeroelastic} from '../actions/canvas';
-import { makeUid } from '../../components/workpad_page/aeroelastic_redux_helpers';
+import {
+  /*commitAeroelastic, */ flagAeroelastic,
+  persistAeroelastic /*, updateAeroelastic*/,
+} from '../actions/canvas';
 
 export const aeroelastic = ({ dispatch }) => {
   // When aeroelastic updates an element, we need to dispatch actions to notify redux of the changes
@@ -17,8 +19,10 @@ export const aeroelastic = ({ dispatch }) => {
     // to eliminate the need for any middleware or update here
     if (
       action.type !== flagAeroelastic.toString() &&
+/*
       action.type !== updateAeroelastic.toString() &&
       action.type !== commitAeroelastic.toString() &&
+*/
       action.type !== persistAeroelastic.toString()
     ) {
       // fixme make layout state update work without actions

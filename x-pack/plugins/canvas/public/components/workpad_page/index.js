@@ -11,7 +11,6 @@ import { getNodes } from '../../state/selectors/workpad';
 import { flatten } from '../../lib/aeroelastic/functional';
 import { multiply, rotateZ, translate } from '../../lib/aeroelastic/matrix';
 import { elementLayer, insertNodes, removeElements } from '../../state/actions/elements';
-import { commitAeroelastic } from './../../state/actions/canvas';
 import { isSelectedAnimation, makeUid, reduxToAero } from './aeroelastic_redux_helpers';
 import { eventHandlers, eventHandlers2 } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
@@ -43,7 +42,6 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch => {
   return {
-    commitAeroelastic: aeroAction => dispatch(commitAeroelastic(aeroAction)),
     persistAeroelastic: scene => dispatch(persistAeroelastic(scene)),
     insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
     removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
@@ -63,10 +61,8 @@ const mapDispatchToProps = dispatch => {
 
 const aerator = props => {
   const {
-    aeroelastic,
     localAero,
     setLocalAero,
-    commitAeroelastic,
     persistAeroelastic,
     handlers,
     elements,
@@ -181,7 +177,7 @@ const PlainWorkpadPage = class ElementWrapper extends React.Component {
 
     if (mustUpdateLocalStateFromRedux) {
       return {
-        localAero: updateAeroelastic2(previousLocalAero, elements, { type: 'keyboardEvent' }),
+        localAero: updateAeroelastic2(previousLocalAero, elements),
         reduxActionCount: newReduxActionCount,
       };
     } else {
