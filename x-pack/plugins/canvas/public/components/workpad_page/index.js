@@ -169,6 +169,17 @@ const groupigator = {
 const PlainWorkpadPage = class ElementWrapper extends React.Component {
   static propTypes = {};
 
+  static getDerivedStateFromProps(nextProps, prevState) {
+    const { aeroelastic: nextAeroelastic, elements: nextElements } = nextProps;
+    const { localAero: previousLocalAero } = prevState;
+
+    if()
+
+    return {
+      localAero: nextAeroelastic,
+    };
+  }
+
   state = {
     localAero: this.props.aeroelastic,
     // handlers: null,
