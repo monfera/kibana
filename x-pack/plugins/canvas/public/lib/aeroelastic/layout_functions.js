@@ -442,18 +442,6 @@ const getUpstreams = (shapes, shape) =>
 const snappedA = shape => shape.a + (shape.snapResizeVector ? shape.snapResizeVector[0] : 0);
 const snappedB = shape => shape.b + (shape.snapResizeVector ? shape.snapResizeVector[1] : 0);
 
-const cascadeUnsnappedTransforms = (shapes, shape) => {
-  if (!shape.parent) {
-    return shape.localTransformMatrix;
-  } // boost for common case of toplevel shape
-  const upstreams = getUpstreams(shapes, shape);
-  const upstreamTransforms = upstreams.map(s => {
-    return s.localTransformMatrix;
-  });
-  const cascadedTransforms = reduceTransforms(upstreamTransforms);
-  return cascadedTransforms;
-};
-
 const cascadeTransforms = (shapes, shape) => {
   const cascade = s =>
     s.snapDeltaMatrix
@@ -482,22 +470,37 @@ export const cascadeProperties = shapes => shapes.map(shapeCascadeProperties(sha
 const alignmentGuides = (config, shapes, guidedShapes, draggedShape) => {
   const result = {};
   let counter = 0;
+  const sArrayMap = {}; // filled for each `s` below
   const extremeHorizontal = resizeMultiplierHorizontal[draggedShape.horizontalPosition];
   const extremeVertical = resizeMultiplierVertical[draggedShape.verticalPosition];
   // todo replace for loops with [].map calls; DRY it up, break out parts; several of which to move to geometry.js
   // todo switch to informative variable names
+  const referenceShapes = shapes.filter(
+    s => s.type !== 'annotation' && (config.intraGroupManipulation || !s.parent)
+  );
+  referenceShapes.forEach(s => {
+    sArrayMap[s.id] = [];
+    for (let m = -1; m < 2; m++) {
+      for (let n = -1; n < 2; n++) {
+        if ((m && !n) || (!m && n)) {
+          continue;
+        } // don't worry about midpoints of the edges, only the center
+        sArrayMap[s.id][(m + 1) * 3 + (n + 1)] = landmarkPoint(
+          s.a,
+          s.b,
+          s.localTransformMatrix,
+          m,
+          n
+        );
+      }
+    }
+  });
   for (const d of guidedShapes) {
     if (d.type === 'annotation') {
       continue;
     } // fixme avoid this by not letting annotations get in here
     // key points of the dragged shape bounding box
-    for (const referenceShape of shapes) {
-      if (referenceShape.type === 'annotation') {
-        continue;
-      } // fixme avoid this by not letting annotations get in here
-      if (!config.intraGroupManipulation && referenceShape.parent) {
-        continue;
-      } // for now, don't snap to grouped elements fixme could snap, but make sure transform is gloabl
+    for (const referenceShape of referenceShapes) {
       if (
         config.intraGroupSnapOnly &&
         d.parent !== referenceShape.parent &&
@@ -532,13 +535,13 @@ const alignmentGuides = (config, shapes, guidedShapes, draggedShape) => {
           ) {
             continue;
           }
-          const D = landmarkPoint(d.a, d.b, cascadeUnsnappedTransforms(shapes, d), k, l);
+          const D = landmarkPoint(d.a, d.b, d.localTransformMatrix, k, l);
           for (let m = -1; m < 2; m++) {
             for (let n = -1; n < 2; n++) {
               if ((m && !n) || (!m && n)) {
                 continue;
               } // don't worry about midpoints of the edges, only the center
-              const S = landmarkPoint(s.a, s.b, cascadeUnsnappedTransforms(shapes, s), m, n);
+              const S = sArrayMap[s.id][(m + 1) * 3 + (n + 1)];
               for (let dim = 0; dim < 2; dim++) {
                 const orthogonalDimension = 1 - dim;
                 const dd = D[dim];
