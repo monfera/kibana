@@ -4,7 +4,7 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import { invert, mvMultiply, normalize, ORIGIN } from './matrix';
+import { invert, mvMultiplyAndNormalize, ORIGIN } from './matrix';
 
 /**
  * Pure calculations with geometry awareness - a set of rectangles with known size (a, b) and projection (transform matrix)
@@ -40,9 +40,9 @@ const shapesAtPoint = (shapes, x, y) =>
 
     // Determine z (depth) by composing the x, y vector out of local unit x and unit y vectors; by knowing the
     // scalar multipliers for the unit x and unit y vectors, we can determine z from their respective 'slope' (gradient)
-    const centerPoint = normalize(mvMultiply(transformMatrix, ORIGIN));
-    const rightPoint = normalize(mvMultiply(transformMatrix, [1, 0, 0, 1]));
-    const upPoint = normalize(mvMultiply(transformMatrix, [0, 1, 0, 1]));
+    const centerPoint = mvMultiplyAndNormalize(transformMatrix, ORIGIN);
+    const rightPoint = mvMultiplyAndNormalize(transformMatrix, [1, 0, 0, 1]);
+    const upPoint = mvMultiplyAndNormalize(transformMatrix, [0, 1, 0, 1]);
     const x0 = rightPoint[0] - centerPoint[0];
     const y0 = rightPoint[1] - centerPoint[1];
     const x1 = upPoint[0] - centerPoint[0];
@@ -59,7 +59,7 @@ const shapesAtPoint = (shapes, x, y) =>
     // rather than using matrix inversion. Bound to be cheaper.
 
     const inverseProjection = invert(transformMatrix);
-    const intersection = normalize(mvMultiply(inverseProjection, [x, y, z, 1]));
+    const intersection = mvMultiplyAndNormalize(inverseProjection, [x, y, z, 1]);
     const [sx, sy] = intersection;
 
     // z is needed downstream, to tell which one is the closest shape hit by an x, y ray (shapes can be tilted in z)
@@ -82,7 +82,8 @@ export const shapesAt = (shapes, { x, y }) =>
     .sort((shape1, shape2) => shape2.z - shape1.z || shape2.index - shape1.index) // stable sort: DOM insertion order!!!
     .map(shape => shape.shape); // decreasing order, ie. from front (closest to viewer) to back
 
-const getExtremum = (transformMatrix, a, b) => normalize(mvMultiply(transformMatrix, [a, b, 0, 1]));
+const getExtremum = (transformMatrix, a, b) =>
+  mvMultiplyAndNormalize(transformMatrix, [a, b, 0, 1]);
 
 export const landmarkPoint = (a, b, transformMatrix, k, l) =>
   getExtremum(transformMatrix, k * a, l * b);

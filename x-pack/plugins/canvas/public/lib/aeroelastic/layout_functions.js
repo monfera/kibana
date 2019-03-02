@@ -13,7 +13,7 @@ import {
   matrixToAngle,
   multiply,
   mvMultiply,
-  normalize,
+  mvMultiplyAndNormalize,
   ORIGIN,
   reduceTransforms,
   rotateZ,
@@ -868,9 +868,12 @@ const getAABB = shapes =>
   shapes.reduce(
     (prevOuter, shape) => {
       const shapeBounds = cornerVertices.reduce((prevInner, xyVertex) => {
-        const cornerPoint = normalize(
-          mvMultiply(shape.transformMatrix, [shape.a * xyVertex[0], shape.b * xyVertex[1], 0, 1])
-        );
+        const cornerPoint = mvMultiplyAndNormalize(shape.transformMatrix, [
+          shape.a * xyVertex[0],
+          shape.b * xyVertex[1],
+          0,
+          1,
+        ]);
         return extend(prevInner, cornerPoint, cornerPoint);
       }, prevOuter);
       return extend(prevOuter, ...shapeBounds);
