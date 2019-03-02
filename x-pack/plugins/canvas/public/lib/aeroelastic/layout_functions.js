@@ -468,7 +468,7 @@ const shapeCascadeProperties = shapes => shape => {
 export const cascadeProperties = shapes => shapes.map(shapeCascadeProperties(shapes));
 
 const alignmentGuides = (config, shapes, guidedShapes, draggedShape) => {
-  const result = {};
+  const result = [];
   let counter = 0;
   const sArrayMap = {}; // filled for each `s` below
   const extremeHorizontal = resizeMultiplierHorizontal[draggedShape.horizontalPosition];
@@ -546,7 +546,7 @@ const alignmentGuides = (config, shapes, guidedShapes, draggedShape) => {
                 const orthogonalDimension = 1 - dim;
                 const dd = D[dim];
                 const ss = S[dim];
-                const key = k + '|' + l + '|' + dim;
+                const key = 2 * ((k + 1) * 3 + (l + 1)) + dim;
                 const signedDistance = dd - ss;
                 const distance = Math.abs(signedDistance);
                 const currentClosest = result[key];
@@ -588,7 +588,7 @@ const alignmentGuides = (config, shapes, guidedShapes, draggedShape) => {
       }
     }
   }
-  return Object.values(result);
+  return result.filter(identity);
 };
 
 const isHorizontal = constraint => constraint.dimension === 'horizontal';
