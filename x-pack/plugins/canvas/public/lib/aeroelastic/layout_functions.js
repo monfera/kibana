@@ -13,7 +13,6 @@ import {
   matrixToAngle,
   multiply,
   mvMultiply,
-  mvMultiplyAndNormalize,
   ORIGIN,
   reduceTransforms,
   rotateZ,
@@ -40,6 +39,8 @@ import {
   removeDuplicates,
   shallowEqual,
 } from './functional';
+
+import { mvMultiplyAndNormalize } from './multiply_normalize';
 
 const resizeVertexTuples = [
   [-1, -1, 315],

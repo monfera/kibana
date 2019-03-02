@@ -4,7 +4,8 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import { invert, mvMultiplyAndNormalize, ORIGIN } from './matrix';
+import { invert, ORIGIN } from './matrix';
+import { mvMultiplyAndNormalize } from './multiply_normalize';
 
 /**
  * Pure calculations with geometry awareness - a set of rectangles with known size (a, b) and projection (transform matrix)
