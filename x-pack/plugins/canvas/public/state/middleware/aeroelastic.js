@@ -81,7 +81,7 @@ const pageChangerActions = [duplicatePage.toString(), addPage.toString(), setPag
  * For example, `rotation_handle`, `border_resize_handle` and `border_connection` are modeled as shapes by the layout
  * library, simply for generality.
  */
-const elementToShape = (element, i) => {
+export const elementToShape = (element, i) => {
   const position = element.position;
   const a = position.width / 2;
   const b = position.height / 2;
