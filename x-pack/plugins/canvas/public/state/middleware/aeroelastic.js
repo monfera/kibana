@@ -6,175 +6,40 @@
 
 import { shallowEqual } from 'recompose';
 import { aeroelastic as aero } from '../../lib/aeroelastic_kibana';
-import { matrixToAngle } from '../../lib/aeroelastic/matrix';
-import { arrayToMap, identity } from '../../lib/aeroelastic/functional';
 import {
   addElement,
-  removeElements,
-  insertNodes,
   elementLayer,
-  setMultiplePositions,
   fetchAllRenderables,
+  insertNodes,
+  removeElements,
+  setMultiplePositions,
 } from '../actions/elements';
 import { restoreHistory } from '../actions/history';
 import { selectElement } from '../actions/transient';
-import { addPage, removePage, duplicatePage, setPage } from '../actions/pages';
+import { addPage, duplicatePage, removePage, setPage } from '../actions/pages';
 import { appReady } from '../actions/app';
 import { setWorkpad } from '../actions/workpad';
-import { getNodes, getPages, getSelectedPage, getSelectedElement } from '../selectors/workpad';
+import {
+  getNodes,
+  getNodesForPage,
+  getPages,
+  getSelectedElement,
+  getSelectedPage,
+} from '../selectors/workpad';
+import {
+  globalPositionUpdates,
+  id,
+  idDuplicateCheck,
+  isGroupId,
+  shapesForNodes,
+  shapeToElement,
+} from '../../lib/aeroelastic/integration_utils';
 
-const aeroelasticConfiguration = {
-  getAdHocChildAnnotationName: 'adHocChildAnnotation',
-  adHocGroupName: 'adHocGroup',
-  alignmentGuideName: 'alignmentGuide',
-  atopZ: 1000,
-  depthSelect: true,
-  devColor: 'magenta',
-  groupName: 'group',
-  groupResize: true,
-  guideDistance: 3,
-  hoverAnnotationName: 'hoverAnnotation',
-  hoverLift: 100,
-  intraGroupManipulation: false,
-  intraGroupSnapOnly: false,
-  minimumElementSize: 2,
-  persistentGroupName: 'persistentGroup',
-  resizeAnnotationConnectorOffset: 0,
-  resizeAnnotationOffset: 0,
-  resizeAnnotationOffsetZ: 0.1, // causes resize markers to be slightly above the shape plane
-  resizeAnnotationSize: 10,
-  resizeConnectorName: 'resizeConnector',
-  resizeHandleName: 'resizeHandle',
-  rotateAnnotationOffset: 12,
-  rotateSnapInPixels: 10,
-  rotationEpsilon: 0.001,
-  rotationHandleName: 'rotationHandle',
-  rotationHandleSize: 14,
-  rotationTooltipName: 'rotationTooltip',
-  shortcuts: false,
-  singleSelect: false,
-  snapConstraint: true,
-  tooltipZ: 1100,
-};
-
-const isGroupId = id => id.startsWith(aeroelasticConfiguration.groupName);
-
-const pageChangerActions = [duplicatePage.toString(), addPage.toString(), setPage.toString()];
-
-/**
- * elementToShape
- *
- * converts a `kibana-canvas` element to an `aeroelastic` shape.
- *
- * Shape: the layout algorithms need to deal with objects through their geometric properties, excluding other aspects,
- * such as what's inside the element, eg. image or scatter plot. This representation is, at its core, a transform matrix
- * that establishes a new local coordinate system https://drafts.csswg.org/css-transforms/#local-coordinate-system plus a
- * size descriptor. There are two versions of the transform matrix:
- *   - `transformMatrix` is analogous to the SVG https://drafts.csswg.org/css-transforms/#current-transformation-matrix
- *   - `localTransformMatrix` is analogous to the SVG https://drafts.csswg.org/css-transforms/#transformation-matrix
- *
- * Element: it also needs to represent the geometry, primarily because of the need to persist it in `redux` and on the
- * server, and to accept such data from the server. The redux and server representations will need to change as more general
- * projections such as 3D are added. The element also needs to maintain its content, such as an image or a plot.
- *
- * While all elements on the current page also exist as shapes, there are shapes that are not elements: annotations.
- * For example, `rotation_handle`, `border_resize_handle` and `border_connection` are modeled as shapes by the layout
- * library, simply for generality.
- */
-const elementToShape = (element, i) => {
-  const position = element.position;
-  const a = position.width / 2;
-  const b = position.height / 2;
-  const cx = position.left + a;
-  const cy = position.top + b;
-  const z = i; // painter's algo: latest item goes to top
-  // multiplying the angle with -1 as `transform: matrix3d` uses a left-handed coordinate system
-  const angleRadians = (-position.angle / 180) * Math.PI;
-  const transformMatrix = aero.matrix.multiply(
-    aero.matrix.translate(cx, cy, z),
-    aero.matrix.rotateZ(angleRadians)
-  );
-  const isGroup = isGroupId(element.id);
-  const parent = (element.position && element.position.parent) || null; // reserved for hierarchical (tree shaped) grouping
-  return {
-    id: element.id,
-    type: isGroup ? 'group' : 'rectangleElement',
-    subtype: isGroup ? 'persistentGroup' : '',
-    parent,
-    transformMatrix,
-    a, // we currently specify half-width, half-height as it leads to
-    b, // more regular math (like ellipsis radii rather than diameters)
-  };
-};
-
-const shapeToElement = shape => {
-  return {
-    left: shape.transformMatrix[12] - shape.a,
-    top: shape.transformMatrix[13] - shape.b,
-    width: shape.a * 2,
-    height: shape.b * 2,
-    angle: Math.round((matrixToAngle(shape.transformMatrix) * 180) / Math.PI),
-    parent: shape.parent || null,
-    type: shape.type === 'group' ? 'group' : 'element',
-  };
-};
-
-const updateGlobalPositions = (setMultiplePositions, { shapes, gestureEnd }, unsortedElements) => {
-  const ascending = (a, b) => (a.id < b.id ? -1 : 1);
-  const relevant = s => s.type !== 'annotation' && s.subtype !== 'adHocGroup';
-  const elements = unsortedElements.filter(relevant).sort(ascending);
-  const repositionings = shapes
-    .filter(relevant)
-    .sort(ascending)
-    .map((shape, i) => {
-      const element = elements[i];
-      const elemPos = element && element.position;
-      if (elemPos && gestureEnd) {
-        // get existing position information from element
-        const oldProps = {
-          left: elemPos.left,
-          top: elemPos.top,
-          width: elemPos.width,
-          height: elemPos.height,
-          angle: Math.round(elemPos.angle),
-          type: elemPos.type,
-          parent: elemPos.parent || null,
-        };
-
-        // cast shape into element-like object to compare
-        const newProps = shapeToElement(shape);
-
-        if (1 / newProps.angle === -Infinity) {
-          newProps.angle = 0;
-        } // recompose.shallowEqual discerns between 0 and -0
-
-        return shallowEqual(oldProps, newProps)
-          ? null
-          : { position: newProps, elementId: shape.id };
-      }
-    })
-    .filter(identity);
+const updateGlobalPositions = (setMultiplePositions, scene, unsortedElements) => {
+  const repositionings = globalPositionUpdates(setMultiplePositions, scene, unsortedElements);
   if (repositionings.length) {
     setMultiplePositions(repositionings);
   }
-};
-
-const id = element => element.id;
-// check for duplication
-const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
-const idDuplicateCheck = groups => {
-  if (deduped(groups.map(g => g.id)).length !== groups.length) {
-    throw new Error('Duplicate element encountered');
-  }
-};
-
-const missingParentCheck = groups => {
-  const idMap = arrayToMap(groups.map(g => g.id));
-  groups.forEach(g => {
-    if (g.parent && !idMap[g.parent]) {
-      g.parent = null;
-    }
-  });
 };
 
 export const aeroelastic = ({ dispatch, getState }) => {
@@ -258,36 +123,25 @@ export const aeroelastic = ({ dispatch, getState }) => {
     }
   };
 
-  const createStore = page =>
-    aero.createStore(
-      {
-        primaryUpdate: null,
-        currentScene: { shapes: [], configuration: aeroelasticConfiguration },
-      },
-      onChangeCallback,
-      page
-    );
+  const setStore = page => {
+    aero.setStore(shapesForNodes(getNodesForPage(page)), onChangeCallback);
+  };
 
   const populateWithElements = page => {
-    const newShapes = getNodes(getState(), page)
-      .map(elementToShape)
-      // filtering to eliminate residual element of a possible group that had been deleted in Redux
-      .filter((d, i, a) => !isGroupId(d.id) || a.find(s => s.parent === d.id));
-    idDuplicateCheck(newShapes);
-    missingParentCheck(newShapes);
-    return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
+    const newShapes = shapesForNodes(getNodes(getState(), page));
+    return aero.commit('restateShapesEvent', { newShapes }, { silent: true });
   };
 
   const selectShape = (page, id) => {
-    aero.commit(page, 'shapeSelect', { shapes: [id] });
+    aero.commit('shapeSelect', { shapes: [id] });
   };
 
-  const unselectShape = page => {
-    aero.commit(page, 'shapeSelect', { shapes: [] });
+  const unselectShape = () => {
+    aero.commit('shapeSelect', { shapes: [] });
   };
 
-  const unhoverShape = page => {
-    aero.commit(page, 'cursorPosition', {});
+  const unhoverShape = () => {
+    aero.commit('cursorPosition', {});
   };
 
   return next => action => {
@@ -297,38 +151,23 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
     if (action.type === setWorkpad.toString()) {
       const pages = action.payload.pages;
-      aero.clearStores();
       // Create the aeroelastic store, which happens once per page creation; disposed on workbook change.
-      // TODO: consider implementing a store removal upon page removal to reclaim a small amount of storage
-      pages.map(p => p.id).forEach(createStore);
+      setStore(pages[getState().persistent.workpad.page]);
     }
 
     if (action.type === restoreHistory.toString()) {
-      aero.clearStores();
-      action.payload.workpad.pages.map(p => p.id).forEach(createStore);
+      setStore(action.payload.workpad.pages[action.payload.workpad.page]);
     }
 
     if (action.type === appReady.toString()) {
-      const pages = getPages(getState());
-      aero.clearStores();
-      pages.map(p => p.id).forEach(createStore);
+      setStore(getPages(getState())[getState().persistent.workpad.page]);
     }
 
-    let lastPageRemoved = false;
-    if (action.type === removePage.toString()) {
-      const preRemoveState = getState();
-      if (getPages(preRemoveState).length <= 1) {
-        lastPageRemoved = true;
-      }
-
-      aero.removeStore(action.payload);
-    }
-
-    if (pageChangerActions.indexOf(action.type) >= 0) {
-      if (getSelectedElement(getState())) {
-        dispatch(selectElement(null)); // ensure sidebar etc. get updated; will update the layout engine too
-      } else {
-        unselectShape(prevPage); // deselect persistent groups as they're not currently selections in Redux
+    if (action.type === setPage.toString()) {
+      const newPage = getState().persistent.workpad.pages[action.payload];
+      setStore(newPage);
+      if (action.type === duplicatePage.toString()) {
+        dispatch(fetchAllRenderables()); // this shouldn't be in aeroelastic.js
       }
       unhoverShape(prevPage); // ensure hover box isn't stuck on page change, no matter how action originated
     }
@@ -340,28 +179,23 @@ export const aeroelastic = ({ dispatch, getState }) => {
       case restoreHistory.toString():
       case setWorkpad.toString():
         // Populate the aeroelastic store, which only happens once per page creation; disposed on workbook change.
-        getPages(getState())
-          .map(p => p.id)
-          .forEach(populateWithElements);
+        setStore(getPages(getState())[getState().persistent.workpad.page]);
         break;
 
       case addPage.toString():
       case duplicatePage.toString():
-        const newPage = getSelectedPage(getState());
-        createStore(newPage);
+        const newPage = getState().persistent.workpad.pages[getState().persistent.workpad.page];
+        setStore(newPage);
         if (action.type === duplicatePage.toString()) {
-          dispatch(fetchAllRenderables());
+          dispatch(fetchAllRenderables()); // this shouldn't be in aeroelastic.js
         }
-
-        populateWithElements(newPage);
         break;
 
       case removePage.toString():
         const postRemoveState = getState();
-        if (lastPageRemoved) {
-          const freshPage = getSelectedPage(postRemoveState);
-          createStore(freshPage);
-        }
+        const freshPage =
+          postRemoveState.persistent.workpad.pages[getState().persistent.workpad.page];
+        setStore(freshPage);
         break;
 
       case selectElement.toString():
@@ -370,7 +204,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
         if (action.payload) {
           selectShape(prevPage, action.payload);
         } else {
-          unselectShape(prevPage);
+          unselectShape();
         }
 
         break;
@@ -394,7 +228,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
           action.type !== setMultiplePositions.toString() &&
           action.type !== elementLayer.toString()
         ) {
-          unselectShape(prevPage);
+          unselectShape();
         }
 
         break;

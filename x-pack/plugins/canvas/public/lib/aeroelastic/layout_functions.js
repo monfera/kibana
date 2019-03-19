@@ -136,23 +136,20 @@ export const getMouseTransformGesture = tuple =>
     .filter(tpl => tpl.transform)
     .map(({ transform, cumulativeTransform }) => ({ transform, cumulativeTransform }));
 
-export const getRestateShapesEvent = action => {
-  if (!action || action.type !== 'restateShapesEvent') {
-    return null;
+export const getLocalTransformMatrix = shapes => shape => {
+  if (!shape.parent) {
+    return shape.transformMatrix;
   }
-  const shapes = action.payload.newShapes;
-  const local = shape => {
-    if (!shape.parent) {
-      return shape.transformMatrix;
-    }
-    return multiply(
-      invert(shapes.find(s => s.id === shape.parent).transformMatrix),
-      shape.transformMatrix
-    );
-  };
-  const newShapes = shapes.map(s => ({ ...s, localTransformMatrix: local(s) }));
-  return { newShapes, uid: action.payload.uid };
-}; // is selected, as otherwise selection is driven by gestures and knowledge of element positions
+  return multiply(
+    invert(shapes.find(s => s.id === shape.parent).transformMatrix),
+    shape.transformMatrix
+  );
+};
+
+export const getRestateShapesEvent = action =>
+  action && action.type === 'restateShapesEvent'
+    ? { newShapes: action.payload.newShapes, uid: action.payload.uid }
+    : null;
 
 export const getDirectSelect = action =>
   action && action.type === 'shapeSelect' ? action.payload : null;
