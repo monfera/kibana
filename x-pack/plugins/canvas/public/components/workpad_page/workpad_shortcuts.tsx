@@ -28,18 +28,16 @@ export interface Props {
   elementLayer: (pageId: string, selectedElement: any, movement: any) => void;
   groupElements: () => void;
   ungroupElements: () => void;
-  forceUpdate: () => void;
 }
 
 export class WorkpadShortcuts extends Component<Props> {
   public render() {
-    const { pageId, forceUpdate } = this.props;
+    const { pageId } = this.props;
     return (
       <Shortcuts
         name="ELEMENT"
         handler={(action: string, event: Event) => {
           this._keyHandler(action, event);
-          forceUpdate();
         }}
         targetNodeSelector={`#${pageId}`}
         global

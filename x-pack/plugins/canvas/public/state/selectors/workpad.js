@@ -164,14 +164,7 @@ const getNodesOfPage = page =>
     .map(augment('element'))
     .concat((get(page, 'groups') || []).map(augment('group')));
 
-// todo unify or DRY up with `getElements`
-export function getNodes(state, pageId, withAst = true) {
-  const id = pageId || getSelectedPage(state);
-  if (!id) {
-    return [];
-  }
-
-  const page = getPageById(state, id);
+export const getNodesForPage = (page, withAst) => {
   const elements = getNodesOfPage(page);
 
   if (!elements) {
@@ -186,6 +179,16 @@ export function getNodes(state, pageId, withAst = true) {
   }
 
   return elements.map(appendAst);
+};
+
+// todo unify or DRY up with `getElements`
+export function getNodes(state, pageId, withAst = true) {
+  const id = pageId || getSelectedPage(state);
+  if (!id) {
+    return [];
+  }
+
+  return getNodesForPage(getPageById(state, id), withAst);
 }
 
 export function getElementById(state, id, pageId) {
