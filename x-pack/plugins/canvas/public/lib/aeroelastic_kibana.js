@@ -8,6 +8,8 @@ import { createLayoutStore, matrix } from './aeroelastic';
 
 const stores = new Map();
 
+window.stores = stores
+
 export const aeroelastic = {
   matrix,
 
@@ -16,6 +18,7 @@ export const aeroelastic = {
   },
 
   createStore(initialState, onChangeCallback = () => {}, page) {
+    if(typeof page !== 'string') debugger
     stores.set(page, createLayoutStore(initialState, onChangeCallback));
   },
 
@@ -27,11 +30,8 @@ export const aeroelastic = {
 
   getStore(page) {
     const store = stores.get(page);
-    if (!store) {
-      throw new Error('An aeroelastic store should exist for page ' + page);
-    }
 
-    return store.getCurrentState();
+    return store && store.getCurrentState();
   },
 
   commit(page, ...args) {

@@ -21,7 +21,14 @@ import { selectElement } from '../actions/transient';
 import { addPage, removePage, duplicatePage, setPage } from '../actions/pages';
 import { appReady } from '../actions/app';
 import { setWorkpad } from '../actions/workpad';
-import { getNodes, getPages, getSelectedPage, getSelectedElement } from '../selectors/workpad';
+import {
+  getNodes,
+  getPages,
+  getSelectedPage,
+  getSelectedElement,
+  getNodesForPage,
+} from '../selectors/workpad';
+import { getLocalTransformMatrix } from '../../lib/aeroelastic/layout_functions';
 
 const aeroelasticConfiguration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -58,8 +65,6 @@ const aeroelasticConfiguration = {
 };
 
 const isGroupId = id => id.startsWith(aeroelasticConfiguration.groupName);
-
-const pageChangerActions = [duplicatePage.toString(), addPage.toString(), setPage.toString()];
 
 /**
  * elementToShape
@@ -177,6 +182,18 @@ const missingParentCheck = groups => {
   });
 };
 
+const shapesForNodes = nodes => {
+  const rawShapes = nodes
+    .map(elementToShape)
+    // filtering to eliminate residual element of a possible group that had been deleted in Redux
+    .filter((d, i, a) => !isGroupId(d.id) || a.find(s => s.parent === d.id));
+  const getLocalMatrix = getLocalTransformMatrix(rawShapes);
+  const shapes = rawShapes.map(s => ({ ...s, localTransformMatrix: getLocalMatrix(s) }));
+  idDuplicateCheck(shapes);
+  missingParentCheck(shapes);
+  return shapes;
+};
+
 export const aeroelastic = ({ dispatch, getState }) => {
   // When aeroelastic updates an element, we need to dispatch actions to notify redux of the changes
 
@@ -258,23 +275,24 @@ export const aeroelastic = ({ dispatch, getState }) => {
     }
   };
 
-  const createStore = page =>
+  const createStore = page => {
+    const nodes = getNodesForPage(page);
+    const shapes = shapesForNodes(nodes);
     aero.createStore(
       {
         primaryUpdate: null,
-        currentScene: { shapes: [], configuration: aeroelasticConfiguration },
+        currentScene: {
+          shapes,
+          configuration: aeroelasticConfiguration,
+        },
       },
       onChangeCallback,
-      page
+      page.id
     );
+  };
 
   const populateWithElements = page => {
-    const newShapes = getNodes(getState(), page)
-      .map(elementToShape)
-      // filtering to eliminate residual element of a possible group that had been deleted in Redux
-      .filter((d, i, a) => !isGroupId(d.id) || a.find(s => s.parent === d.id));
-    idDuplicateCheck(newShapes);
-    missingParentCheck(newShapes);
+    const newShapes = shapesForNodes(getNodes(getState(), page));
     return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
   };
 
@@ -295,37 +313,17 @@ export const aeroelastic = ({ dispatch, getState }) => {
       const pages = action.payload.pages;
       aero.clearStores();
       // Create the aeroelastic store, which happens once per page creation; disposed on workbook change.
-      // TODO: consider implementing a store removal upon page removal to reclaim a small amount of storage
-      pages.map(p => p.id).forEach(createStore);
+      createStore(pages[getState().persistent.workpad.page]);
     }
 
     if (action.type === restoreHistory.toString()) {
       aero.clearStores();
-      action.payload.workpad.pages.map(p => p.id).forEach(createStore);
+      createStore(action.payload.workpad.pages[action.payload.workpad.page]);
     }
 
     if (action.type === appReady.toString()) {
-      const pages = getPages(getState());
       aero.clearStores();
-      pages.map(p => p.id).forEach(createStore);
-    }
-
-    let lastPageRemoved = false;
-    if (action.type === removePage.toString()) {
-      const preRemoveState = getState();
-      if (getPages(preRemoveState).length <= 1) {
-        lastPageRemoved = true;
-      }
-
-      aero.removeStore(action.payload);
-    }
-
-    if (pageChangerActions.indexOf(action.type) >= 0) {
-      if (getSelectedElement(getState())) {
-        dispatch(selectElement(null)); // ensure sidebar etc. get updated; will update the layout engine too
-      } else {
-        unselectShape(prevPage); // deselect persistent groups as they're not currently selections in Redux
-      }
+      createStore(getPages(getState())[getState().persistent.workpad.page]);
     }
 
     next(action);
@@ -335,28 +333,24 @@ export const aeroelastic = ({ dispatch, getState }) => {
       case restoreHistory.toString():
       case setWorkpad.toString():
         // Populate the aeroelastic store, which only happens once per page creation; disposed on workbook change.
-        getPages(getState())
-          .map(p => p.id)
-          .forEach(populateWithElements);
+        aero.clearStores();
+        createStore(getPages(getState())[getState().persistent.workpad.page]);
         break;
 
       case addPage.toString():
       case duplicatePage.toString():
-        const newPage = getSelectedPage(getState());
+      case setPage.toString():
+        const newPage = getState().persistent.workpad.pages[getState().persistent.workpad.page];
         createStore(newPage);
         if (action.type === duplicatePage.toString()) {
-          dispatch(fetchAllRenderables());
+          dispatch(fetchAllRenderables()); // this shouldn't be in aeroelastic.js
         }
-
-        populateWithElements(newPage);
         break;
 
       case removePage.toString():
         const postRemoveState = getState();
-        if (lastPageRemoved) {
-          const freshPage = getSelectedPage(postRemoveState);
-          createStore(freshPage);
-        }
+        const freshPage = getSelectedPage(postRemoveState);
+        createStore(freshPage);
         break;
 
       case selectElement.toString():
