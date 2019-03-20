@@ -7,21 +7,21 @@
 import { createLayoutStore, matrix } from './aeroelastic';
 
 let store;
+let pageId;
 
 export const aeroelastic = {
   matrix,
 
-  setStore(initialState, onChangeCallback = () => {}, pageId) {
-    console.log('setting store', pageId);
-    if (typeof pageId !== 'string') debugger;
+  setStore(initialState, onChangeCallback = () => {}, inputPageId) {
     window.store = store = createLayoutStore(initialState, onChangeCallback);
+    window.pageId = pageId = inputPageId;
   },
 
-  getStore() {
-    return store;
+  getStore(inputPageId) {
+    return pageId === inputPageId && store;
   },
 
-  commit(page, ...args) {
-    return store && store.commit(...args);
+  commit(inputPageId, ...args) {
+    return store && inputPageId === pageId && store.commit(...args);
   },
 };

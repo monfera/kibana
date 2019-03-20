@@ -287,7 +287,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
         },
       },
       onChangeCallback,
-      page.id // todo remove: debug arg only
+      page.id
     );
   };
 

@@ -113,38 +113,40 @@ const layoutProps = ({ forceUpdate, page, elements: pageElements }) => {
     selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree));
     selectedElements = [];
   }
-  const elements = pageElements
-    .map((element, i) => {
-      const shape = elementToShape(element, i);
-      return {
-        id: element.id,
-        filter: element.filter,
-        width: element.position.width,
-        height: element.position.height,
-        type: shape.type,
-        subtype: shape.subtype,
-        transformMatrix: shape.transformMatrix,
-      };
-    })
-    .concat(
-      aeroStore
-        ? shapes
-            .filter(shape => shape.type === 'annotation')
-            .map(shape => {
-              let element = null;
-              if (elementLookup.has(shape.id)) {
-                element = elementLookup.get(shape.id);
-                if (selectedElementIds.indexOf(shape.id) > -1) {
-                  selectedElements.push({ ...element, id: shape.id });
-                }
+  const elements = (aeroStore
+    ? []
+    : pageElements.map((element, i) => {
+        const shape = elementToShape(element, i);
+        return {
+          id: element.id,
+          filter: element.filter,
+          width: element.position.width,
+          height: element.position.height,
+          type: shape.type,
+          subtype: shape.subtype,
+          transformMatrix: shape.transformMatrix,
+        };
+      })
+  ).concat(
+    aeroStore
+      ? shapes
+          .map(shape => {
+            let element = null;
+            if (elementLookup.has(shape.id)) {
+              element = elementLookup.get(shape.id);
+              if (selectedElementIds.indexOf(shape.id) > -1) {
+                selectedElements.push({ ...element, id: shape.id });
               }
-              // instead of just combining `element` with `shape`, we make property transfer explicit
-              const result = element ? { ...shape, filter: element.filter } : shape;
-              const { id, filter, type, subtype, width, height, transformMatrix, text } = result;
-              return { id, filter, type, subtype, width, height, transformMatrix, text };
-            })
-        : []
-    );
+            }
+            // instead of just combining `element` with `shape`, we make property transfer explicit
+            const result = element
+              ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
+              : shape;
+            const { id, filter, type, subtype, width, height, transformMatrix, text } = result;
+            return { id, filter, type, subtype, width, height, transformMatrix, text };
+          })
+      : []
+  );
   return {
     elements,
     ...(aeroStore && {
@@ -152,11 +154,12 @@ const layoutProps = ({ forceUpdate, page, elements: pageElements }) => {
       selectedElementIds,
       selectedElements,
       selectedPrimaryShapes,
-      commit: (...args) => {
-        aeroelastic.commit(page.id, ...args);
-        forceUpdate();
-      },
     }),
+    commit: (...args) => {
+      //if (!aeroStore) return;
+      aeroelastic.commit(page.id, ...args);
+      forceUpdate();
+    },
   };
 };
 
