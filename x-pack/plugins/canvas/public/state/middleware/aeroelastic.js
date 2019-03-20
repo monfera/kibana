@@ -275,10 +275,10 @@ export const aeroelastic = ({ dispatch, getState }) => {
     }
   };
 
-  const createStore = page => {
+  const setStore = page => {
     const nodes = getNodesForPage(page);
     const shapes = shapesForNodes(nodes);
-    aero.createStore(
+    aero.setStore(
       {
         primaryUpdate: null,
         currentScene: {
@@ -287,7 +287,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
         },
       },
       onChangeCallback,
-      page.id
+      page.id // todo remove: debug arg only
     );
   };
 
@@ -311,19 +311,16 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
     if (action.type === setWorkpad.toString()) {
       const pages = action.payload.pages;
-      aero.clearStores();
       // Create the aeroelastic store, which happens once per page creation; disposed on workbook change.
-      createStore(pages[getState().persistent.workpad.page]);
+      setStore(pages[getState().persistent.workpad.page]);
     }
 
     if (action.type === restoreHistory.toString()) {
-      aero.clearStores();
-      createStore(action.payload.workpad.pages[action.payload.workpad.page]);
+      setStore(action.payload.workpad.pages[action.payload.workpad.page]);
     }
 
     if (action.type === appReady.toString()) {
-      aero.clearStores();
-      createStore(getPages(getState())[getState().persistent.workpad.page]);
+      setStore(getPages(getState())[getState().persistent.workpad.page]);
     }
 
     next(action);
@@ -333,15 +330,14 @@ export const aeroelastic = ({ dispatch, getState }) => {
       case restoreHistory.toString():
       case setWorkpad.toString():
         // Populate the aeroelastic store, which only happens once per page creation; disposed on workbook change.
-        aero.clearStores();
-        createStore(getPages(getState())[getState().persistent.workpad.page]);
+        setStore(getPages(getState())[getState().persistent.workpad.page]);
         break;
 
       case addPage.toString():
       case duplicatePage.toString():
       case setPage.toString():
         const newPage = getState().persistent.workpad.pages[getState().persistent.workpad.page];
-        createStore(newPage);
+        setStore(newPage);
         if (action.type === duplicatePage.toString()) {
           dispatch(fetchAllRenderables()); // this shouldn't be in aeroelastic.js
         }
@@ -349,8 +345,9 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
       case removePage.toString():
         const postRemoveState = getState();
-        const freshPage = getSelectedPage(postRemoveState);
-        createStore(freshPage);
+        const freshPage =
+          postRemoveState.persistent.workpad.pages[getState().persistent.workpad.page];
+        setStore(freshPage);
         break;
 
       case selectElement.toString():

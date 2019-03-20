@@ -82,7 +82,7 @@ const layoutProps = ({ forceUpdate, page, elements: pageElements }) => {
   const aeroStore = aeroelastic.getStore(page.id);
   let elementLookup, selectedElementIds, selectedElements, cursor, selectedPrimaryShapes, shapes;
   if (aeroStore) {
-    const scene = aeroStore.currentScene;
+    const scene = aeroStore.getCurrentState().currentScene;
     shapes = scene.shapes;
     selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
     cursor = scene.cursor;

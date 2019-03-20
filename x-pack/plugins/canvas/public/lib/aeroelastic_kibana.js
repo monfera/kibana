@@ -6,36 +6,22 @@
 
 import { createLayoutStore, matrix } from './aeroelastic';
 
-const stores = new Map();
-
-window.stores = stores
+let store;
 
 export const aeroelastic = {
   matrix,
 
-  clearStores() {
-    stores.clear();
+  setStore(initialState, onChangeCallback = () => {}, pageId) {
+    console.log('setting store', pageId);
+    if (typeof pageId !== 'string') debugger;
+    window.store = store = createLayoutStore(initialState, onChangeCallback);
   },
 
-  createStore(initialState, onChangeCallback = () => {}, page) {
-    if(typeof page !== 'string') debugger
-    stores.set(page, createLayoutStore(initialState, onChangeCallback));
-  },
-
-  removeStore(page) {
-    if (stores.has(page)) {
-      stores.delete(page);
-    }
-  },
-
-  getStore(page) {
-    const store = stores.get(page);
-
-    return store && store.getCurrentState();
+  getStore() {
+    return store;
   },
 
   commit(page, ...args) {
-    const store = stores.get(page);
     return store && store.commit(...args);
   },
 };
