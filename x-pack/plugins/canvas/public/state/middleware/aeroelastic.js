@@ -56,20 +56,10 @@ export const aeroelastic = ({ dispatch, getState }) => {
       case appReady.toString():
       case restoreHistory.toString():
       case setWorkpad.toString():
-        setStore(getPages(nextState)[nextState.persistent.workpad.page]);
-        break;
-
       case addPage.toString():
       case duplicatePage.toString():
-        const newPage = nextState.persistent.workpad.pages[nextState.persistent.workpad.page];
-        setStore(newPage);
-        break;
-
       case removePage.toString():
-        const postRemoveState = nextState;
-        const freshPage =
-          postRemoveState.persistent.workpad.pages[nextState.persistent.workpad.page];
-        setStore(freshPage);
+        setStore(getPages(nextState)[nextState.persistent.workpad.page]);
         break;
 
       case selectElement.toString():
