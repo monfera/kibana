@@ -4,9 +4,10 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import { aeroelastic as aero, aeroelasticConfiguration } from '../aeroelastic_kibana';
-import { matrixToAngle } from './matrix';
 import { shallowEqual } from 'recompose';
+import { aeroelastic as aero, aeroelasticConfiguration } from '../aeroelastic_kibana';
+import { getNodes } from '../../state/selectors/workpad';
+import { matrixToAngle } from './matrix';
 import { arrayToMap, identity } from './functional';
 import { getLocalTransformMatrix } from './layout_functions';
 
@@ -148,4 +149,28 @@ export const shapesForNodes = nodes => {
   idDuplicateCheck(shapes);
   missingParentCheck(shapes);
   return shapes;
+};
+
+export const aeroCommitPopulateWithElements = (state, pageId) => {
+  const newShapes = shapesForNodes(getNodes(state, pageId));
+  return aero.commit('restateShapesEvent', { newShapes }, { silent: true });
+};
+
+export const aeroCommitSelectShape = id => {
+  aero.commit('shapeSelect', { shapes: [id] });
+};
+
+export const aeroCommitUnselectShape = () => {
+  aero.commit('shapeSelect', { shapes: [] });
+};
+
+export const aeroCommitUnhoverShape = () => {
+  aero.commit('cursorPosition', {});
+};
+
+export const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsortedElements) => {
+  const repositionings = globalPositionUpdates(setMultiplePositions, scene, unsortedElements);
+  if (repositionings.length) {
+    setMultiplePositions(repositionings);
+  }
 };
