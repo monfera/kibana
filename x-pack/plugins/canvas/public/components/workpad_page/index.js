@@ -129,22 +129,21 @@ const layoutProps = ({ forceUpdate, page, elements: pageElements }) => {
       })
   ).concat(
     aeroStore
-      ? shapes
-          .map(shape => {
-            let element = null;
-            if (elementLookup.has(shape.id)) {
-              element = elementLookup.get(shape.id);
-              if (selectedElementIds.indexOf(shape.id) > -1) {
-                selectedElements.push({ ...element, id: shape.id });
-              }
+      ? shapes.map(shape => {
+          let element = null;
+          if (elementLookup.has(shape.id)) {
+            element = elementLookup.get(shape.id);
+            if (selectedElementIds.indexOf(shape.id) > -1) {
+              selectedElements.push({ ...element, id: shape.id });
             }
-            // instead of just combining `element` with `shape`, we make property transfer explicit
-            const result = element
-              ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
-              : shape;
-            const { id, filter, type, subtype, width, height, transformMatrix, text } = result;
-            return { id, filter, type, subtype, width, height, transformMatrix, text };
-          })
+          }
+          // instead of just combining `element` with `shape`, we make property transfer explicit
+          const result = element
+            ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
+            : shape;
+          const { id, filter, type, subtype, width, height, transformMatrix, text } = result;
+          return { id, filter, type, subtype, width, height, transformMatrix, text };
+        })
       : []
   );
   return {
@@ -156,7 +155,6 @@ const layoutProps = ({ forceUpdate, page, elements: pageElements }) => {
       selectedPrimaryShapes,
     }),
     commit: (...args) => {
-      //if (!aeroStore) return;
       aeroelastic.commit(page.id, ...args);
       forceUpdate();
     },
