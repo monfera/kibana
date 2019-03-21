@@ -9,7 +9,6 @@ import { aeroelastic as aero } from '../../lib/aeroelastic_kibana';
 import {
   addElement,
   elementLayer,
-  fetchAllRenderables,
   insertNodes,
   removeElements,
   setMultiplePositions,
@@ -57,8 +56,6 @@ export const aeroelastic = ({ dispatch, getState }) => {
       case appReady.toString():
       case restoreHistory.toString():
       case setWorkpad.toString():
-        // Populate the aeroelastic store, which only happens once per page creation; disposed on workbook change.
-
         setStore(getPages(nextState)[nextState.persistent.workpad.page]);
         break;
 
@@ -66,9 +63,6 @@ export const aeroelastic = ({ dispatch, getState }) => {
       case duplicatePage.toString():
         const newPage = nextState.persistent.workpad.pages[nextState.persistent.workpad.page];
         setStore(newPage);
-        if (action.type === duplicatePage.toString()) {
-          dispatch(fetchAllRenderables()); // this shouldn't be in aeroelastic.js
-        }
         break;
 
       case removePage.toString():
