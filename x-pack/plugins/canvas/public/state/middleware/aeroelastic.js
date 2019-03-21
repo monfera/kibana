@@ -51,17 +51,20 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
     next(action);
 
+    const nextState = getState();
+
     switch (action.type) {
       case appReady.toString():
       case restoreHistory.toString():
       case setWorkpad.toString():
         // Populate the aeroelastic store, which only happens once per page creation; disposed on workbook change.
-        setStore(getPages(getState())[getState().persistent.workpad.page]);
+
+        setStore(getPages(nextState)[nextState.persistent.workpad.page]);
         break;
 
       case addPage.toString():
       case duplicatePage.toString():
-        const newPage = getState().persistent.workpad.pages[getState().persistent.workpad.page];
+        const newPage = nextState.persistent.workpad.pages[nextState.persistent.workpad.page];
         setStore(newPage);
         if (action.type === duplicatePage.toString()) {
           dispatch(fetchAllRenderables()); // this shouldn't be in aeroelastic.js
@@ -69,9 +72,9 @@ export const aeroelastic = ({ dispatch, getState }) => {
         break;
 
       case removePage.toString():
-        const postRemoveState = getState();
+        const postRemoveState = nextState;
         const freshPage =
-          postRemoveState.persistent.workpad.pages[getState().persistent.workpad.page];
+          postRemoveState.persistent.workpad.pages[nextState.persistent.workpad.page];
         setStore(freshPage);
         break;
 
@@ -92,14 +95,14 @@ export const aeroelastic = ({ dispatch, getState }) => {
       case insertNodes.toString():
       case elementLayer.toString():
       case setMultiplePositions.toString():
-        const page = getSelectedPage(getState());
-        const elements = getNodes(getState(), page);
+        const page = getSelectedPage(nextState);
+        const elements = getNodes(nextState, page);
 
         // TODO: add a better check for elements changing, including their position, ids, etc.
         const shouldResetState =
           prevPage !== page || !shallowEqual(prevElements.map(id), elements.map(id));
         if (shouldResetState) {
-          aeroCommitPopulateWithElements(getState(), page);
+          aeroCommitPopulateWithElements(nextState, page);
         }
 
         if (
