@@ -15,7 +15,7 @@ import { flatten } from '../../lib/aeroelastic/functional';
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
 import { selectElement } from './../../state/actions/transient';
-import { elementToShape } from '../../state/middleware/aeroelastic';
+import { elementToShape } from '../../lib/aeroelastic/integration_utils';
 
 const mapStateToProps = (state, ownProps) => {
   return {
