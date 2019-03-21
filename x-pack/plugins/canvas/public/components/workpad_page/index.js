@@ -79,7 +79,7 @@ const animationProps = ({ isSelected, animation }) => {
 };
 
 const layoutProps = ({ forceUpdate, page, elements: pageElements, isSelected }) => {
-  const aeroStore = isSelected && aeroelastic.getStore(page.id);
+  const aeroStore = isSelected && aeroelastic.getStore();
   let elementLookup, selectedElementIds, selectedElements, cursor, selectedPrimaryShapes, shapes;
   if (aeroStore) {
     const scene = aeroStore.getCurrentState().currentScene;
@@ -155,7 +155,7 @@ const layoutProps = ({ forceUpdate, page, elements: pageElements, isSelected }) 
       selectedPrimaryShapes,
     }),
     commit: (...args) => {
-      aeroelastic.commit(page.id, ...args);
+      aeroelastic.commit(...args);
       forceUpdate();
     },
   };

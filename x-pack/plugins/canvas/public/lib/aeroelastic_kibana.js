@@ -7,7 +7,6 @@
 import { createLayoutStore, matrix } from './aeroelastic';
 
 let store;
-let pageId;
 
 export const aeroelasticConfiguration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -46,8 +45,8 @@ export const aeroelasticConfiguration = {
 export const aeroelastic = {
   matrix,
 
-  setStore(shapes, onChangeCallback = () => {}, inputPageId) {
-    window.store = store = createLayoutStore(
+  setStore(shapes, onChangeCallback = () => {}) {
+    store = createLayoutStore(
       {
         primaryUpdate: null,
         currentScene: {
@@ -57,14 +56,13 @@ export const aeroelastic = {
       },
       onChangeCallback
     );
-    window.pageId = pageId = inputPageId;
   },
 
-  getStore(inputPageId) {
+  getStore() {
     return store;
   },
 
-  commit(inputPageId, ...args) {
+  commit(...args) {
     return store.commit(...args);
   },
 };

@@ -124,24 +124,24 @@ export const aeroelastic = ({ dispatch, getState }) => {
   };
 
   const setStore = page => {
-    aero.setStore(shapesForNodes(getNodesForPage(page)), onChangeCallback, page.id);
+    aero.setStore(shapesForNodes(getNodesForPage(page)), onChangeCallback);
   };
 
   const populateWithElements = page => {
     const newShapes = shapesForNodes(getNodes(getState(), page));
-    return aero.commit(page, 'restateShapesEvent', { newShapes }, { silent: true });
+    return aero.commit('restateShapesEvent', { newShapes }, { silent: true });
   };
 
   const selectShape = (page, id) => {
-    aero.commit(page, 'shapeSelect', { shapes: [id] });
+    aero.commit('shapeSelect', { shapes: [id] });
   };
 
-  const unselectShape = page => {
-    aero.commit(page, 'shapeSelect', { shapes: [] });
+  const unselectShape = () => {
+    aero.commit('shapeSelect', { shapes: [] });
   };
 
-  const unhoverShape = page => {
-    aero.commit(page, 'cursorPosition', {});
+  const unhoverShape = () => {
+    aero.commit('cursorPosition', {});
   };
 
   return next => action => {
@@ -203,9 +203,9 @@ export const aeroelastic = ({ dispatch, getState }) => {
         if (action.payload) {
           selectShape(prevPage, action.payload);
         } else {
-          unselectShape(prevPage);
+          unselectShape();
         }
-        unhoverShape(prevPage); // ensure hover box isn't stuck on page change, no matter how action originated
+        unhoverShape(); // ensure hover box isn't stuck on page change, no matter how action originated
 
         break;
 
@@ -228,7 +228,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
           action.type !== setMultiplePositions.toString() &&
           action.type !== elementLayer.toString()
         ) {
-          unselectShape(prevPage);
+          unselectShape();
         }
 
         break;
