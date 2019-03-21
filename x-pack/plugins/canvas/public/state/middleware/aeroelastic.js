@@ -41,11 +41,12 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
   return next => action => {
     // get information before the state is changed
-    const prevPage = getSelectedPage(getState());
-    const prevElements = getNodes(getState(), prevPage);
+    const prevState = getState();
+    const prevPage = getSelectedPage(prevState);
+    const prevElements = getNodes(prevState, prevPage);
 
     if (action.type === setPage.toString()) {
-      setStore(getState().persistent.workpad.pages[action.payload]);
+      setStore(prevState.persistent.workpad.pages[action.payload]);
     }
 
     next(action);
