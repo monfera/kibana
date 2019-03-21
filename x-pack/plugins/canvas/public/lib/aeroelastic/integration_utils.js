@@ -6,7 +6,9 @@
 
 import { shallowEqual } from 'recompose';
 import { aeroelastic as aero, aeroelasticConfiguration } from '../aeroelastic_kibana';
-import { getNodes } from '../../state/selectors/workpad';
+import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selectors/workpad';
+import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
+import { selectElement } from '../../state/actions/transient';
 import { matrixToAngle } from './matrix';
 import { arrayToMap, identity } from './functional';
 import { getLocalTransformMatrix } from './layout_functions';
@@ -165,5 +167,82 @@ export const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsort
   const repositionings = globalPositionUpdates(setMultiplePositions, scene, unsortedElements);
   if (repositionings.length) {
     setMultiplePositions(repositionings);
+  }
+};
+
+export const makeChangeCallback = (dispatch, getState) => ({ state }) => {
+  const nextScene = state.currentScene;
+  if (!nextScene.gestureEnd) {
+    return;
+  } // only update redux on gesture end
+  // TODO: check for gestureEnd on element selection
+
+  // read current data out of redux
+  const page = getSelectedPage(getState());
+  const elements = getNodes(getState(), page);
+  const selectedElement = getSelectedElement(getState());
+
+  const shapes = nextScene.shapes;
+  const persistableGroups = shapes.filter(s => s.subtype === 'persistentGroup');
+  const persistedGroups = elements.filter(e => isGroupId(e.id));
+
+  idDuplicateCheck(persistableGroups);
+  idDuplicateCheck(persistedGroups);
+
+  persistableGroups.forEach(g => {
+    if (
+      !persistedGroups.find(p => {
+        if (!p.id) {
+          throw new Error('Element has no id');
+        }
+        return p.id === g.id;
+      })
+    ) {
+      const partialElement = {
+        id: g.id,
+        filter: undefined,
+        expression: 'shape fill="rgba(255,255,255,0)" | render',
+        position: {
+          ...shapeToElement(g),
+        },
+      };
+      dispatch(addElement(page, partialElement));
+    }
+  });
+
+  const elementsToRemove = persistedGroups.filter(
+    // list elements for removal if they're not in the persistable set, or if there's no longer an associated element
+    // the latter of which shouldn't happen, so it's belts and braces
+    p =>
+      !persistableGroups.find(g => p.id === g.id) || !elements.find(e => e.position.parent === p.id)
+  );
+
+  updateGlobalPositionsInRedux(
+    positions => dispatch(setMultiplePositions(positions.map(p => ({ ...p, pageId: page })))),
+    nextScene,
+    elements
+  );
+
+  if (elementsToRemove.length) {
+    // remove elements for groups that were ungrouped
+    dispatch(removeElements(elementsToRemove.map(e => e.id), page));
+  }
+
+  // set the selected element on the global store, if one element is selected
+  const selectedShape = nextScene.selectedPrimaryShapes[0];
+  if (nextScene.selectedShapes.length === 1 && !isGroupId(selectedShape)) {
+    if (selectedShape !== (selectedElement && selectedElement.id)) {
+      dispatch(selectElement(selectedShape));
+    }
+  } else {
+    // otherwise, clear the selected element state
+    // even for groups - TODO add handling for groups, esp. persistent groups - common styling etc.
+    if (selectedElement) {
+      const shape = shapes.find(s => s.id === selectedShape);
+      // don't reset if eg. we're in the middle of converting an ad hoc group into a persistent one
+      if (!shape || shape.subtype !== 'adHocGroup') {
+        dispatch(selectElement(null));
+      }
+    }
   }
 };
