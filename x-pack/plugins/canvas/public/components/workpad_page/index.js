@@ -78,8 +78,8 @@ const animationProps = ({ isSelected, animation }) => {
   };
 };
 
-const layoutProps = ({ forceUpdate, page, elements: pageElements }) => {
-  const aeroStore = aeroelastic.getStore(page.id);
+const layoutProps = ({ forceUpdate, page, elements: pageElements, isSelected }) => {
+  const aeroStore = isSelected && aeroelastic.getStore(page.id);
   let elementLookup, selectedElementIds, selectedElements, cursor, selectedPrimaryShapes, shapes;
   if (aeroStore) {
     const scene = aeroStore.getCurrentState().currentScene;

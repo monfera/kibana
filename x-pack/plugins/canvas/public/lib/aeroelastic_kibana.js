@@ -61,10 +61,10 @@ export const aeroelastic = {
   },
 
   getStore(inputPageId) {
-    return pageId === inputPageId && store;
+    return store;
   },
 
   commit(inputPageId, ...args) {
-    return store && inputPageId === pageId && store.commit(...args);
+    return store.commit(...args);
   },
 };
