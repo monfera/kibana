@@ -129,27 +129,8 @@ export const aeroelastic = ({ dispatch, getState }) => {
     const prevPage = getSelectedPage(getState());
     const prevElements = getNodes(getState(), prevPage);
 
-    if (action.type === setWorkpad.toString()) {
-      const pages = action.payload.pages;
-      // Create the aeroelastic store, which happens once per page creation; disposed on workbook change.
-      setStore(pages[getState().persistent.workpad.page]);
-    }
-
-    if (action.type === restoreHistory.toString()) {
-      setStore(action.payload.workpad.pages[action.payload.workpad.page]);
-    }
-
-    if (action.type === appReady.toString()) {
-      setStore(getPages(getState())[getState().persistent.workpad.page]);
-    }
-
     if (action.type === setPage.toString()) {
-      const newPage = getState().persistent.workpad.pages[action.payload];
-      setStore(newPage);
-      if (action.type === duplicatePage.toString()) {
-        dispatch(fetchAllRenderables()); // this shouldn't be in aeroelastic.js
-      }
-      unhoverShape(prevPage); // ensure hover box isn't stuck on page change, no matter how action originated
+      setStore(getState().persistent.workpad.pages[action.payload]);
     }
 
     next(action);
