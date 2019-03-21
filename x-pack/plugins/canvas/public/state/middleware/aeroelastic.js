@@ -163,6 +163,14 @@ export const aeroelastic = ({ dispatch, getState }) => {
       setStore(getPages(getState())[getState().persistent.workpad.page]);
     }
 
+    if (action.type === setPage.toString()) {
+      const newPage = getState().persistent.workpad.pages[action.payload];
+      setStore(newPage);
+      if (action.type === duplicatePage.toString()) {
+        dispatch(fetchAllRenderables()); // this shouldn't be in aeroelastic.js
+      }
+    }
+
     next(action);
 
     switch (action.type) {
@@ -175,7 +183,6 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
       case addPage.toString():
       case duplicatePage.toString():
-      case setPage.toString():
         const newPage = getState().persistent.workpad.pages[getState().persistent.workpad.page];
         setStore(newPage);
         if (action.type === duplicatePage.toString()) {
