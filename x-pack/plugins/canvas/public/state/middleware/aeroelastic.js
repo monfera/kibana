@@ -27,20 +27,17 @@ import {
   getSelectedPage,
 } from '../selectors/workpad';
 import {
-  globalPositionUpdates,
+  aeroCommitPopulateWithElements,
+  aeroCommitSelectShape,
+  aeroCommitUnhoverShape,
+  aeroCommitUnselectShape,
   id,
   idDuplicateCheck,
   isGroupId,
   shapesForNodes,
   shapeToElement,
+  updateGlobalPositionsInRedux,
 } from '../../lib/aeroelastic/integration_utils';
-
-const updateGlobalPositions = (setMultiplePositions, scene, unsortedElements) => {
-  const repositionings = globalPositionUpdates(setMultiplePositions, scene, unsortedElements);
-  if (repositionings.length) {
-    setMultiplePositions(repositionings);
-  }
-};
 
 export const aeroelastic = ({ dispatch, getState }) => {
   // When aeroelastic updates an element, we need to dispatch actions to notify redux of the changes
@@ -93,7 +90,7 @@ export const aeroelastic = ({ dispatch, getState }) => {
         !elements.find(e => e.position.parent === p.id)
     );
 
-    updateGlobalPositions(
+    updateGlobalPositionsInRedux(
       positions => dispatch(setMultiplePositions(positions.map(p => ({ ...p, pageId: page })))),
       nextScene,
       elements
@@ -125,23 +122,6 @@ export const aeroelastic = ({ dispatch, getState }) => {
 
   const setStore = page => {
     aero.setStore(shapesForNodes(getNodesForPage(page)), onChangeCallback);
-  };
-
-  const populateWithElements = page => {
-    const newShapes = shapesForNodes(getNodes(getState(), page));
-    return aero.commit('restateShapesEvent', { newShapes }, { silent: true });
-  };
-
-  const selectShape = (page, id) => {
-    aero.commit('shapeSelect', { shapes: [id] });
-  };
-
-  const unselectShape = () => {
-    aero.commit('shapeSelect', { shapes: [] });
-  };
-
-  const unhoverShape = () => {
-    aero.commit('cursorPosition', {});
   };
 
   return next => action => {
@@ -201,11 +181,11 @@ export const aeroelastic = ({ dispatch, getState }) => {
         // without this condition, a mouse release anywhere will trigger it, leading to selection of whatever is
         // underneath the pointer (maybe nothing) when the mouse is released
         if (action.payload) {
-          selectShape(prevPage, action.payload);
+          aeroCommitSelectShape(action.payload);
         } else {
-          unselectShape();
+          aeroCommitUnselectShape();
         }
-        unhoverShape(); // ensure hover box isn't stuck on page change, no matter how action originated
+        aeroCommitUnhoverShape(); // ensure hover box isn't stuck on page change, no matter how action originated
 
         break;
 
@@ -221,14 +201,14 @@ export const aeroelastic = ({ dispatch, getState }) => {
         const shouldResetState =
           prevPage !== page || !shallowEqual(prevElements.map(id), elements.map(id));
         if (shouldResetState) {
-          populateWithElements(page);
+          aeroCommitPopulateWithElements(getState(), page);
         }
 
         if (
           action.type !== setMultiplePositions.toString() &&
           action.type !== elementLayer.toString()
         ) {
-          unselectShape();
+          aeroCommitUnselectShape();
         }
 
         break;
