@@ -147,7 +147,7 @@ export const shapesForNodes = nodes => {
 
 export const aeroCommitPopulateWithElements = (state, pageId) => {
   const newShapes = shapesForNodes(getNodes(state, pageId));
-  return aero.commit('restateShapesEvent', { newShapes }, { silent: true });
+  return aero.commit('restateShapesEvent', { newShapes });
 };
 
 export const aeroCommitSelectShape = id => {
