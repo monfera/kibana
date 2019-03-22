@@ -104,17 +104,12 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-const layoutPropsInteractive = ({
-  forceUpdate,
-  elements: pageElements,
-  aeroStore,
-  updateGlobalState,
-}) => {
+const layoutPropsInteractive = ({ forceUpdate, elements, aeroStore, updateGlobalState }) => {
   const scene = aeroStore.getCurrentState().currentScene;
   const shapes = scene.shapes;
   const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
   const cursor = scene.cursor;
-  const elementLookup = new Map(pageElements.map(element => [element.id, element]));
+  const elementLookup = new Map(elements.map(element => [element.id, element]));
   const selectedPrimaryShapeObjects = selectedPrimaryShapes
     .map(id => shapes.find(s => s.id === id))
     .filter(shape => shape);
@@ -127,7 +122,7 @@ const layoutPropsInteractive = ({
   );
   const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
   const selectedElements = [];
-  const elements = shapes.map(shape => {
+  const elementsToRender = shapes.map(shape => {
     let element = null;
     if (elementLookup.has(shape.id)) {
       element = elementLookup.get(shape.id);
@@ -143,7 +138,7 @@ const layoutPropsInteractive = ({
     return { id, filter, type, subtype, width, height, transformMatrix, text };
   });
   return {
-    elements,
+    elements: elementsToRender,
     cursor,
     selectedElementIds,
     selectedElements,
