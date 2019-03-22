@@ -169,7 +169,7 @@ const layoutPropsStatic = elements => ({
   }),
 });
 
-const layoutProps = ({ isSelected, ...rest }) =>
+const layoutEngine = ({ isSelected, ...rest }) =>
   isSelected
     ? layoutPropsInteractive({ ...rest, aeroStore: aeroelastic.getStore() })
     : layoutPropsStatic(rest.elements);
@@ -194,7 +194,7 @@ export const WorkpadPage = compose(
   withProps(animationProps),
   withState('_forceUpdate', 'forceUpdate'), // TODO: phase out this solution
   withState('canvasOrigin', 'saveCanvasOrigin'),
-  withProps(layoutProps), // Updates states; needs to have both local and global
+  withProps(layoutEngine), // Updates states; needs to have both local and global
   withHandlers(groupHandlerCreators),
   withHandlers(eventHandlers) // Captures user intent, needs to have reconciled state
 )(Component);
