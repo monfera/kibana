@@ -166,10 +166,6 @@ export const aeroCommitUnselectShape = () => {
   aero.commit('shapeSelect', { shapes: [] });
 };
 
-export const aeroCommitUnhoverShape = () => {
-  aero.commit('cursorPosition', {});
-};
-
 export const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsortedElements) => {
   const repositionings = globalPositionUpdates(setMultiplePositions, scene, unsortedElements);
   if (repositionings.length) {

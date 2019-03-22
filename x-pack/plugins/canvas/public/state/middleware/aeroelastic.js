@@ -22,7 +22,6 @@ import { getNodes, getNodesForPage, getPages, getSelectedPage } from '../selecto
 import {
   aeroCommitPopulateWithElements,
   aeroCommitSelectShape,
-  aeroCommitUnhoverShape,
   aeroCommitUnselectShape,
   id,
   makeChangeCallback,
