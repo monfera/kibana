@@ -136,7 +136,14 @@ export const shapesForNodes = nodes => {
     .map(elementToShape)
     // filtering to eliminate residual element of a possible group that had been deleted in Redux
     .filter((d, i, a) => !isGroupId(d.id) || a.find(s => s.parent === d.id));
-  const getLocalMatrix = getLocalTransformMatrix(rawShapes);
+  const getLocalMatrix = getLocalTransformMatrix(
+    rawShapes.map((s, i, a) =>
+      // remove nonexistent parents
+      !s.parent || a.find(t => t.id === s.parent)
+        ? s
+        : ((s.parent = null), console.log('Removing element parent!!!'), s)
+    )
+  );
   const shapes = rawShapes.map(s => ({ ...s, localTransformMatrix: getLocalMatrix(s) }));
   idDuplicateCheck(shapes);
   missingParentCheck(shapes);
