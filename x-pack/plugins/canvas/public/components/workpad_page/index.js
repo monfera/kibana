@@ -89,6 +89,21 @@ const animationProps = ({ isSelected, animation }) => {
   };
 };
 
+const recurseGroupTree = shapes => shapeId => {
+  const recurseGroupTreeInternal = shapeId => {
+    return [
+      shapeId,
+      ...flatten(
+        shapes
+          .filter(s => s.parent === shapeId && s.type !== 'annotation')
+          .map(s => s.id)
+          .map(recurseGroupTreeInternal)
+      ),
+    ];
+  };
+  return recurseGroupTreeInternal(shapeId);
+};
+
 const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, commitCallback }) => {
   const aeroStore = isSelected && aeroelastic.getStore();
   let elementLookup;
@@ -103,20 +118,6 @@ const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, commitCa
     selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
     cursor = scene.cursor;
     elementLookup = new Map(pageElements.map(element => [element.id, element]));
-    const recurseGroupTree = shapes => shapeId => {
-      const recurseGroupTreeInternal = shapeId => {
-        return [
-          shapeId,
-          ...flatten(
-            shapes
-              .filter(s => s.parent === shapeId && s.type !== 'annotation')
-              .map(s => s.id)
-              .map(recurseGroupTreeInternal)
-          ),
-        ];
-      };
-      return recurseGroupTreeInternal(shapeId);
-    };
     const selectedPrimaryShapeObjects = selectedPrimaryShapes
       .map(id => shapes.find(s => s.id === id))
       .filter(shape => shape);
