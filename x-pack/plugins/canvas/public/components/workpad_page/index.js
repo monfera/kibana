@@ -104,75 +104,50 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, updateGlobalState }) => {
-  const aeroStore = isSelected && aeroelastic.getStore();
-  let elementLookup;
-  let selectedElementIds;
-  let selectedElements;
-  let cursor;
-  let selectedPrimaryShapes;
-  let shapes;
-  if (aeroStore) {
-    const scene = aeroStore.getCurrentState().currentScene;
-    shapes = scene.shapes;
-    selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
-    cursor = scene.cursor;
-    elementLookup = new Map(pageElements.map(element => [element.id, element]));
-    const selectedPrimaryShapeObjects = selectedPrimaryShapes
-      .map(id => shapes.find(s => s.id === id))
-      .filter(shape => shape);
-
-    const selectedPersistentPrimaryShapes = flatten(
-      selectedPrimaryShapeObjects.map(shape =>
-        shape.subtype === 'adHocGroup'
-          ? shapes.filter(s => s.parent === shape.id && s.type !== 'annotation').map(s => s.id)
-          : [shape.id]
-      )
-    );
-    selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
-    selectedElements = [];
-  }
-  const elements = (aeroStore
-    ? []
-    : pageElements.map((element, i) => {
-        const shape = elementToShape(element, i);
-        return {
-          id: element.id,
-          filter: element.filter,
-          width: element.position.width,
-          height: element.position.height,
-          type: shape.type,
-          subtype: shape.subtype,
-          transformMatrix: shape.transformMatrix,
-        };
-      })
-  ).concat(
-    aeroStore
-      ? shapes.map(shape => {
-          let element = null;
-          if (elementLookup.has(shape.id)) {
-            element = elementLookup.get(shape.id);
-            if (selectedElementIds.indexOf(shape.id) > -1) {
-              selectedElements.push({ ...element, id: shape.id });
-            }
-          }
-          // instead of just combining `element` with `shape`, we make property transfer explicit
-          const result = element
-            ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
-            : shape;
-          const { id, filter, type, subtype, width, height, transformMatrix, text } = result;
-          return { id, filter, type, subtype, width, height, transformMatrix, text };
-        })
-      : []
+const layoutPropsInteractive = ({
+  forceUpdate,
+  elements: pageElements,
+  aeroStore,
+  updateGlobalState,
+}) => {
+  const scene = aeroStore.getCurrentState().currentScene;
+  const shapes = scene.shapes;
+  const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
+  const cursor = scene.cursor;
+  const elementLookup = new Map(pageElements.map(element => [element.id, element]));
+  const selectedPrimaryShapeObjects = selectedPrimaryShapes
+    .map(id => shapes.find(s => s.id === id))
+    .filter(shape => shape);
+  const selectedPersistentPrimaryShapes = flatten(
+    selectedPrimaryShapeObjects.map(shape =>
+      shape.subtype === 'adHocGroup'
+        ? shapes.filter(s => s.parent === shape.id && s.type !== 'annotation').map(s => s.id)
+        : [shape.id]
+    )
   );
+  const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
+  const selectedElements = [];
+  const elements = shapes.map(shape => {
+    let element = null;
+    if (elementLookup.has(shape.id)) {
+      element = elementLookup.get(shape.id);
+      if (selectedElementIds.indexOf(shape.id) > -1) {
+        selectedElements.push({ ...element, id: shape.id });
+      }
+    }
+    // instead of just combining `element` with `shape`, we make property transfer explicit
+    const result = element
+      ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
+      : shape;
+    const { id, filter, type, subtype, width, height, transformMatrix, text } = result;
+    return { id, filter, type, subtype, width, height, transformMatrix, text };
+  });
   return {
     elements,
-    ...(aeroStore && {
-      cursor,
-      selectedElementIds,
-      selectedElements,
-      selectedPrimaryShapes,
-    }),
+    cursor,
+    selectedElementIds,
+    selectedElements,
+    selectedPrimaryShapes,
     commit: (type, payload) => {
       const newLayoutState = aeroelastic.commit(type, payload);
       if (newLayoutState.currentScene.gestureEnd) {
@@ -182,6 +157,28 @@ const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, updateGl
       }
     },
   };
+};
+
+const layoutPropsStatic = elements => ({
+  elements: elements.map((element, i) => {
+    const { type, subtype, transformMatrix } = elementToShape(element, i);
+    return {
+      id: element.id,
+      filter: element.filter,
+      width: element.position.width,
+      height: element.position.height,
+      type,
+      subtype,
+      transformMatrix,
+    };
+  }),
+});
+
+const layoutProps = ({ isSelected, ...rest }) => {
+  const aeroStore = isSelected && aeroelastic.getStore();
+  return aeroStore
+    ? layoutPropsInteractive({ ...rest, aeroStore })
+    : layoutPropsStatic(rest.elements);
 };
 
 const groupHandlerCreators = {
