@@ -103,18 +103,20 @@ const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, commitCa
     selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
     cursor = scene.cursor;
     elementLookup = new Map(pageElements.map(element => [element.id, element]));
-    const recurseGroupTree = shapeId => {
-      return [
-        shapeId,
-        ...flatten(
-          shapes
-            .filter(s => s.parent === shapeId && s.type !== 'annotation')
-            .map(s => s.id)
-            .map(recurseGroupTree)
-        ),
-      ];
+    const recurseGroupTree = shapes => shapeId => {
+      const recurseGroupTreeInternal = shapeId => {
+        return [
+          shapeId,
+          ...flatten(
+            shapes
+              .filter(s => s.parent === shapeId && s.type !== 'annotation')
+              .map(s => s.id)
+              .map(recurseGroupTreeInternal)
+          ),
+        ];
+      };
+      return recurseGroupTreeInternal(shapeId);
     };
-
     const selectedPrimaryShapeObjects = selectedPrimaryShapes
       .map(id => shapes.find(s => s.id === id))
       .filter(shape => shape);
@@ -126,7 +128,7 @@ const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, commitCa
           : [shape.id]
       )
     );
-    selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree));
+    selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
     selectedElements = [];
   }
   const elements = (aeroStore
