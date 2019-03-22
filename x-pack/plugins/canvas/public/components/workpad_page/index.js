@@ -12,7 +12,7 @@ import { removeElements, insertNodes, elementLayer } from '../../state/actions/e
 import { getFullscreen, canUserWrite } from '../../state/selectors/app';
 import { getNodes, isWriteable } from '../../state/selectors/workpad';
 import { flatten } from '../../lib/aeroelastic/functional';
-import { elementToShape, makeChangeCallback } from '../../lib/aeroelastic/integration_utils';
+import { elementToShape, globalStateUpdater } from '../../lib/aeroelastic/integration_utils';
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
 import { selectElement } from './../../state/actions/transient';
@@ -49,7 +49,7 @@ const mergeProps = ({ state, ...restStateProps }, { dispatch, ...restDispatchPro
     ...restStateProps,
     ...restDispatchProps,
     ...ownProps,
-    commitCallback: makeChangeCallback(dispatch, () => state),
+    updateGlobalState: globalStateUpdater(dispatch, () => state),
   };
 };
 
@@ -104,7 +104,7 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, commitCallback }) => {
+const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, updateGlobalState }) => {
   const aeroStore = isSelected && aeroelastic.getStore();
   let elementLookup;
   let selectedElementIds;
@@ -176,7 +176,7 @@ const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, commitCa
     commit: (type, payload) => {
       const newLayoutState = aeroelastic.commit(type, payload);
       if (newLayoutState.currentScene.gestureEnd) {
-        commitCallback(newLayoutState);
+        updateGlobalState(newLayoutState);
       } else {
         forceUpdate();
       }

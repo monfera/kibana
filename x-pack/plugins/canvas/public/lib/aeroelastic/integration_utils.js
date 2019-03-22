@@ -165,7 +165,7 @@ export const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsort
   }
 };
 
-export const makeChangeCallback = (dispatch, getState) => state => {
+export const globalStateUpdater = (dispatch, getState) => state => {
   const nextScene = state.currentScene;
   const page = getSelectedPage(getState());
   const elements = getNodes(getState(), page);
