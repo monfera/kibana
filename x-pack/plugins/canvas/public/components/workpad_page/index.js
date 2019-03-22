@@ -12,13 +12,14 @@ import { removeElements, insertNodes, elementLayer } from '../../state/actions/e
 import { getFullscreen, canUserWrite } from '../../state/selectors/app';
 import { getNodes, isWriteable } from '../../state/selectors/workpad';
 import { flatten } from '../../lib/aeroelastic/functional';
+import { elementToShape, makeChangeCallback } from '../../lib/aeroelastic/integration_utils';
 import { eventHandlers } from './event_handlers';
 import { WorkpadPage as Component } from './workpad_page';
 import { selectElement } from './../../state/actions/transient';
-import { elementToShape } from '../../lib/aeroelastic/integration_utils';
 
 const mapStateToProps = (state, ownProps) => {
   return {
+    state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
     elements: getNodes(state, ownProps.page.id),
   };
@@ -26,6 +27,7 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch => {
   return {
+    dispatch,
     insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
     removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
     selectElement: selectedElement => dispatch(selectElement(selectedElement)),
@@ -39,6 +41,15 @@ const mapDispatchToProps = dispatch => {
         })
       );
     },
+  };
+};
+
+const mergeProps = ({ state, ...restStateProps }, { dispatch, ...restDispatchProps }, ownProps) => {
+  return {
+    ...restStateProps,
+    ...restDispatchProps,
+    ...ownProps,
+    commitCallback: makeChangeCallback(dispatch, () => state),
   };
 };
 
@@ -78,9 +89,14 @@ const animationProps = ({ isSelected, animation }) => {
   };
 };
 
-const layoutProps = ({ forceUpdate, page, elements: pageElements, isSelected }) => {
+const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, commitCallback }) => {
   const aeroStore = isSelected && aeroelastic.getStore();
-  let elementLookup, selectedElementIds, selectedElements, cursor, selectedPrimaryShapes, shapes;
+  let elementLookup;
+  let selectedElementIds;
+  let selectedElements;
+  let cursor;
+  let selectedPrimaryShapes;
+  let shapes;
   if (aeroStore) {
     const scene = aeroStore.getCurrentState().currentScene;
     shapes = scene.shapes;
@@ -154,8 +170,9 @@ const layoutProps = ({ forceUpdate, page, elements: pageElements, isSelected }) 
       selectedElements,
       selectedPrimaryShapes,
     }),
-    commit: (...args) => {
-      aeroelastic.commit(...args);
+    commit: (type, payload, meta) => {
+      aeroelastic.commit(type, payload, meta);
+      commitCallback(aeroelastic.getStore().getCurrentState());
       forceUpdate();
     },
   };
@@ -175,7 +192,8 @@ const groupHandlerCreators = {
 export const WorkpadPage = compose(
   connect(
     mapStateToProps,
-    mapDispatchToProps
+    mapDispatchToProps,
+    mergeProps
   ),
   withProps(animationProps),
   withState('_forceUpdate', 'forceUpdate'), // TODO: phase out this solution

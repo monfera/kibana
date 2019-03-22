@@ -173,7 +173,7 @@ export const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsort
   }
 };
 
-export const makeChangeCallback = (dispatch, getState) => ({ state }) => {
+export const makeChangeCallback = (dispatch, getState) => state => {
   const nextScene = state.currentScene;
   if (!nextScene.gestureEnd) {
     return;

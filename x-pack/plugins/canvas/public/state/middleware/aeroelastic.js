@@ -24,17 +24,16 @@ import {
   aeroCommitSelectShape,
   aeroCommitUnselectShape,
   id,
-  makeChangeCallback,
   shapesForNodes,
 } from '../../lib/aeroelastic/integration_utils';
 
-export const aeroelastic = ({ dispatch, getState }) => {
+export const aeroelastic = ({ getState }) => {
   // When aeroelastic updates an element, we need to dispatch actions to notify redux of the changes
 
-  const onChangeCallback = makeChangeCallback(dispatch, getState);
+  //const onChangeCallback = makeChangeCallback(dispatch, getState);
 
   const setStore = page => {
-    aero.setStore(shapesForNodes(getNodesForPage(page)), onChangeCallback);
+    aero.setStore(shapesForNodes(getNodesForPage(page)));
   };
 
   return next => action => {
