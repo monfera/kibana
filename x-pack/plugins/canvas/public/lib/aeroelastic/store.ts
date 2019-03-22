@@ -14,13 +14,13 @@ export const createStore = (initialState: State, updater: UpdaterFunction) => {
   const getCurrentState = () => currentState;
 
   const commit = (type: TypeName, payload: Payload) => {
-    currentState = updater({
+    return (currentState = updater({
       ...currentState,
       primaryUpdate: {
         type,
         payload: { ...payload, uid: counter++ },
       },
-    });
+    }));
   };
 
   return { getCurrentState, commit };

@@ -173,10 +173,13 @@ const layoutProps = ({ forceUpdate, elements: pageElements, isSelected, commitCa
       selectedElements,
       selectedPrimaryShapes,
     }),
-    commit: (type, payload, meta) => {
-      aeroelastic.commit(type, payload, meta);
-      commitCallback(aeroelastic.getStore().getCurrentState());
-      forceUpdate();
+    commit: (type, payload) => {
+      const newLayoutState = aeroelastic.commit(type, payload);
+      if (newLayoutState.currentScene.gestureEnd) {
+        commitCallback(newLayoutState);
+      } else {
+        forceUpdate();
+      }
     },
   };
 };

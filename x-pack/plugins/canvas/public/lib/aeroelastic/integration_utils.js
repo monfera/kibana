@@ -167,12 +167,6 @@ export const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsort
 
 export const makeChangeCallback = (dispatch, getState) => state => {
   const nextScene = state.currentScene;
-  if (!nextScene.gestureEnd) {
-    return;
-  } // only update redux on gesture end
-  // TODO: check for gestureEnd on element selection
-
-  // read current data out of redux
   const page = getSelectedPage(getState());
   const elements = getNodes(getState(), page);
   const selectedElement = getSelectedElement(getState());

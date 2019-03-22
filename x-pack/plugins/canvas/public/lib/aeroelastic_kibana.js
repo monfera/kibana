@@ -45,17 +45,14 @@ export const aeroelasticConfiguration = {
 export const aeroelastic = {
   matrix,
 
-  setStore(shapes, onChangeCallback = () => {}) {
-    store = createLayoutStore(
-      {
-        primaryUpdate: null,
-        currentScene: {
-          shapes,
-          configuration: aeroelasticConfiguration,
-        },
+  setStore(shapes) {
+    store = createLayoutStore({
+      primaryUpdate: null,
+      currentScene: {
+        shapes,
+        configuration: aeroelasticConfiguration,
       },
-      onChangeCallback
-    );
+    });
   },
 
   getStore() {
