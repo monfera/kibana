@@ -54,7 +54,7 @@ const handleMouseMove = (
 };
 
 const handleMouseLeave = (commit, { buttons }) => {
-  if (buttons !== 1) {
+  if (buttons !== 1 && commit) {
     commit('cursorPosition', {}); // reset hover only if we're not holding down left key (ie. drag in progress)
   }
 };

@@ -169,12 +169,10 @@ const layoutPropsStatic = elements => ({
   }),
 });
 
-const layoutProps = ({ isSelected, ...rest }) => {
-  const aeroStore = isSelected && aeroelastic.getStore();
-  return aeroStore
-    ? layoutPropsInteractive({ ...rest, aeroStore })
+const layoutProps = ({ isSelected, ...rest }) =>
+  isSelected
+    ? layoutPropsInteractive({ ...rest, aeroStore: aeroelastic.getStore() })
     : layoutPropsStatic(rest.elements);
-};
 
 const groupHandlerCreators = {
   groupElements: ({ commit }) => () =>
