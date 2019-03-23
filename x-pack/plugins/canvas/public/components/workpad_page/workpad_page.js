@@ -36,7 +36,6 @@ export class WorkpadPage extends PureComponent {
     cursor: PropTypes.string,
     height: PropTypes.number.isRequired,
     width: PropTypes.number.isRequired,
-    isEditable: PropTypes.bool.isRequired,
     onDoubleClick: PropTypes.func,
     onKeyDown: PropTypes.func,
     onMouseDown: PropTypes.func,
@@ -71,7 +70,6 @@ export class WorkpadPage extends PureComponent {
       cursor = 'auto',
       height,
       width,
-      isEditable,
       onDoubleClick,
       onKeyDown,
       onMouseDown,
@@ -96,22 +94,20 @@ export class WorkpadPage extends PureComponent {
 
     let shortcuts = null;
 
-    if (isEditable) {
-      const shortcutProps = {
-        elementLayer,
-        forceUpdate,
-        groupElements,
-        insertNodes,
-        pageId: page.id,
-        removeElements,
-        selectedElementIds,
-        selectedElements,
-        selectedPrimaryShapes,
-        selectElement,
-        ungroupElements,
-      };
-      shortcuts = <WorkpadShortcuts {...shortcutProps} />;
-    }
+    const shortcutProps = {
+      elementLayer,
+      forceUpdate,
+      groupElements,
+      insertNodes,
+      pageId: page.id,
+      removeElements,
+      selectedElementIds,
+      selectedElements,
+      selectedPrimaryShapes,
+      selectElement,
+      ungroupElements,
+    };
+    shortcuts = <WorkpadShortcuts {...shortcutProps} />;
 
     return (
       <div
@@ -123,7 +119,7 @@ export class WorkpadPage extends PureComponent {
           }
         }}
         data-test-subj="canvasWorkpadPage"
-        className={`canvasPage ${className} ${isEditable ? 'canvasPage--isEditable' : ''}`}
+        className={`canvasPage ${className} canvasPage--isEditable`}
         data-shared-items-container
         style={{
           ...page.style,
@@ -145,9 +141,6 @@ export class WorkpadPage extends PureComponent {
         {elements
           .map(element => {
             if (element.type === 'annotation') {
-              if (!isEditable) {
-                return;
-              }
               const props = {
                 key: element.id,
                 type: element.type,

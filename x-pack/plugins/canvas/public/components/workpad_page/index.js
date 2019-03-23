@@ -45,14 +45,20 @@ const mapDispatchToProps = dispatch => {
   };
 };
 
-const mergeProps = ({ state, ...restStateProps }, { dispatch, ...restDispatchProps }, ownProps) => {
-  return {
-    ...restStateProps,
-    ...restDispatchProps,
-    ...ownProps,
-    updateGlobalState: globalStateUpdater(dispatch, () => state),
-  };
-};
+const mergeProps = (
+  { state, isEditable, elements },
+  { dispatch, ...restDispatchProps },
+  ownProps
+) =>
+  isEditable
+    ? {
+        elements,
+        isEditable,
+        ...ownProps,
+        ...restDispatchProps,
+        updateGlobalState: globalStateUpdater(dispatch, () => state),
+      }
+    : { elements, isEditable, ...ownProps };
 
 const getRootElementId = (lookup, id) => {
   if (!lookup.has(id)) {
@@ -183,11 +189,6 @@ const groupHandlerCreators = {
 };
 
 const InteractivePage = compose(
-  connect(
-    mapStateToProps,
-    mapDispatchToProps,
-    mergeProps
-  ),
   withState('_forceUpdate', 'forceUpdate'), // TODO: phase out this solution
   withState('canvasOrigin', 'saveCanvasOrigin'),
   withProps(layoutEngine), // Updates states; needs to have both local and global
@@ -197,14 +198,18 @@ const InteractivePage = compose(
 );
 
 const StaticPage = compose(
-  connect(mapStateToProps),
   withProps(simplePositioning),
   () => StaticComponent
 );
 
 export const WorkpadPage = compose(
   withProps(animationProps),
-  branch(({ isSelected }) => isSelected, InteractivePage, StaticPage)
+  connect(
+    mapStateToProps,
+    mapDispatchToProps,
+    mergeProps
+  ),
+  branch(({ isSelected, isEditable }) => isSelected && isEditable, InteractivePage, StaticPage)
 )();
 
 WorkpadPage.propTypes = {
