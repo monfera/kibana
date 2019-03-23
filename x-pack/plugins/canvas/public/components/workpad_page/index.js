@@ -21,51 +21,6 @@ import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_wo
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
 
-const mapStateToProps = (state, ownProps) => {
-  return {
-    state,
-    isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
-    elements: getNodes(state, ownProps.page.id),
-  };
-};
-
-const mapDispatchToProps = dispatch => {
-  return {
-    dispatch,
-    insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
-    removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
-    selectElement: selectedElement => dispatch(selectElement(selectedElement)),
-    // TODO: Abstract this out. This is the same code as in sidebar/index.js
-    elementLayer: (pageId, selectedElement, movement) => {
-      dispatch(
-        elementLayer({
-          pageId,
-          elementId: selectedElement.id,
-          movement,
-        })
-      );
-    },
-  };
-};
-
-const mergeProps = (
-  { state, isEditable, elements },
-  { dispatch, ...restDispatchProps },
-  { isSelected, ...remainingOwnProps }
-) =>
-  isEditable && isSelected
-    ? {
-        elements,
-        isInteractive: true,
-        aeroStore: aeroelastic.getStore(),
-        aeroCommit: aeroelastic.commit,
-        isSelected,
-        ...remainingOwnProps,
-        ...restDispatchProps,
-        updateGlobalState: globalStateUpdater(dispatch, () => state),
-      }
-    : { elements, isSelected, isInteractive: false, ...remainingOwnProps };
-
 const getRootElementId = (lookup, id) => {
   if (!lookup.has(id)) {
     return null;
@@ -128,6 +83,66 @@ const groupHandlerCreators = {
     }),
 };
 
+const StaticPage = compose(
+  withProps(simplePositioning),
+  () => StaticComponent
+);
+
+
+
+
+
+
+
+
+
+
+
+const mapStateToProps = (state, ownProps) => {
+  return {
+    state,
+    isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
+    elements: getNodes(state, ownProps.page.id),
+  };
+};
+
+const mapDispatchToProps = dispatch => {
+  return {
+    dispatch,
+    insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
+    removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
+    selectElement: selectedElement => dispatch(selectElement(selectedElement)),
+    // TODO: Abstract this out. This is the same code as in sidebar/index.js
+    elementLayer: (pageId, selectedElement, movement) => {
+      dispatch(
+        elementLayer({
+          pageId,
+          elementId: selectedElement.id,
+          movement,
+        })
+      );
+    },
+  };
+};
+
+const mergeProps = (
+  { state, isEditable, elements },
+  { dispatch, ...restDispatchProps },
+  { isSelected, ...remainingOwnProps }
+) =>
+  isEditable && isSelected
+    ? {
+      elements,
+      isInteractive: true,
+      aeroStore: aeroelastic.getStore(),
+      aeroCommit: aeroelastic.commit,
+      isSelected,
+      ...remainingOwnProps,
+      ...restDispatchProps,
+      updateGlobalState: globalStateUpdater(dispatch, () => state),
+    }
+    : { elements, isSelected, isInteractive: false, ...remainingOwnProps };
+
 const InteractivePage = compose(
   withState('_forceUpdate', 'forceUpdate'), // TODO: phase out this solution
   withState('canvasOrigin', 'saveCanvasOrigin'),
@@ -137,10 +152,12 @@ const InteractivePage = compose(
   () => InteractiveComponent
 );
 
-const StaticPage = compose(
-  withProps(simplePositioning),
-  () => StaticComponent
-);
+
+
+
+
+
+
 
 export const WorkpadPage = compose(
   withProps(animationProps),
