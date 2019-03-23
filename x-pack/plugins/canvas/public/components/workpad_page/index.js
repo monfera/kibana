@@ -6,7 +6,7 @@
 
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { compose, withState, withProps, withHandlers } from 'recompose';
+import { compose, withState, withProps, withHandlers, branch } from 'recompose';
 import { aeroelastic } from '../../lib/aeroelastic_kibana';
 import { removeElements, insertNodes, elementLayer } from '../../state/actions/elements';
 import { getFullscreen, canUserWrite } from '../../state/selectors/app';
@@ -14,7 +14,8 @@ import { getNodes, isWriteable } from '../../state/selectors/workpad';
 import { flatten } from '../../lib/aeroelastic/functional';
 import { elementToShape, globalStateUpdater } from '../../lib/aeroelastic/integration_utils';
 import { eventHandlers } from './event_handlers';
-import { WorkpadPage as Component } from './workpad_page';
+import { WorkpadPage as InteractiveComponent } from './workpad_page';
+import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
 
 const mapStateToProps = (state, ownProps) => {
@@ -104,7 +105,8 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-const layoutPropsInteractive = ({ forceUpdate, elements, aeroStore, updateGlobalState }) => {
+const layoutEngine = ({ forceUpdate, elements, updateGlobalState }) => {
+  const aeroStore = aeroelastic.getStore();
   const scene = aeroStore.getCurrentState().currentScene;
   const shapes = scene.shapes;
   const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
@@ -154,7 +156,7 @@ const layoutPropsInteractive = ({ forceUpdate, elements, aeroStore, updateGlobal
   };
 };
 
-const layoutPropsStatic = elements => ({
+const simplePositioning = ({ elements }) => ({
   elements: elements.map((element, i) => {
     const { type, subtype, transformMatrix } = elementToShape(element, i);
     return {
@@ -169,11 +171,6 @@ const layoutPropsStatic = elements => ({
   }),
 });
 
-const layoutEngine = ({ isSelected, ...rest }) =>
-  isSelected
-    ? layoutPropsInteractive({ ...rest, aeroStore: aeroelastic.getStore() })
-    : layoutPropsStatic(rest.elements);
-
 const groupHandlerCreators = {
   groupElements: ({ commit }) => () =>
     commit('actionEvent', {
@@ -185,19 +182,30 @@ const groupHandlerCreators = {
     }),
 };
 
-export const WorkpadPage = compose(
+const InteractivePage = compose(
   connect(
     mapStateToProps,
     mapDispatchToProps,
     mergeProps
   ),
-  withProps(animationProps),
   withState('_forceUpdate', 'forceUpdate'), // TODO: phase out this solution
   withState('canvasOrigin', 'saveCanvasOrigin'),
   withProps(layoutEngine), // Updates states; needs to have both local and global
   withHandlers(groupHandlerCreators),
-  withHandlers(eventHandlers) // Captures user intent, needs to have reconciled state
-)(Component);
+  withHandlers(eventHandlers), // Captures user intent, needs to have reconciled state
+  () => InteractiveComponent
+);
+
+const StaticPage = compose(
+  connect(mapStateToProps),
+  withProps(simplePositioning),
+  () => StaticComponent
+);
+
+export const WorkpadPage = compose(
+  withProps(animationProps),
+  branch(({ isSelected }) => isSelected, InteractivePage, StaticPage)
+)();
 
 WorkpadPage.propTypes = {
   page: PropTypes.shape({
