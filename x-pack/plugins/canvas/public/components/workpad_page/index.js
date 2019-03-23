@@ -14,7 +14,7 @@ import { getNodes, isWriteable } from '../../state/selectors/workpad';
 import { flatten } from '../../lib/aeroelastic/functional';
 import { elementToShape, globalStateUpdater } from '../../lib/aeroelastic/integration_utils';
 import { eventHandlers } from './event_handlers';
-import { WorkpadPage as InteractiveComponent } from './workpad_page';
+import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
 

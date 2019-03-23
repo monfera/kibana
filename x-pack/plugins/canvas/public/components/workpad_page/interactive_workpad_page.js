@@ -15,7 +15,7 @@ import { BorderResizeHandle } from '../border_resize_handle';
 import { WorkpadShortcuts } from './workpad_shortcuts';
 import { interactiveWorkpadPagePropTypes } from './prop_types';
 
-export class WorkpadPage extends PureComponent {
+export class InteractiveWorkpadPage extends PureComponent {
   static propTypes = interactiveWorkpadPagePropTypes;
 
   componentWillUnmount() {
