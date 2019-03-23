@@ -61,7 +61,7 @@ export const elementToShape = (element, i) => {
   };
 };
 
-export const shapeToElement = shape => {
+const shapeToElement = shape => {
   return {
     left: shape.transformMatrix[12] - shape.a,
     top: shape.transformMatrix[13] - shape.b,
@@ -73,11 +73,7 @@ export const shapeToElement = shape => {
   };
 };
 
-export const globalPositionUpdates = (
-  setMultiplePositions,
-  { shapes, gestureEnd },
-  unsortedElements
-) => {
+const globalPositionUpdates = (setMultiplePositions, { shapes, gestureEnd }, unsortedElements) => {
   const ascending = (a, b) => (a.id < b.id ? -1 : 1);
   const relevant = s => s.type !== 'annotation' && s.subtype !== 'adHocGroup';
   const elements = unsortedElements.filter(relevant).sort(ascending);
@@ -115,7 +111,7 @@ export const globalPositionUpdates = (
   return repositionings;
 };
 
-export const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
+const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
 
 export const idDuplicateCheck = groups => {
   if (deduped(groups.map(g => g.id)).length !== groups.length) {
@@ -123,7 +119,7 @@ export const idDuplicateCheck = groups => {
   }
 };
 
-export const missingParentCheck = groups => {
+const missingParentCheck = groups => {
   const idMap = arrayToMap(groups.map(g => g.id));
   groups.forEach(g => {
     if (g.parent && !idMap[g.parent]) {
@@ -143,7 +139,7 @@ export const shapesForNodes = nodes => {
   return rawShapes.map(s => ({ ...s, localTransformMatrix: getLocalMatrix(s) }));
 };
 
-export const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsortedElements) => {
+const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsortedElements) => {
   const repositionings = globalPositionUpdates(setMultiplePositions, scene, unsortedElements);
   if (repositionings.length) {
     setMultiplePositions(repositionings);
