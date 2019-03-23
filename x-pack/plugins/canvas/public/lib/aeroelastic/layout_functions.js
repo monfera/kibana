@@ -37,7 +37,6 @@ import {
   mean,
   not,
   removeDuplicates,
-  shallowEqual,
 } from './functional';
 
 import { getId as rawGetId } from './../../lib/get_id';
@@ -146,21 +145,7 @@ export const getLocalTransformMatrix = shapes => shape => {
   );
 };
 
-export const getRestateShapesEvent = action =>
-  action && action.type === 'restateShapesEvent'
-    ? { newShapes: action.payload.newShapes, uid: action.payload.uid }
-    : null;
-
-export const getDirectSelect = action =>
-  action && action.type === 'shapeSelect' ? action.payload : null;
-
 export const getSelectedShapeObjects = scene => scene.selectedShapeObjects || []; // returns true if the shape is not a child of one of the shapes
-
-// fixme put it into geometry.js
-// broken.
-// is the composition of the baseline (previously absorbed transforms) and the cumulative (ie. ongoing interaction)
-const reselectShapes = (allShapes, shapes) =>
-  shapes.map(id => allShapes.find(shape => shape.id === id));
 
 const contentShape = allShapes => shape =>
   shape.type === 'annotation'
@@ -1212,29 +1197,15 @@ export const getSelectionState = (
   hoveredShapes,
   { down, uid },
   metaHeld,
-  multiselect,
-  directSelect,
-  allShapes
+  multiselect
 ) => {
   const uidUnchanged = uid === prev.uid;
   const mouseButtonUp = !down;
-  const updateFromDirectSelect =
-    directSelect &&
-    directSelect.shapes &&
-    !shallowEqual(directSelect.shapes, selectedShapeObjects.map(shape => shape.id));
-  if (updateFromDirectSelect) {
-    return {
-      shapes: reselectShapes(allShapes, directSelect.shapes),
-      uid: directSelect.uid,
-      depthIndex: prev.depthIndex,
-      down: prev.down,
-    };
-  }
   if (selectedShapeObjects) {
     prev.shapes = selectedShapeObjects.slice();
   }
   // take action on mouse down only, and if the uid changed (except with directSelect), ie. bail otherwise
-  if (mouseButtonUp || (uidUnchanged && !directSelect)) {
+  if (mouseButtonUp || uidUnchanged) {
     return { ...prev, down, uid, metaHeld };
   }
   const selectFunction = config.singleSelect || !multiselect ? singleSelect : multiSelect;
@@ -1271,15 +1242,6 @@ export const getTransformIntents = (
   ),
   ...resizeAnnotationManipulation(config, transformGestures, directShapes, shapes, manipulator),
 ];
-
-export const getNextShapes = (preexistingShapes, restated) => {
-  if (restated && restated.newShapes) {
-    return restated.newShapes;
-  }
-
-  // this is the per-shape model update at the current PoC level
-  return preexistingShapes;
-};
 
 export const getDraggedPrimaryShape = (shapes, draggedShape) =>
   draggedShape && shapes.find(shape => shape.id === primaryShape(draggedShape));

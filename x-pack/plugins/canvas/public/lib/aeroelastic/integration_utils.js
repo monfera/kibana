@@ -115,8 +115,6 @@ export const globalPositionUpdates = (
   return repositionings;
 };
 
-export const id = element => element.id; // check for duplication
-
 export const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
 
 export const idDuplicateCheck = groups => {
@@ -143,19 +141,6 @@ export const shapesForNodes = nodes => {
   missingParentCheck(rawShapes);
   const getLocalMatrix = getLocalTransformMatrix(rawShapes);
   return rawShapes.map(s => ({ ...s, localTransformMatrix: getLocalMatrix(s) }));
-};
-
-export const aeroCommitPopulateWithElements = (state, pageId) => {
-  const newShapes = shapesForNodes(getNodes(state, pageId));
-  return aero.commit('restateShapesEvent', { newShapes });
-};
-
-export const aeroCommitSelectShape = id => {
-  aero.commit('shapeSelect', { shapes: [id] });
-};
-
-export const aeroCommitUnselectShape = () => {
-  aero.commit('shapeSelect', { shapes: [] });
 };
 
 export const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsortedElements) => {
