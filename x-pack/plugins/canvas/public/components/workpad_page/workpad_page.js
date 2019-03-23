@@ -82,13 +82,7 @@ export class WorkpadPage extends PureComponent {
         data-test-subj="canvasWorkpadPage"
         className={`canvasPage ${className} canvasPage--isEditable`}
         data-shared-items-container
-        style={{
-          ...page.style,
-          ...animationStyle,
-          height,
-          width,
-          cursor,
-        }}
+        style={{ ...page.style, ...animationStyle, height, width, cursor }}
         onKeyDown={onKeyDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}

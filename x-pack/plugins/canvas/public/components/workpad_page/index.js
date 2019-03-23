@@ -48,17 +48,18 @@ const mapDispatchToProps = dispatch => {
 const mergeProps = (
   { state, isEditable, elements },
   { dispatch, ...restDispatchProps },
-  ownProps
+  { isSelected, ...remainingOwnProps }
 ) =>
-  isEditable
+  isEditable && isSelected
     ? {
         elements,
-        isEditable,
-        ...ownProps,
+        isInteractive: true,
+        isSelected,
+        ...remainingOwnProps,
         ...restDispatchProps,
         updateGlobalState: globalStateUpdater(dispatch, () => state),
       }
-    : { elements, isEditable, ...ownProps };
+    : { elements, isSelected, isInteractive: false, ...remainingOwnProps };
 
 const getRootElementId = (lookup, id) => {
   if (!lookup.has(id)) {
@@ -209,7 +210,7 @@ export const WorkpadPage = compose(
     mapDispatchToProps,
     mergeProps
   ),
-  branch(({ isSelected, isEditable }) => isSelected && isEditable, InteractivePage, StaticPage)
+  branch(({ isInteractive }) => isInteractive, InteractivePage, StaticPage)
 )();
 
 WorkpadPage.propTypes = {

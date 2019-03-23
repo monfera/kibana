@@ -21,20 +21,11 @@ export class StaticWorkpadPage extends PureComponent {
         data-test-subj="canvasWorkpadPage"
         className={`canvasPage ${className}`}
         data-shared-items-container
-        style={{
-          ...page.style,
-          ...animationStyle,
-          height,
-          width,
-        }}
+        style={{ ...page.style, ...animationStyle, height, width }}
       >
-        {elements
-          .map(element => {
-            if (element.type !== 'annotation' && element.type !== 'group') {
-              return <ElementWrapper key={element.id} element={element} />;
-            }
-          })
-          .filter(element => !!element)}
+        {elements.map(element => (
+          <ElementWrapper key={element.id} element={element} />
+        ))}
       </div>
     );
   }
