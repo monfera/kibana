@@ -266,13 +266,7 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-export const layoutEngine = ({
-  forceUpdate,
-  elements,
-  updateGlobalState,
-  aeroStore,
-  aeroCommit,
-}) => {
+export const layoutEngine = ({ elements, updateGlobalState, aeroStore, setAeroStore }) => {
   const scene = aeroStore.getCurrentState().currentScene;
   const shapes = scene.shapes;
   const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
@@ -312,11 +306,11 @@ export const layoutEngine = ({
     selectedElements,
     selectedPrimaryShapes,
     commit: (type, payload) => {
-      const newLayoutState = aeroCommit(type, payload);
+      const newLayoutState = aeroStore.commit(type, payload);
       if (newLayoutState.currentScene.gestureEnd) {
         updateGlobalState(newLayoutState);
       } else {
-        forceUpdate();
+        setAeroStore(aeroStore => aeroStore); // fixme remove this hack
       }
     },
   };

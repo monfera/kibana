@@ -10,5 +10,4 @@ import { createStore } from './store';
 
 export const matrix = { multiply, rotateZ, translate };
 
-export const createLayoutStore = (initialState, onChangeCallback) =>
-  createStore(initialState, updater, onChangeCallback);
+export const createLayoutStore = initialState => createStore(initialState, updater);

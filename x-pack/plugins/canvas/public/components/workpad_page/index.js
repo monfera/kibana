@@ -7,14 +7,15 @@
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { branch, compose, withHandlers, withProps, withState } from 'recompose';
-import { aeroelastic } from '../../lib/aeroelastic_kibana';
 import { elementLayer, insertNodes, removeElements } from '../../state/actions/elements';
 import { canUserWrite, getFullscreen } from '../../state/selectors/app';
-import { getNodes, isWriteable } from '../../state/selectors/workpad';
+import { getNodes, getNodesForPage, getPages, isWriteable } from '../../state/selectors/workpad';
 import {
+  calcNextStateFromRedux,
   elementToShape,
   globalStateUpdater,
   layoutEngine,
+  shapesForNodes,
 } from '../../lib/aeroelastic/integration_utils';
 import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
@@ -88,16 +89,6 @@ const StaticPage = compose(
   () => StaticComponent
 );
 
-
-
-
-
-
-
-
-
-
-
 const mapStateToProps = (state, ownProps) => {
   return {
     state,
@@ -132,32 +123,30 @@ const mergeProps = (
 ) =>
   isEditable && isSelected
     ? {
-      elements,
-      isInteractive: true,
-      aeroStore: aeroelastic.getStore(),
-      aeroCommit: aeroelastic.commit,
-      isSelected,
-      ...remainingOwnProps,
-      ...restDispatchProps,
-      updateGlobalState: globalStateUpdater(dispatch, () => state),
-    }
+        elements,
+        isInteractive: true,
+        isSelected,
+        ...remainingOwnProps,
+        ...restDispatchProps,
+        updateGlobalState: globalStateUpdater(dispatch, () => state),
+        state,
+      }
     : { elements, isSelected, isInteractive: false, ...remainingOwnProps };
 
 const InteractivePage = compose(
-  withState('_forceUpdate', 'forceUpdate'), // TODO: phase out this solution
+  withState('aeroStore', 'setAeroStore', ({ state }) =>
+    calcNextStateFromRedux(
+      null,
+      shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page])),
+      state.transient.selectedElement
+    )
+  ),
   withState('canvasOrigin', 'saveCanvasOrigin'),
   withProps(layoutEngine), // Updates states; needs to have both local and global
   withHandlers(groupHandlerCreators),
   withHandlers(eventHandlers), // Captures user intent, needs to have reconciled state
   () => InteractiveComponent
 );
-
-
-
-
-
-
-
 
 export const WorkpadPage = compose(
   withProps(animationProps),

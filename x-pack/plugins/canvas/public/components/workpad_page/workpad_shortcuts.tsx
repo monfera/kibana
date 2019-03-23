@@ -28,18 +28,18 @@ export interface Props {
   elementLayer: (pageId: string, selectedElement: any, movement: any) => void;
   groupElements: () => void;
   ungroupElements: () => void;
-  forceUpdate: () => void;
+  setAeroStore: (thing: any) => void;
 }
 
 export class WorkpadShortcuts extends Component<Props> {
   public render() {
-    const { pageId, forceUpdate } = this.props;
+    const { pageId, setAeroStore } = this.props;
     return (
       <Shortcuts
         name="ELEMENT"
         handler={(action: string, event: Event) => {
           this._keyHandler(action, event);
-          forceUpdate();
+          setAeroStore((aeroStore: any) => aeroStore); // fixme remove this hack
         }}
         targetNodeSelector={`#${pageId}`}
         global
