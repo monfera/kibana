@@ -5,7 +5,6 @@
  */
 
 import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
 import { ElementWrapper } from '../element_wrapper';
 import { AlignmentGuide } from '../alignment_guide';
 import { HoverAnnotation } from '../hover_annotation';
@@ -14,48 +13,10 @@ import { RotationHandle } from '../rotation_handle';
 import { BorderConnection } from '../border_connection';
 import { BorderResizeHandle } from '../border_resize_handle';
 import { WorkpadShortcuts } from './workpad_shortcuts';
+import { interactiveWorkpadPagePropTypes } from './prop_types';
 
-// NOTE: the data-shared-* attributes here are used for reporting
 export class WorkpadPage extends PureComponent {
-  static propTypes = {
-    page: PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      style: PropTypes.object,
-    }).isRequired,
-    className: PropTypes.string.isRequired,
-    animationStyle: PropTypes.object.isRequired,
-    elements: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        transformMatrix: PropTypes.arrayOf(PropTypes.number).isRequired,
-        width: PropTypes.number.isRequired,
-        height: PropTypes.number.isRequired,
-        type: PropTypes.string,
-      })
-    ).isRequired,
-    cursor: PropTypes.string,
-    height: PropTypes.number.isRequired,
-    width: PropTypes.number.isRequired,
-    onDoubleClick: PropTypes.func,
-    onKeyDown: PropTypes.func,
-    onMouseDown: PropTypes.func,
-    onMouseLeave: PropTypes.func,
-    onMouseMove: PropTypes.func,
-    onMouseUp: PropTypes.func,
-    onAnimationEnd: PropTypes.func,
-    resetHandler: PropTypes.func,
-    copyElements: PropTypes.func,
-    cutElements: PropTypes.func,
-    duplicateElements: PropTypes.func,
-    pasteElements: PropTypes.func,
-    removeElements: PropTypes.func,
-    bringForward: PropTypes.func,
-    bringToFront: PropTypes.func,
-    sendBackward: PropTypes.func,
-    sendToBack: PropTypes.func,
-    canvasOrigin: PropTypes.func,
-    saveCanvasOrigin: PropTypes.func.isRequired,
-  };
+  static propTypes = interactiveWorkpadPagePropTypes;
 
   componentWillUnmount() {
     this.props.resetHandler();

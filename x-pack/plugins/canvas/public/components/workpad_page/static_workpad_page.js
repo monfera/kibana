@@ -5,31 +5,11 @@
  */
 
 import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
 import { ElementWrapper } from '../element_wrapper';
+import { staticWorkpadPagePropTypes } from './prop_types';
 
-// NOTE: the data-shared-* attributes here are used for reporting
 export class StaticWorkpadPage extends PureComponent {
-  static propTypes = {
-    page: PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      style: PropTypes.object,
-    }).isRequired,
-    className: PropTypes.string.isRequired,
-    animationStyle: PropTypes.object.isRequired,
-    elements: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        transformMatrix: PropTypes.arrayOf(PropTypes.number).isRequired,
-        width: PropTypes.number.isRequired,
-        height: PropTypes.number.isRequired,
-        type: PropTypes.string,
-      })
-    ).isRequired,
-    height: PropTypes.number.isRequired,
-    width: PropTypes.number.isRequired,
-    onAnimationEnd: PropTypes.func,
-  };
+  static propTypes = staticWorkpadPagePropTypes;
 
   render() {
     const { page, className, animationStyle, elements, height, width } = this.props;
