@@ -32,8 +32,8 @@ export const aeroelastic = ({ getState }) => {
 
   //const onChangeCallback = makeChangeCallback(dispatch, getState);
 
-  const setStore = page => {
-    aero.setStore(shapesForNodes(getNodesForPage(page)));
+  const setStore = (page, selectedElement) => {
+    aero.setStore(shapesForNodes(getNodesForPage(page)), selectedElement);
   };
 
   return next => action => {
@@ -43,57 +43,66 @@ export const aeroelastic = ({ getState }) => {
     const prevElements = getNodes(prevState, prevPage);
 
     if (action.type === setPage.toString()) {
-      setStore(prevState.persistent.workpad.pages[action.payload]);
+      setStore(
+        prevState.persistent.workpad.pages[action.payload],
+        prevState.transient.selectedElement
+      );
     }
 
     next(action);
 
     const nextState = getState();
 
-    switch (action.type) {
-      case appReady.toString():
-      case restoreHistory.toString():
-      case setWorkpad.toString():
-      case addPage.toString():
-      case duplicatePage.toString():
-      case removePage.toString():
-        setStore(getPages(nextState)[nextState.persistent.workpad.page]);
-        break;
+    setStore(
+      getPages(nextState)[nextState.persistent.workpad.page],
+      nextState.transient.selectedElement
+    );
+    if (0) {
+      switch (action.type) {
+        case appReady.toString():
+        case restoreHistory.toString():
+        case setWorkpad.toString():
+        case addPage.toString():
+        case duplicatePage.toString():
+        case removePage.toString():
+          setStore(getPages(nextState)[nextState.persistent.workpad.page]);
+          break;
 
-      case selectElement.toString():
-        // without this condition, a mouse release anywhere will trigger it, leading to selection of whatever is
-        // underneath the pointer (maybe nothing) when the mouse is released
-        if (action.payload) {
-          aeroCommitSelectShape(action.payload);
-        } else {
-          aeroCommitUnselectShape();
-        }
+        case selectElement.toString():
+          // without this condition, a mouse release anywhere will trigger it, leading to selection of whatever is
+          // underneath the pointer (maybe nothing) when the mouse is released
+          if (action.payload) {
+            aeroCommitSelectShape(action.payload);
+          } else {
+            aeroCommitUnselectShape();
+          }
 
-        break;
+          break;
 
-      case removeElements.toString():
-      case addElement.toString():
-      case insertNodes.toString():
-      case elementLayer.toString():
-      case setMultiplePositions.toString():
-        const page = getSelectedPage(nextState);
-        const elements = getNodes(nextState, page);
+        case removeElements.toString():
+        case addElement.toString():
+        case insertNodes.toString():
+        case elementLayer.toString():
+        case setMultiplePositions.toString():
+          const page = getSelectedPage(nextState);
+          const elements = getNodes(nextState, page);
 
-        // TODO: add a better check for elements changing, including their position, ids, etc.
-        const shouldResetState =
-          prevPage !== page || !shallowEqual(prevElements.map(id), elements.map(id));
-        if (shouldResetState) {
-          aeroCommitPopulateWithElements(nextState, page);
-        }
+          // TODO: add a better check for elements changing, including their position, ids, etc.
+          const shouldResetState =
+            prevPage !== page || !shallowEqual(prevElements.map(id), elements.map(id));
+          if (shouldResetState) {
+            aeroCommitPopulateWithElements(nextState, page);
+          }
 
-        if (
-          action.type !== setMultiplePositions.toString() &&
-          action.type !== elementLayer.toString()
-        ) {
-          aeroCommitUnselectShape();
-        }
+          if (
+            action.type !== setMultiplePositions.toString() &&
+            action.type !== elementLayer.toString()
+          ) {
+            aeroCommitUnselectShape();
+          }
 
-        break;
+          break;
+      }
     }
   };
 };

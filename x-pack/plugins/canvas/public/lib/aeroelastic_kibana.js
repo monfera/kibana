@@ -45,12 +45,33 @@ export const aeroelasticConfiguration = {
 export const aeroelastic = {
   matrix,
 
-  setStore(shapes) {
+  setStore(shapes, selectedElement) {
+    const selectedShapeObjects = [selectedElement]
+      .map(e => shapes.find(s => s.id === e))
+      .filter(s => s);
+
+    const prevSelectionState = (store &&
+      store.currentScene &&
+      store.currentScene.selectionState) || {
+      shapes: [],
+      uid: Math.round(1000000000 * Math.random()),
+      depthIndex: 0,
+      down: false,
+    };
     store = createLayoutStore({
       primaryUpdate: null,
       currentScene: {
         shapes,
         configuration: aeroelasticConfiguration,
+        selectedShapes: [selectedElement],
+        selectedLeafShapes: [selectedElement],
+        selectedPrimaryShapes: [selectedElement],
+        selectedShapeObjects,
+        selectionState: {
+          shapes: selectedShapeObjects,
+          uid: prevSelectionState.uid, // + 1,
+          ...prevSelectionState,
+        },
       },
     });
   },
