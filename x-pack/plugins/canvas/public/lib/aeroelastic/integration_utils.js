@@ -10,7 +10,7 @@ import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selec
 import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
 import { selectElement } from '../../state/actions/transient';
 import { matrixToAngle } from './matrix';
-import { arrayToMap, identity } from './functional';
+import { arrayToMap, flatten, identity } from './functional';
 import { getLocalTransformMatrix } from './layout_functions';
 
 export const isGroupId = id => id.startsWith(aeroelasticConfiguration.groupName);
@@ -215,4 +215,75 @@ export const globalStateUpdater = (dispatch, getState) => state => {
       }
     }
   }
+};
+
+const recurseGroupTree = shapes => shapeId => {
+  const recurseGroupTreeInternal = shapeId => {
+    return [
+      shapeId,
+      ...flatten(
+        shapes
+          .filter(s => s.parent === shapeId && s.type !== 'annotation')
+          .map(s => s.id)
+          .map(recurseGroupTreeInternal)
+      ),
+    ];
+  };
+  return recurseGroupTreeInternal(shapeId);
+};
+
+export const layoutEngine = ({
+  forceUpdate,
+  elements,
+  updateGlobalState,
+  aeroStore,
+  aeroCommit,
+}) => {
+  const scene = aeroStore.getCurrentState().currentScene;
+  const shapes = scene.shapes;
+  const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
+  const cursor = scene.cursor;
+  const elementLookup = new Map(elements.map(element => [element.id, element]));
+  const selectedPrimaryShapeObjects = selectedPrimaryShapes
+    .map(id => shapes.find(s => s.id === id))
+    .filter(shape => shape);
+  const selectedPersistentPrimaryShapes = flatten(
+    selectedPrimaryShapeObjects.map(shape =>
+      shape.subtype === 'adHocGroup'
+        ? shapes.filter(s => s.parent === shape.id && s.type !== 'annotation').map(s => s.id)
+        : [shape.id]
+    )
+  );
+  const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
+  const selectedElements = [];
+  const elementsToRender = shapes.map(shape => {
+    let element = null;
+    if (elementLookup.has(shape.id)) {
+      element = elementLookup.get(shape.id);
+      if (selectedElementIds.indexOf(shape.id) > -1) {
+        selectedElements.push({ ...element, id: shape.id });
+      }
+    }
+    // instead of just combining `element` with `shape`, we make property transfer explicit
+    const result = element
+      ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
+      : shape;
+    const { id, filter, type, subtype, width, height, transformMatrix, text } = result;
+    return { id, filter, type, subtype, width, height, transformMatrix, text };
+  });
+  return {
+    elements: elementsToRender,
+    cursor,
+    selectedElementIds,
+    selectedElements,
+    selectedPrimaryShapes,
+    commit: (type, payload) => {
+      const newLayoutState = aeroCommit(type, payload);
+      if (newLayoutState.currentScene.gestureEnd) {
+        updateGlobalState(newLayoutState);
+      } else {
+        forceUpdate();
+      }
+    },
+  };
 };
