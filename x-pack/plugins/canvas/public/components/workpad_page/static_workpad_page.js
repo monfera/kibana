@@ -39,7 +39,7 @@ export class StaticWorkpadPage extends PureComponent {
         key={page.id}
         id={page.id}
         data-test-subj="canvasWorkpadPage"
-        className={`canvasPage ${className} ${''}`}
+        className={`canvasPage ${className}`}
         data-shared-items-container
         style={{
           ...page.style,

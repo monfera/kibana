@@ -72,7 +72,6 @@ export class WorkpadPage extends PureComponent {
       height,
       width,
       isEditable,
-      isSelected,
       onDoubleClick,
       onKeyDown,
       onMouseDown,
@@ -97,7 +96,7 @@ export class WorkpadPage extends PureComponent {
 
     let shortcuts = null;
 
-    if (isEditable && isSelected) {
+    if (isEditable) {
       const shortcutProps = {
         elementLayer,
         forceUpdate,
