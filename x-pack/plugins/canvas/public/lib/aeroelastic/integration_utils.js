@@ -5,11 +5,10 @@
  */
 
 import { shallowEqual } from 'recompose';
-import { aeroelastic as aero } from '../aeroelastic_kibana';
 import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selectors/workpad';
 import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
 import { selectElement } from '../../state/actions/transient';
-import { matrixToAngle } from './matrix';
+import { matrixToAngle, multiply, translate, rotateZ } from './matrix';
 import { arrayToMap, flatten, identity } from './functional';
 import { getLocalTransformMatrix } from './layout_functions';
 import { createLayoutStore } from './index';
@@ -78,10 +77,7 @@ export const elementToShape = (element, i) => {
   const z = i; // painter's algo: latest item goes to top
   // multiplying the angle with -1 as `transform: matrix3d` uses a left-handed coordinate system
   const angleRadians = (-position.angle / 180) * Math.PI;
-  const transformMatrix = aero.matrix.multiply(
-    aero.matrix.translate(cx, cy, z),
-    aero.matrix.rotateZ(angleRadians)
-  );
+  const transformMatrix = multiply(translate(cx, cy, z), rotateZ(angleRadians));
   const isGroup = isGroupId(element.id);
   const parent = (element.position && element.position.parent) || null; // reserved for hierarchical (tree shaped) grouping
   return {
