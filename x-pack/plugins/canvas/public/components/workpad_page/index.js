@@ -128,14 +128,12 @@ const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
   const shapes = shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page]));
   const selectedShapes = [state.transient.selectedElement].filter(e => e);
   const newState = calcNextStateFromRedux(aeroStore, shapes, selectedShapes);
-
   if (aeroStore) {
     aeroStore.setCurrentState(newState);
   } else {
     setAeroStore((aeroStore = createStore(newState, updater)));
   }
-
-  return { state, aeroStore };
+  return { aeroStore };
 };
 
 const InteractivePage = compose(
