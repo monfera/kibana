@@ -11,8 +11,6 @@ import { selectElement } from '../../state/actions/transient';
 import { matrixToAngle, multiply, translate, rotateZ } from './matrix';
 import { arrayToMap, flatten, identity } from './functional';
 import { getLocalTransformMatrix } from './layout_functions';
-import { createStore } from './store';
-import { updater } from './layout';
 
 export const aeroelasticConfiguration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -322,17 +320,14 @@ export const calcNextStateFromRedux = (store, shapes, selectedShapes) => {
     mouseIsDown: false,
     mouseButtonState: { buttonState: 'up', downX: null, downY: null },
   };
-  return createStore(
-    {
-      primaryUpdate: null,
-      currentScene: {
-        shapes,
-        configuration: aeroelasticConfiguration,
-        selectedShapes,
-        selectionState,
-        gestureState,
-      },
+  return {
+    primaryUpdate: null,
+    currentScene: {
+      shapes,
+      configuration: aeroelasticConfiguration,
+      selectedShapes,
+      selectionState,
+      gestureState,
     },
-    updater
-  );
+  };
 };
