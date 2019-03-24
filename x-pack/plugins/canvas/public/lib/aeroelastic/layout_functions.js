@@ -1185,7 +1185,6 @@ export const getCursor = (config, shape, draggedPrimaryShape) => {
 
 export const getSelectedShapesPrev = scene =>
   scene.selectionState || {
-    shapes: [],
     uid: null,
     depthIndex: 0,
     down: false,
