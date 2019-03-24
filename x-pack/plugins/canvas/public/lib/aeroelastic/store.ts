@@ -12,6 +12,7 @@ export const createStore = (initialState: State, updater: UpdaterFunction) => {
   let currentState = initialState;
 
   const getCurrentState = () => currentState;
+  const setCurrentState = (state: State) => (currentState = state);
 
   const commit = (type: TypeName, payload: Payload) => {
     return (currentState = updater({
@@ -23,5 +24,5 @@ export const createStore = (initialState: State, updater: UpdaterFunction) => {
     }));
   };
 
-  return { getCurrentState, commit };
+  return { getCurrentState, setCurrentState, commit };
 };
