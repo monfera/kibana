@@ -232,7 +232,6 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
   const scene = aeroStore.getCurrentState().currentScene;
   const shapes = scene.shapes;
   const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
-  const cursor = scene.cursor;
   const elementLookup = new Map(elements.map(element => [element.id, element]));
   const selectedPrimaryShapeObjects = selectedPrimaryShapes
     .map(id => shapes.find(s => s.id === id))
@@ -263,7 +262,7 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
   });
   return {
     elements: elementsToRender,
-    cursor,
+    cursor: scene.cursor,
     selectedElementIds,
     selectedElements,
     selectedPrimaryShapes,
