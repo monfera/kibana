@@ -133,7 +133,7 @@ const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
   const newState = calcNextStateFromRedux(
     asProvided ? as : null, // ugly but par for the course in this function
     shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page])),
-    state.transient.selectedElement
+    [state.transient.selectedElement].filter(e => e)
   ).getCurrentState();
   as.setCurrentState(newState);
   return { state, aeroStore: as };

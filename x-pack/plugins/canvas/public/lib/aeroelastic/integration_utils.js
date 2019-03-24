@@ -313,14 +313,10 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
   };
 };
 
-export const calcNextStateFromRedux = (store, shapes, selectedElement) => {
-  const selectedShapeObjects = [selectedElement]
-    .map(e => shapes.find(s => s.id === e))
-    .filter(s => s);
+export const calcNextStateFromRedux = (store, shapes, selectedShapes) => {
   const prevState = store && store.getCurrentState();
   const provided = prevState && prevState.currentScene && prevState.currentScene.selectionState;
   const prevSelectionState = provided || {
-    shapes: [],
     uid: Math.round(1000000000 * Math.random()),
     depthIndex: 0,
     down: false,
@@ -331,14 +327,10 @@ export const calcNextStateFromRedux = (store, shapes, selectedElement) => {
       currentScene: {
         shapes,
         configuration: aeroelasticConfiguration,
-        selectedShapes: selectedElement ? [selectedElement] : [],
-        selectedLeafShapes: selectedElement ? [selectedElement] : [],
-        selectedPrimaryShapes: selectedElement ? [selectedElement] : [],
-        selectionState: {
-          shapes: selectedShapeObjects,
-          uid: prevSelectionState.uid, // + 1,
-          ...prevSelectionState,
-        },
+        selectedShapes,
+        selectedLeafShapes: selectedShapes,
+        selectedPrimaryShapes: selectedShapes,
+        selectionState: { uid: prevSelectionState.uid, ...prevSelectionState },
       },
     },
     updater
