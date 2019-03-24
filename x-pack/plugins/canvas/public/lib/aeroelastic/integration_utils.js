@@ -315,11 +315,12 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
 
 export const calcNextStateFromRedux = (store, shapes, selectedShapes) => {
   const prevState = store && store.getCurrentState();
-  const provided = prevState && prevState.currentScene && prevState.currentScene.selectionState;
-  const prevSelectionState = provided || {
-    uid: Math.round(1000000000 * Math.random()),
-    depthIndex: 0,
-    down: false,
+  const scene = prevState && prevState.currentScene;
+  const selectionState = scene ? scene.selectionState : { uid: 0, depthIndex: 0, down: false };
+  const gestureState = (scene && scene.gestureState) || {
+    cursor: { x: 0, y: 0 },
+    mouseIsDown: false,
+    mouseButtonState: { buttonState: 'up', downX: null, downY: null },
   };
   return createStore(
     {
@@ -330,7 +331,8 @@ export const calcNextStateFromRedux = (store, shapes, selectedShapes) => {
         selectedShapes,
         selectedLeafShapes: selectedShapes,
         selectedPrimaryShapes: selectedShapes,
-        selectionState: { uid: prevSelectionState.uid, ...prevSelectionState },
+        selectionState,
+        gestureState,
       },
     },
     updater
