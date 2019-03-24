@@ -24,17 +24,6 @@ import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_wo
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
 
-const getRootElementId = (lookup, id) => {
-  if (!lookup.has(id)) {
-    return null;
-  }
-
-  const element = lookup.get(id);
-  return element.parent && element.parent.subtype !== 'adHocGroup'
-    ? getRootElementId(lookup, element.parent)
-    : element.id;
-};
-
 const animationProps = ({ isSelected, animation }) => {
   function getClassName() {
     if (animation) {
