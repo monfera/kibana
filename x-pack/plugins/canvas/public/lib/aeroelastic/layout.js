@@ -55,6 +55,7 @@ import {
   getSelectedShapes,
   getSelectedShapesPrev,
   getSelectionState,
+  getSelectionStateFull,
   getShapes,
   getSnappedShapes,
   getTransformIntents,
@@ -96,7 +97,7 @@ const selectedShapeObjects = select(getSelectedShapeObjects)(scene, shapes);
 
 const selectedShapesPrev = select(getSelectedShapesPrev)(scene);
 
-const selectionState = select(getSelectionState)(
+const selectionStateFull = select(getSelectionStateFull)(
   selectedShapesPrev,
   configuration,
   selectedShapeObjects,
@@ -106,7 +107,9 @@ const selectionState = select(getSelectionState)(
   multiselectModifier
 );
 
-const selectedShapes = select(getSelectedShapes)(selectionState);
+const selectionState = select(getSelectionState)(selectionStateFull);
+
+const selectedShapes = select(getSelectedShapes)(selectionStateFull);
 
 const selectedPrimaryShapeIds = select(getSelectedPrimaryShapeIds)(selectedShapes); // fixme unify with contentShape
 
@@ -225,7 +228,8 @@ export const nextScene = select(getNextScene)(
   cursor,
   selectionState,
   mouseTransformState,
-  gestureState
+  gestureState,
+  selectedShapes
 );
 
 export const updater = select(updaterFun)(nextScene, primaryUpdate);

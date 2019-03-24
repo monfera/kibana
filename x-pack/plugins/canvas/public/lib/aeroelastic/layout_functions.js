@@ -1191,7 +1191,7 @@ export const getSelectedShapesPrev = scene =>
     down: false,
   };
 
-export const getSelectionState = (
+export const getSelectionStateFull = (
   prev,
   config,
   selectedShapeObjects,
@@ -1214,6 +1214,8 @@ export const getSelectionState = (
 };
 
 export const getSelectedShapes = selectionTuple => selectionTuple.shapes;
+
+export const getSelectionState = ({ uid, depthIndex, down }) => ({ uid, depthIndex, down });
 
 export const getSelectedPrimaryShapeIds = shapes => shapes.map(primaryShape);
 
@@ -1387,12 +1389,13 @@ export const getNextScene = (
   cursor,
   selectionState,
   mouseTransformState,
-  gestureState
+  gestureState,
+  selectedShapes
 ) => {
   const selectedLeafShapes = getLeafs(
     shape => shape.type === config.groupName,
     shapes,
-    selectionState.shapes
+    selectedShapes
       .map(s => (s.type === 'annotation' ? shapes.find(ss => ss.id === s.parent) : s))
       .filter(identity)
   )
