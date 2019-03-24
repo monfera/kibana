@@ -132,13 +132,12 @@ const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
   const asProvided = !!aeroStore;
   const store = asProvided ? as : null;
 
-  if (!as) {
-    setAeroStore((as = createStore({}, updater)));
-  }
-
   const newState = calcNextStateFromRedux(store, shapes, selectedShapes);
-
-  as.setCurrentState(newState);
+  if (as) {
+    as.setCurrentState(newState);
+  } else {
+    setAeroStore((as = createStore(newState, updater)));
+  }
 
   return { state, aeroStore: as };
 };
