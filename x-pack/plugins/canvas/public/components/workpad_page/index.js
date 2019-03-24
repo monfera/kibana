@@ -160,34 +160,28 @@ const mergeProps = (
 const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
   const shapes = shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page]));
   const selectedShapes = [state.transient.selectedElement].filter(e => e);
-  const common = { primaryUpdate: null, currentScene: { shapes, configuration, selectedShapes } };
-  if (aeroStore) {
-    aeroStore.setCurrentState({
-      ...common,
-      currentScene: {
-        ...common.currentScene,
-        selectionState: aeroStore.getCurrentState().currentScene.selectionState,
-        gestureState: aeroStore.getCurrentState().currentScene.gestureState,
-      },
-    });
-  } else {
-    setAeroStore(
-      (aeroStore = createStore(
-        {
-          ...common,
-          currentScene: {
-            ...common.currentScene,
-            selectionState: { uid: 0, depthIndex: 0, down: false },
-            gestureState: {
-              cursor: { x: 0, y: 0 },
-              mouseIsDown: false,
-              mouseButtonState: { buttonState: 'up', downX: null, downY: null },
-            },
+  const newState = {
+    primaryUpdate: null,
+    currentScene: {
+      shapes,
+      configuration,
+      selectedShapes,
+      selectionState: aeroStore
+        ? aeroStore.getCurrentState().currentScene.selectionState
+        : { uid: 0, depthIndex: 0, down: false },
+      gestureState: aeroStore
+        ? aeroStore.getCurrentState().currentScene.gestureState
+        : {
+            cursor: { x: 0, y: 0 },
+            mouseIsDown: false,
+            mouseButtonState: { buttonState: 'up', downX: null, downY: null },
           },
-        },
-        updater
-      ))
-    );
+    },
+  };
+  if (aeroStore) {
+    aeroStore.setCurrentState(newState);
+  } else {
+    setAeroStore((aeroStore = createStore(newState, updater)));
   }
   return { aeroStore };
 };
