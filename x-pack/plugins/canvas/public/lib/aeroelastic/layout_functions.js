@@ -1389,23 +1389,12 @@ export const getNextScene = (
   cursor,
   selectionState,
   mouseTransformState,
-  gestureState,
-  selectedShapes
+  gestureState
 ) => {
-  const selectedLeafShapes = getLeafs(
-    shape => shape.type === config.groupName,
-    shapes,
-    selectedShapes
-      .map(s => (s.type === 'annotation' ? shapes.find(ss => ss.id === s.parent) : s))
-      .filter(identity)
-  )
-    .filter(shape => shape.type !== 'annotation')
-    .map(s => s.id);
   return {
     configuration: config,
     hoveredShape,
     selectedShapes: selectedShapeIds,
-    selectedLeafShapes,
     selectedPrimaryShapes,
     shapes,
     gestureEnd,

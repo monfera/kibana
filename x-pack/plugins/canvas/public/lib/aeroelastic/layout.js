@@ -228,8 +228,7 @@ export const nextScene = select(getNextScene)(
   cursor,
   selectionState,
   mouseTransformState,
-  gestureState,
-  selectedShapes
+  gestureState
 );
 
 export const updater = select(updaterFun)(nextScene, primaryUpdate);
