@@ -173,15 +173,3 @@ WorkpadPage.propTypes = {
     id: PropTypes.string.isRequired,
   }).isRequired,
 };
-
-/*
-withProps(({ state, aeroStore }) => {
-  const newState = calcNextStateFromRedux(
-    aeroStore,
-    shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page])),
-    state.transient.selectedElement
-  ).getCurrentState();
-  if (0) aeroStore.setCurrentState(newState);
-  return { state, aeroStore };
-})
-*/
