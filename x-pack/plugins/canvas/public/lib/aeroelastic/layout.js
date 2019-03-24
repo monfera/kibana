@@ -92,7 +92,7 @@ const mouseTransformGesture = select(getMouseTransformGesture)(mouseTransformSta
 
 const transformGestures = mouseTransformGesture;
 
-const selectedShapeObjects = select(getSelectedShapeObjects)(scene);
+const selectedShapeObjects = select(getSelectedShapeObjects)(scene, shapes);
 
 const selectedShapesPrev = select(getSelectedShapesPrev)(scene);
 
@@ -225,7 +225,6 @@ export const nextScene = select(getNextScene)(
   cursor,
   selectionState,
   mouseTransformState,
-  groupedSelectedShapes,
   gestureState
 );
 

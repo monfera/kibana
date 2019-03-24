@@ -331,10 +331,9 @@ export const calcNextStateFromRedux = (store, shapes, selectedElement) => {
       currentScene: {
         shapes,
         configuration: aeroelasticConfiguration,
-        selectedShapes: [selectedElement],
-        selectedLeafShapes: [selectedElement],
-        selectedPrimaryShapes: [selectedElement],
-        selectedShapeObjects,
+        selectedShapes: selectedElement ? [selectedElement] : [],
+        selectedLeafShapes: selectedElement ? [selectedElement] : [],
+        selectedPrimaryShapes: selectedElement ? [selectedElement] : [],
         selectionState: {
           shapes: selectedShapeObjects,
           uid: prevSelectionState.uid, // + 1,

@@ -145,7 +145,8 @@ export const getLocalTransformMatrix = shapes => shape => {
   );
 };
 
-export const getSelectedShapeObjects = scene => scene.selectedShapeObjects || []; // returns true if the shape is not a child of one of the shapes
+export const getSelectedShapeObjects = (scene, shapes) =>
+  (scene.selectedShapes || []).map(s => shapes.find(ss => ss.id === s));
 
 const contentShape = allShapes => shape =>
   shape.type === 'annotation'
@@ -1386,7 +1387,6 @@ export const getNextScene = (
   cursor,
   selectionState,
   mouseTransformState,
-  selectedShapes,
   gestureState
 ) => {
   const selectedLeafShapes = getLeafs(
@@ -1411,7 +1411,6 @@ export const getNextScene = (
     selectionState,
     gestureState,
     mouseTransformState,
-    selectedShapeObjects: selectedShapes,
   };
 };
 
