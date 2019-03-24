@@ -8,44 +8,11 @@ import { shallowEqual } from 'recompose';
 import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selectors/workpad';
 import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
 import { selectElement } from '../../state/actions/transient';
-import { matrixToAngle, multiply, translate, rotateZ } from './matrix';
+import { matrixToAngle, multiply, rotateZ, translate } from './matrix';
 import { arrayToMap, flatten, identity } from './functional';
 import { getLocalTransformMatrix } from './layout_functions';
 
-export const aeroelasticConfiguration = {
-  getAdHocChildAnnotationName: 'adHocChildAnnotation',
-  adHocGroupName: 'adHocGroup',
-  alignmentGuideName: 'alignmentGuide',
-  atopZ: 1000,
-  depthSelect: true,
-  devColor: 'magenta',
-  groupName: 'group',
-  groupResize: true,
-  guideDistance: 3,
-  hoverAnnotationName: 'hoverAnnotation',
-  hoverLift: 100,
-  intraGroupManipulation: false,
-  intraGroupSnapOnly: false,
-  minimumElementSize: 2,
-  persistentGroupName: 'persistentGroup',
-  resizeAnnotationConnectorOffset: 0,
-  resizeAnnotationOffset: 0,
-  resizeAnnotationOffsetZ: 0.1, // causes resize markers to be slightly above the shape plane
-  resizeAnnotationSize: 10,
-  resizeConnectorName: 'resizeConnector',
-  resizeHandleName: 'resizeHandle',
-  rotateAnnotationOffset: 12,
-  rotateSnapInPixels: 10,
-  rotationEpsilon: 0.001,
-  rotationHandleName: 'rotationHandle',
-  rotationHandleSize: 14,
-  rotationTooltipName: 'rotationTooltip',
-  shortcuts: false,
-  singleSelect: false,
-  snapConstraint: true,
-  tooltipZ: 1100,
-};
-export const isGroupId = id => id.startsWith(aeroelasticConfiguration.groupName);
+const isGroupId = id => id.startsWith('group');
 
 /**
  * elementToShape
@@ -307,27 +274,6 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
       } else {
         forceRerender();
       }
-    },
-  };
-};
-
-export const calcNextStateFromRedux = (store, shapes, selectedShapes) => {
-  const prevState = store && store.getCurrentState();
-  const scene = prevState && prevState.currentScene;
-  const selectionState = scene ? scene.selectionState : { uid: 0, depthIndex: 0, down: false };
-  const gestureState = (scene && scene.gestureState) || {
-    cursor: { x: 0, y: 0 },
-    mouseIsDown: false,
-    mouseButtonState: { buttonState: 'up', downX: null, downY: null },
-  };
-  return {
-    primaryUpdate: null,
-    currentScene: {
-      shapes,
-      configuration: aeroelasticConfiguration,
-      selectedShapes,
-      selectionState,
-      gestureState,
     },
   };
 };

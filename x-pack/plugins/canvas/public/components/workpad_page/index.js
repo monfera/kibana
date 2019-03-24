@@ -11,7 +11,6 @@ import { elementLayer, insertNodes, removeElements } from '../../state/actions/e
 import { canUserWrite, getFullscreen } from '../../state/selectors/app';
 import { getNodes, getNodesForPage, getPages, isWriteable } from '../../state/selectors/workpad';
 import {
-  calcNextStateFromRedux,
   elementToShape,
   globalStateUpdater,
   layoutEngine,
@@ -23,6 +22,40 @@ import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
+
+const configuration = {
+  getAdHocChildAnnotationName: 'adHocChildAnnotation',
+  adHocGroupName: 'adHocGroup',
+  alignmentGuideName: 'alignmentGuide',
+  atopZ: 1000,
+  depthSelect: true,
+  devColor: 'magenta',
+  groupName: 'group',
+  groupResize: true,
+  guideDistance: 3,
+  hoverAnnotationName: 'hoverAnnotation',
+  hoverLift: 100,
+  intraGroupManipulation: false,
+  intraGroupSnapOnly: false,
+  minimumElementSize: 2,
+  persistentGroupName: 'persistentGroup',
+  resizeAnnotationConnectorOffset: 0,
+  resizeAnnotationOffset: 0,
+  resizeAnnotationOffsetZ: 0.1, // causes resize markers to be slightly above the shape plane
+  resizeAnnotationSize: 10,
+  resizeConnectorName: 'resizeConnector',
+  resizeHandleName: 'resizeHandle',
+  rotateAnnotationOffset: 12,
+  rotateSnapInPixels: 10,
+  rotationEpsilon: 0.001,
+  rotationHandleName: 'rotationHandle',
+  rotationHandleSize: 14,
+  rotationTooltipName: 'rotationTooltip',
+  shortcuts: false,
+  singleSelect: false,
+  snapConstraint: true,
+  tooltipZ: 1100,
+};
 
 const animationProps = ({ isSelected, animation }) => {
   function getClassName() {
@@ -127,11 +160,34 @@ const mergeProps = (
 const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
   const shapes = shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page]));
   const selectedShapes = [state.transient.selectedElement].filter(e => e);
-  const newState = calcNextStateFromRedux(aeroStore, shapes, selectedShapes);
+  const common = { primaryUpdate: null, currentScene: { shapes, configuration, selectedShapes } };
   if (aeroStore) {
-    aeroStore.setCurrentState(newState);
+    aeroStore.setCurrentState({
+      ...common,
+      currentScene: {
+        ...common.currentScene,
+        selectionState: aeroStore.getCurrentState().currentScene.selectionState,
+        gestureState: aeroStore.getCurrentState().currentScene.gestureState,
+      },
+    });
   } else {
-    setAeroStore((aeroStore = createStore(newState, updater)));
+    setAeroStore(
+      (aeroStore = createStore(
+        {
+          ...common,
+          currentScene: {
+            ...common.currentScene,
+            selectionState: { uid: 0, depthIndex: 0, down: false },
+            gestureState: {
+              cursor: { x: 0, y: 0 },
+              mouseIsDown: false,
+              mouseButtonState: { buttonState: 'up', downX: null, downY: null },
+            },
+          },
+        },
+        updater
+      ))
+    );
   }
   return { aeroStore };
 };
