@@ -48,7 +48,6 @@ export class InteractiveWorkpadPage extends PureComponent {
       elementLayer,
       groupElements,
       ungroupElements,
-      setAeroStore,
       canvasOrigin,
       saveCanvasOrigin,
     } = this.props;
@@ -57,7 +56,6 @@ export class InteractiveWorkpadPage extends PureComponent {
 
     const shortcutProps = {
       elementLayer,
-      setAeroStore,
       groupElements,
       insertNodes,
       pageId: page.id,
