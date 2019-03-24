@@ -1379,9 +1379,9 @@ export const getAnnotatedShapes = (
 }; // collection of shapes themselves
 
 export const getNextScene = (
-  config,
+  configuration,
   hoveredShape,
-  selectedShapeIds,
+  selectedShapes,
   selectedPrimaryShapes,
   shapes,
   gestureEnd,
@@ -1390,21 +1390,19 @@ export const getNextScene = (
   selectionState,
   mouseTransformState,
   gestureState
-) => {
-  return {
-    configuration: config,
-    hoveredShape,
-    selectedShapes: selectedShapeIds,
-    selectedPrimaryShapes,
-    shapes,
-    gestureEnd,
-    draggedShape,
-    cursor,
-    selectionState,
-    gestureState,
-    mouseTransformState,
-  };
-};
+) => ({
+  configuration,
+  hoveredShape,
+  selectedShapes,
+  selectedPrimaryShapes,
+  shapes,
+  gestureEnd,
+  draggedShape,
+  cursor,
+  selectionState,
+  mouseTransformState,
+  gestureState,
+});
 
 export const updaterFun = (nextScene, primaryUpdate) => ({
   primaryUpdate,
