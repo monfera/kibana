@@ -127,19 +127,15 @@ const mergeProps = (
 const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
   const shapes = shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page]));
   const selectedShapes = [state.transient.selectedElement].filter(e => e);
+  const newState = calcNextStateFromRedux(aeroStore, shapes, selectedShapes);
 
-  let as = aeroStore;
-  const asProvided = !!aeroStore;
-  const store = asProvided ? as : null;
-
-  const newState = calcNextStateFromRedux(store, shapes, selectedShapes);
-  if (as) {
-    as.setCurrentState(newState);
+  if (aeroStore) {
+    aeroStore.setCurrentState(newState);
   } else {
-    setAeroStore((as = createStore(newState, updater)));
+    setAeroStore((aeroStore = createStore(newState, updater)));
   }
 
-  return { state, aeroStore: as };
+  return { state, aeroStore };
 };
 
 const InteractivePage = compose(
