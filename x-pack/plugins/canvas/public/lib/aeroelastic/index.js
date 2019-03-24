@@ -3,11 +3,3 @@
  * or more contributor license agreements. Licensed under the Elastic License;
  * you may not use this file except in compliance with the Elastic License.
  */
-
-import { updater } from './layout';
-import { multiply, rotateZ, translate } from './matrix';
-import { createStore } from './store';
-
-export const matrix = { multiply, rotateZ, translate };
-
-export const createLayoutStore = initialState => createStore(initialState, updater);

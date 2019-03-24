@@ -11,7 +11,8 @@ import { selectElement } from '../../state/actions/transient';
 import { matrixToAngle, multiply, translate, rotateZ } from './matrix';
 import { arrayToMap, flatten, identity } from './functional';
 import { getLocalTransformMatrix } from './layout_functions';
-import { createLayoutStore } from './index';
+import { createStore } from './store';
+import { updater } from './layout';
 
 export const aeroelasticConfiguration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -262,7 +263,7 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-export const layoutEngine = ({ elements, updateGlobalState, aeroStore, setAeroStore }) => {
+export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRerender }) => {
   const scene = aeroStore.getCurrentState().currentScene;
   const shapes = scene.shapes;
   const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
@@ -306,7 +307,8 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, setAeroSt
       if (newLayoutState.currentScene.gestureEnd) {
         updateGlobalState(newLayoutState);
       } else {
-        setAeroStore(aeroStore => aeroStore); // fixme remove this hack
+        forceRerender();
+        //setAeroStore(aeroStore => aeroStore); // fixme remove this hack
       }
     },
   };
@@ -323,20 +325,23 @@ export const calcNextStateFromRedux = (store, shapes, selectedElement) => {
     depthIndex: 0,
     down: false,
   };
-  return createLayoutStore({
-    primaryUpdate: null,
-    currentScene: {
-      shapes,
-      configuration: aeroelasticConfiguration,
-      selectedShapes: [selectedElement],
-      selectedLeafShapes: [selectedElement],
-      selectedPrimaryShapes: [selectedElement],
-      selectedShapeObjects,
-      selectionState: {
-        shapes: selectedShapeObjects,
-        uid: prevSelectionState.uid, // + 1,
-        ...prevSelectionState,
+  return createStore(
+    {
+      primaryUpdate: null,
+      currentScene: {
+        shapes,
+        configuration: aeroelasticConfiguration,
+        selectedShapes: [selectedElement],
+        selectedLeafShapes: [selectedElement],
+        selectedPrimaryShapes: [selectedElement],
+        selectedShapeObjects,
+        selectionState: {
+          shapes: selectedShapeObjects,
+          uid: prevSelectionState.uid, // + 1,
+          ...prevSelectionState,
+        },
       },
     },
-  });
+    updater
+  );
 };

@@ -17,6 +17,8 @@ import {
   layoutEngine,
   shapesForNodes,
 } from '../../lib/aeroelastic/integration_utils';
+import { updater } from '../../lib/aeroelastic/layout';
+import { createStore } from '../../lib/aeroelastic/store';
 import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
@@ -134,14 +136,21 @@ const mergeProps = (
     : { elements, isSelected, isInteractive: false, ...remainingOwnProps };
 
 const InteractivePage = compose(
-  withState('aeroStore', 'setAeroStore', ({ state }) =>
-    calcNextStateFromRedux(
-      null,
+  withProps(({ state, aeroStore, setAeroStore }) => {
+    let as = aeroStore;
+    if (!as) {
+      setAeroStore((as = createStore({}, updater)));
+    }
+    const newState = calcNextStateFromRedux(
+      as,
       shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page])),
       state.transient.selectedElement
-    )
-  ),
+    ).getCurrentState();
+    as.setCurrentState(newState);
+    return { state, aeroStore: as };
+  }),
   withState('canvasOrigin', 'saveCanvasOrigin'),
+  withState('_forceRerender', 'forceRerender'),
   withProps(layoutEngine), // Updates states; needs to have both local and global
   withHandlers(groupHandlerCreators),
   withHandlers(eventHandlers), // Captures user intent, needs to have reconciled state
@@ -149,6 +158,7 @@ const InteractivePage = compose(
 );
 
 export const WorkpadPage = compose(
+  withState('aeroStore', 'setAeroStore'),
   withProps(animationProps),
   connect(
     mapStateToProps,
