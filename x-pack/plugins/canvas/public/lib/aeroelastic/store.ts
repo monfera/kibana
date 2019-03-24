@@ -11,9 +11,6 @@ let counter = 0 as ActionId;
 export const createStore = (initialState: State, updater: UpdaterFunction) => {
   let currentState = initialState;
 
-  const getCurrentState = () => currentState;
-  const setCurrentState = (state: State) => (currentState = state);
-
   const commit = (type: TypeName, payload: Payload) => {
     return (currentState = updater({
       ...currentState,
@@ -22,6 +19,13 @@ export const createStore = (initialState: State, updater: UpdaterFunction) => {
         payload: { ...payload, uid: counter++ },
       },
     }));
+  };
+
+  const getCurrentState = () => currentState;
+
+  const setCurrentState = (state: State) => {
+    currentState = state;
+    commit('flush', {});
   };
 
   return { getCurrentState, setCurrentState, commit };
