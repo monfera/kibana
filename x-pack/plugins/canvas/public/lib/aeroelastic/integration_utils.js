@@ -308,7 +308,6 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
         updateGlobalState(newLayoutState);
       } else {
         forceRerender();
-        //setAeroStore(aeroStore => aeroStore); // fixme remove this hack
       }
     },
   };
@@ -318,8 +317,9 @@ export const calcNextStateFromRedux = (store, shapes, selectedElement) => {
   const selectedShapeObjects = [selectedElement]
     .map(e => shapes.find(s => s.id === e))
     .filter(s => s);
-
-  const prevSelectionState = (store && store.currentScene && store.currentScene.selectionState) || {
+  const prevState = store && store.getCurrentState();
+  const provided = prevState && prevState.currentScene && prevState.currentScene.selectionState;
+  const prevSelectionState = provided || {
     shapes: [],
     uid: Math.round(1000000000 * Math.random()),
     depthIndex: 0,

@@ -135,30 +135,33 @@ const mergeProps = (
       }
     : { elements, isSelected, isInteractive: false, ...remainingOwnProps };
 
+const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
+  let as = aeroStore;
+  const asProvided = !!aeroStore;
+  if (!as) {
+    setAeroStore((as = createStore({}, updater)));
+  }
+  const newState = calcNextStateFromRedux(
+    asProvided ? as : null, // ugly but par for the course in this function
+    shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page])),
+    state.transient.selectedElement
+  ).getCurrentState();
+  as.setCurrentState(newState);
+  return { state, aeroStore: as };
+};
+
 const InteractivePage = compose(
-  withProps(({ state, aeroStore, setAeroStore }) => {
-    let as = aeroStore;
-    if (!as) {
-      setAeroStore((as = createStore({}, updater)));
-    }
-    const newState = calcNextStateFromRedux(
-      as,
-      shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page])),
-      state.transient.selectedElement
-    ).getCurrentState();
-    as.setCurrentState(newState);
-    return { state, aeroStore: as };
-  }),
+  withProps(componentLayoutState),
   withState('canvasOrigin', 'saveCanvasOrigin'),
   withState('_forceRerender', 'forceRerender'),
-  withProps(layoutEngine), // Updates states; needs to have both local and global
+  withProps(layoutEngine), // Updates states; needs to have both local and global state
   withHandlers(groupHandlerCreators),
   withHandlers(eventHandlers), // Captures user intent, needs to have reconciled state
   () => InteractiveComponent
 );
 
 export const WorkpadPage = compose(
-  withState('aeroStore', 'setAeroStore'),
+  withState('aeroStore', 'setAeroStore'), // must wrap `connect`, though only interactive pages end up using it
   withProps(animationProps),
   connect(
     mapStateToProps,
