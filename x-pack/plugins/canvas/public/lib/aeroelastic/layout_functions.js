@@ -1183,12 +1183,7 @@ export const getCursor = (config, shape, draggedPrimaryShape) => {
   }
 };
 
-export const getSelectedShapesPrev = scene =>
-  scene.selectionState || {
-    uid: null,
-    depthIndex: 0,
-    down: false,
-  };
+export const getSelectedShapesPrev = scene => scene.selectionState;
 
 export const getSelectionStateFull = (
   prev,
