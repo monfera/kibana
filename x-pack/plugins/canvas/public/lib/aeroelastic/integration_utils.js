@@ -196,7 +196,7 @@ export const globalStateUpdater = (dispatch, getState) => state => {
 
   // set the selected element on the global store, if one element is selected
   const selectedShape = nextScene.selectedPrimaryShapes[0];
-  if (nextScene.selectedShapes.length === 1 && !isGroupId(selectedShape)) {
+  if (nextScene.selectedShapes.length === 1 && selectedShape.subtype !== 'adHocGroup') {
     if (selectedShape !== (selectedElement && selectedElement.id)) {
       dispatch(selectElement(selectedShape));
     }
