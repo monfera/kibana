@@ -244,11 +244,7 @@ export const selectedElementsProps = ({ elements, aeroStore }) => {
   );
   const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
   const selectedElements = selectedElementIds.map(id => elements.find(s => s.id === id));
-  return {
-    selectedElementIds,
-    selectedElements,
-    selectedPrimaryShapes,
-  };
+  return { selectedElementIds, selectedElements, selectedPrimaryShapes };
 };
 
 export const elementsAndCommit = ({ elements, updateGlobalState, aeroStore, forceRerender }) => {
@@ -256,11 +252,9 @@ export const elementsAndCommit = ({ elements, updateGlobalState, aeroStore, forc
   const elementLookup = new Map(elements.map(element => [element.id, element]));
   const elementsToRender = scene.shapes.map(shape => {
     const element = elementLookup.get(shape.id);
-    const result = element
+    return element
       ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
       : shape;
-    const { id, filter, type, subtype, width, height, transformMatrix, text } = result;
-    return { id, filter, type, subtype, width, height, transformMatrix, text };
   });
   return {
     elements: elementsToRender,
