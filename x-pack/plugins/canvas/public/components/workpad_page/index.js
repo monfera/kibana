@@ -13,7 +13,8 @@ import { getNodes, getNodesForPage, getPages, isWriteable } from '../../state/se
 import {
   elementToShape,
   globalStateUpdater,
-  layoutEngine,
+  elementsAndCommit,
+  selectedElementsProps,
   shapesForNodes,
 } from '../../lib/aeroelastic/integration_utils';
 import { updater } from '../../lib/aeroelastic/layout';
@@ -189,8 +190,9 @@ const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
 const InteractivePage = compose(
   withProps(componentLayoutState),
   withState('canvasOrigin', 'saveCanvasOrigin'),
+  withProps(selectedElementsProps), // Updates states; needs to have both local and global state
   withState('_forceRerender', 'forceRerender'),
-  withProps(layoutEngine), // Updates states; needs to have both local and global state
+  withProps(elementsAndCommit), // Updates states; needs to have both local and global state
   withHandlers(groupHandlerCreators),
   withHandlers(eventHandlers), // Captures user intent, needs to have reconciled state
   () => InteractiveComponent

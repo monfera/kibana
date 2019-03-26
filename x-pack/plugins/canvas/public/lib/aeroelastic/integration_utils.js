@@ -228,7 +228,7 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRerender }) => {
+export const selectedElementsProps = ({ elements, aeroStore }) => {
   const scene = aeroStore.getCurrentState().currentScene;
   const shapes = scene.shapes;
   const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
@@ -245,7 +245,7 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
   );
   const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
   const selectedElements = [];
-  const elementsToRender = shapes.map(shape => {
+  shapes.forEach(shape => {
     let element = null;
     if (elementLookup.has(shape.id)) {
       element = elementLookup.get(shape.id);
@@ -253,7 +253,20 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
         selectedElements.push({ ...element, id: shape.id });
       }
     }
-    // instead of just combining `element` with `shape`, we make property transfer explicit
+  });
+  return {
+    selectedElementIds,
+    selectedElements,
+    selectedPrimaryShapes,
+  };
+};
+
+export const elementsAndCommit = ({ elements, updateGlobalState, aeroStore, forceRerender }) => {
+  const scene = aeroStore.getCurrentState().currentScene;
+  const shapes = scene.shapes;
+  const elementLookup = new Map(elements.map(element => [element.id, element]));
+  const elementsToRender = shapes.map(shape => {
+    const element = elementLookup.get(shape.id);
     const result = element
       ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
       : shape;
@@ -263,9 +276,6 @@ export const layoutEngine = ({ elements, updateGlobalState, aeroStore, forceRere
   return {
     elements: elementsToRender,
     cursor: scene.cursor,
-    selectedElementIds,
-    selectedElements,
-    selectedPrimaryShapes,
     commit: (type, payload) => {
       const newLayoutState = aeroStore.commit(type, payload);
       if (newLayoutState.currentScene.gestureEnd) {
