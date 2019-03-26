@@ -20,6 +20,7 @@ import { shape } from './shape';
 import { table } from './table';
 import { timeFilter } from './time_filter';
 import { text } from './text';
+import { vegaLitePlot } from './vega_lite';
 
 export const renderFunctions = [
   advancedFilter,
@@ -38,4 +39,5 @@ export const renderFunctions = [
   table,
   timeFilter,
   text,
+  vegaLitePlot
 ];

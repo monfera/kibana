@@ -58,6 +58,7 @@ import { timefilter } from './timefilter';
 import { timefilterControl } from './timefilterControl';
 import { switchFn } from './switch';
 import { caseFn } from './case';
+import { vegaLite } from './vega_lite';
 
 export const functions = [
   all,
@@ -114,4 +115,5 @@ export const functions = [
   timefilterControl,
   switchFn,
   caseFn,
+  vegaLite,
 ];
