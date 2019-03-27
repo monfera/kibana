@@ -149,7 +149,7 @@ export const globalStateUpdater = (dispatch, getState) => state => {
   const selectedElement = getSelectedElement(getState());
 
   const shapes = nextScene.shapes;
-  const persistableGroups = shapes.filter(s => s.subtype === 'persistentGroup');
+  const persistableGroups = shapes.filter(s => s.type === 'group');
   const persistedGroups = elements.filter(e => isGroupId(e.id));
 
   idDuplicateCheck(persistableGroups);
@@ -196,7 +196,7 @@ export const globalStateUpdater = (dispatch, getState) => state => {
 
   // set the selected element on the global store, if one element is selected
   const selectedShape = nextScene.selectedPrimaryShapes[0];
-  if (nextScene.selectedShapes.length === 1 && selectedShape.subtype !== 'adHocGroup') {
+  if (nextScene.selectedShapes.length === 1) {
     if (selectedShape !== (selectedElement && selectedElement.id)) {
       dispatch(selectElement(selectedShape));
     }
