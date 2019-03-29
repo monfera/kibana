@@ -228,10 +228,12 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-export const selectedElementsProps = ({ elements, aeroStore }) => {
-  const scene = aeroStore.getCurrentState().currentScene;
-  const shapes = scene.shapes;
-  const selectedPrimaryShapes = scene.selectedPrimaryShapes || [];
+export const selectedPrimaryShapeIds = ({ aeroStore }) => ({
+  selectedPrimaryShapes: aeroStore.getCurrentState().currentScene.selectedPrimaryShapes || [],
+});
+
+export const selectedElementIds = ({ selectedPrimaryShapes, aeroStore }) => {
+  const shapes = aeroStore.getCurrentState().currentScene.shapes;
   const selectedPrimaryShapeObjects = selectedPrimaryShapes
     .map(id => shapes.find(s => s.id === id))
     .filter(shape => shape);
@@ -243,9 +245,12 @@ export const selectedElementsProps = ({ elements, aeroStore }) => {
     )
   );
   const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
-  const selectedElements = selectedElementIds.map(id => elements.find(s => s.id === id));
-  return { selectedElementIds, selectedElements, selectedPrimaryShapes };
+  return { selectedElementIds };
 };
+
+export const selectedElementObjects = ({ elements, selectedElementIds }) => ({
+  selectedElements: selectedElementIds.map(id => elements.find(s => s.id === id)),
+});
 
 export const elementsAndCommit = ({ elements, updateGlobalState, aeroStore, forceRerender }) => {
   const scene = aeroStore.getCurrentState().currentScene;
