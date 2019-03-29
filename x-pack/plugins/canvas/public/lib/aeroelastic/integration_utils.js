@@ -107,13 +107,7 @@ const globalPositionUpdates = (setMultiplePositions, { shapes, gestureEnd }, uns
   return repositionings;
 };
 
-const deduped = a => a.filter((d, i) => a.indexOf(d) === i);
-
-export const idDuplicateCheck = groups => {
-  if (deduped(groups.map(g => g.id)).length !== groups.length) {
-    throw new Error('Duplicate element encountered');
-  }
-};
+export const dedupe = (d, i, a) => a.findIndex(s => s.id === d.id) === i;
 
 const missingParentCheck = groups => {
   const idMap = arrayToMap(groups.map(g => g.id));
@@ -128,8 +122,8 @@ export const shapesForNodes = nodes => {
   const rawShapes = nodes
     .map(elementToShape)
     // filtering to eliminate residual element of a possible group that had been deleted in Redux
-    .filter((d, i, a) => !isGroupId(d.id) || a.find(s => s.parent === d.id));
-  idDuplicateCheck(rawShapes);
+    .filter((d, i, a) => !isGroupId(d.id) || a.find(s => s.parent === d.id))
+    .filter(dedupe);
   missingParentCheck(rawShapes);
   const getLocalMatrix = getLocalTransformMatrix(rawShapes);
   return rawShapes.map(s => ({ ...s, localTransformMatrix: getLocalMatrix(s) }));
@@ -149,11 +143,8 @@ export const globalStateUpdater = (dispatch, getState) => state => {
   const selectedElement = getSelectedElement(getState());
 
   const shapes = nextScene.shapes;
-  const persistableGroups = shapes.filter(s => s.type === 'group');
-  const persistedGroups = elements.filter(e => isGroupId(e.id));
-
-  idDuplicateCheck(persistableGroups);
-  idDuplicateCheck(persistedGroups);
+  const persistableGroups = shapes.filter(s => s.subtype === 'persistentGroup').filter(dedupe);
+  const persistedGroups = elements.filter(e => isGroupId(e.id)).filter(dedupe);
 
   persistableGroups.forEach(g => {
     if (
