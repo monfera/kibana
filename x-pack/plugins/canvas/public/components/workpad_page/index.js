@@ -162,7 +162,9 @@ const mergeProps = (
 
 const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
   const shapes = shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page]));
-  const selectedShapes = [state.transient.selectedElement].filter(e => e);
+  const selectedShapes = [state.transient.selectedElement].filter(
+    e => e && shapes.find(s => s.id === e)
+  );
   const newState = {
     primaryUpdate: null,
     currentScene: {
