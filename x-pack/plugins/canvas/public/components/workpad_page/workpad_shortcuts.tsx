@@ -94,7 +94,6 @@ const keyMap = {
 
 export class WorkpadShortcuts extends Component<Props> {
   public render() {
-    const { pageId } = this.props;
     return (
       <Shortcuts
         name="ELEMENT"
@@ -102,7 +101,7 @@ export class WorkpadShortcuts extends Component<Props> {
           event.preventDefault();
           keyMap[action](this.props);
         }}
-        targetNodeSelector={`#${pageId}`}
+        targetNodeSelector={`#${this.props.pageId}`}
         global
       />
     );

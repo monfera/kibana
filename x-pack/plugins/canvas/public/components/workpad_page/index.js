@@ -106,18 +106,17 @@ const StaticPage = compose(
 const mapStateToProps = (state, ownProps) => {
   const selectedPrimaryShapes = state.transient.selectedToplevelNodes;
   const nodes = getNodes(state, ownProps.page.id);
-  const shapes = nodes;
   const selectedPrimaryShapeObjects = selectedPrimaryShapes
-    .map(id => shapes.find(s => s.id === id))
+    .map(id => nodes.find(s => s.id === id))
     .filter(shape => shape);
   const selectedPersistentPrimaryNodes = flatten(
     selectedPrimaryShapeObjects.map(shape =>
       nodes.find(n => n.id === shape.id) // is it a leaf or a persisted group?
         ? [shape.id]
-        : shapes.filter(s => s.parent === shape.id).map(s => s.id)
+        : nodes.filter(s => s.parent === shape.id).map(s => s.id)
     )
   );
-  const selectedNodeIds = flatten(selectedPersistentPrimaryNodes.map(crawlTree(shapes)));
+  const selectedNodeIds = flatten(selectedPersistentPrimaryNodes.map(crawlTree(nodes)));
   return {
     state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
@@ -126,19 +125,17 @@ const mapStateToProps = (state, ownProps) => {
   };
 };
 
-const mapDispatchToProps = dispatch => {
-  return {
-    dispatch,
-    insertNodes: pageId => selectedNodes => dispatch(insertNodes(selectedNodes, pageId)),
-    removeNodes: pageId => nodeIds => dispatch(removeElements(nodeIds, pageId)),
-    selectToplevelNodes: nodes =>
-      dispatch(selectToplevelNodes(nodes.filter(e => !e.position.parent).map(e => e.id))),
-    // TODO: Abstract this out, this is similar to layering code in sidebar/index.js:
-    elementLayer: (pageId, selectedElement, movement) => {
-      dispatch(elementLayer({ pageId, elementId: selectedElement.id, movement }));
-    },
-  };
-};
+const mapDispatchToProps = dispatch => ({
+  dispatch,
+  insertNodes: pageId => selectedNodes => dispatch(insertNodes(selectedNodes, pageId)),
+  removeNodes: pageId => nodeIds => dispatch(removeElements(nodeIds, pageId)),
+  selectToplevelNodes: nodes =>
+    dispatch(selectToplevelNodes(nodes.filter(e => !e.position.parent).map(e => e.id))),
+  // TODO: Abstract this out, this is similar to layering code in sidebar/index.js:
+  elementLayer: (pageId, selectedElement, movement) => {
+    dispatch(elementLayer({ pageId, elementId: selectedElement.id, movement }));
+  },
+});
 
 const mergeProps = (
   { state, isEditable, elements, ...restStateProps },
