@@ -17,6 +17,8 @@ import {
   shapesForNodes,
   selectedElementIds,
   selectedElementObjects,
+  recurseGroupTree,
+  recurseGroupTree2,
 } from '../../lib/aeroelastic/integration_utils';
 import { updater } from '../../lib/aeroelastic/layout';
 import { createStore } from '../../lib/aeroelastic/store';
@@ -24,6 +26,7 @@ import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
+import { flatten } from '../../lib/aeroelastic/functional';
 
 const configuration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -116,11 +119,30 @@ const StaticPage = compose(
 );
 
 const mapStateToProps = (state, ownProps) => {
+  const selectedPrimaryShapes = [state.transient.selectedElement].filter(e => e);
+  const nodes = getNodes(state, ownProps.page.id);
+  const shapes = nodes;
+  const selectedPrimaryShapeObjects = selectedPrimaryShapes
+    .map(id => shapes.find(s => s.id === id))
+    .filter(shape => shape);
+  //if (selectedPrimaryShapes.length) debugger;
+  const selectedPersistentPrimaryShapes = flatten(
+    selectedPrimaryShapeObjects.map(shape =>
+      nodes.find(n => n.id === shape.id) // is it a leaf or a persisted group?
+        ? [shape.id]
+        : shapes.filter(s => s.parent === shape.id).map(s => s.id)
+    )
+  );
+  const selectedElementIds = flatten(
+    selectedPersistentPrimaryShapes.map(recurseGroupTree2(shapes))
+  );
+  if(selectedPersistentPrimaryShapes.length < selectedElementIds.length) debugger
   return {
     state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
-    elements: getNodes(state, ownProps.page.id),
-    selectedPrimaryShapes: [state.transient.selectedElement].filter(e => e),
+    elements: nodes,
+    selectedPrimaryShapes,
+    selectedElementIdsNew: selectedElementIds,
   };
 };
 
