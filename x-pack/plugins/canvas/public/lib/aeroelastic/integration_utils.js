@@ -204,7 +204,7 @@ export const globalStateUpdater = (dispatch, getState) => state => {
   }
 };
 
-export const recurseGroupTree2 = shapes => shapeId => {
+export const recurseGroupTree = shapes => shapeId => {
   const recurseGroupTreeInternal = shapeId => {
     return [
       shapeId,
@@ -217,39 +217,6 @@ export const recurseGroupTree2 = shapes => shapeId => {
     ];
   };
   return recurseGroupTreeInternal(shapeId);
-};
-
-const recurseGroupTree = shapes => shapeId => {
-  const recurseGroupTreeInternal = shapeId => {
-    return [
-      shapeId,
-      ...flatten(
-        shapes
-          .filter(s => s.parent === shapeId && s.type !== 'annotation')
-          .map(s => s.id)
-          .map(recurseGroupTreeInternal)
-      ),
-    ];
-  };
-  return recurseGroupTreeInternal(shapeId);
-};
-
-export const selectedElementIds = ({ selectedPrimaryShapes, aeroStore, selectedElementIdsNew }) => {
-  const shapes = aeroStore.getCurrentState().currentScene.shapes;
-  const selectedPrimaryShapeObjects = selectedPrimaryShapes
-    .map(id => shapes.find(s => s.id === id))
-    .filter(shape => shape);
-  const selectedPersistentPrimaryShapes = flatten(
-    selectedPrimaryShapeObjects.map(shape =>
-      shape.subtype === 'adHocGroup'
-        ? shapes.filter(s => s.parent === shape.id && s.type !== 'annotation').map(s => s.id)
-        : [shape.id]
-    )
-  );
-  const selectedElementIds = flatten(selectedPersistentPrimaryShapes.map(recurseGroupTree(shapes)));
-  //if (JSON.stringify(selectedElementIdsNew.sort()) !== JSON.stringify(selectedElementIds.sort())) debugger;
-  console.log('old/new length:',selectedElementIds.length, selectedElementIdsNew.length)
-  return { selectedElementIds };
 };
 
 export const selectedElementObjects = ({ elements, selectedElementIds }) => ({

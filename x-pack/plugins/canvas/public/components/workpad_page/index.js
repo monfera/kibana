@@ -15,18 +15,16 @@ import {
   globalStateUpdater,
   elementsAndCommit,
   shapesForNodes,
-  selectedElementIds,
   selectedElementObjects,
   recurseGroupTree,
-  recurseGroupTree2,
 } from '../../lib/aeroelastic/integration_utils';
 import { updater } from '../../lib/aeroelastic/layout';
 import { createStore } from '../../lib/aeroelastic/store';
+import { flatten } from '../../lib/aeroelastic/functional';
 import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
-import { flatten } from '../../lib/aeroelastic/functional';
 
 const configuration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -125,24 +123,20 @@ const mapStateToProps = (state, ownProps) => {
   const selectedPrimaryShapeObjects = selectedPrimaryShapes
     .map(id => shapes.find(s => s.id === id))
     .filter(shape => shape);
-  //if (selectedPrimaryShapes.length) debugger;
-  const selectedPersistentPrimaryShapes = flatten(
+  const selectedPersistentPrimaryNodes = flatten(
     selectedPrimaryShapeObjects.map(shape =>
       nodes.find(n => n.id === shape.id) // is it a leaf or a persisted group?
         ? [shape.id]
         : shapes.filter(s => s.parent === shape.id).map(s => s.id)
     )
   );
-  const selectedElementIds = flatten(
-    selectedPersistentPrimaryShapes.map(recurseGroupTree2(shapes))
-  );
-  if(selectedPersistentPrimaryShapes.length < selectedElementIds.length) debugger
+  const selectedElementIds = flatten(selectedPersistentPrimaryNodes.map(recurseGroupTree(shapes)));
   return {
     state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
     elements: nodes,
     selectedPrimaryShapes,
-    selectedElementIdsNew: selectedElementIds,
+    selectedElementIds,
   };
 };
 
@@ -217,7 +211,6 @@ const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
 const InteractivePage = compose(
   withProps(componentLayoutState),
   withState('canvasOrigin', 'saveCanvasOrigin'),
-  withProps(selectedElementIds),
   withProps(selectedElementObjects),
   withState('_forceRerender', 'forceRerender'),
   withProps(elementsAndCommit), // Updates states; needs to have both local and global state
