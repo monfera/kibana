@@ -42,7 +42,7 @@ export class InteractiveWorkpadPage extends PureComponent {
       selectedElementIds,
       selectedElements,
       selectedPrimaryShapes,
-      selectElement,
+      selectToplevelNodes,
       insertNodes,
       removeElements,
       elementLayer,
@@ -63,7 +63,7 @@ export class InteractiveWorkpadPage extends PureComponent {
       selectedElementIds,
       selectedElements,
       selectedPrimaryShapes,
-      selectElement,
+      selectToplevelNodes,
       ungroupElements,
     };
     shortcuts = <WorkpadShortcuts {...shortcutProps} />;

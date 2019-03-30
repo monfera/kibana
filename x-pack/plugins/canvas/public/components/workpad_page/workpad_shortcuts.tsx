@@ -22,13 +22,15 @@ export interface Props {
   selectedElementIds: string[];
   selectedElements: any[];
   selectedPrimaryShapes: any[];
-  selectElement: (elementId: string) => void;
+  selectToplevelNodes: (...elementIds: string[]) => void;
   insertNodes: (pageId: string) => (selectedElements: any[]) => void;
   removeElements: (pageId: string) => (selectedElementIds: string[]) => void;
   elementLayer: (pageId: string, selectedElement: any, movement: any) => void;
   groupElements: () => void;
   ungroupElements: () => void;
 }
+
+const toplevel = nodes => nodes.filter(n => !n.position.parent);
 
 export class WorkpadShortcuts extends Component<Props> {
   public render() {
@@ -126,31 +128,23 @@ export class WorkpadShortcuts extends Component<Props> {
     const {
       insertNodes,
       pageId,
-      selectElement,
+      selectToplevelNodes,
       selectedElements,
       selectedPrimaryShapes,
     } = this.props;
+
     const clonedElements = selectedElements && cloneSubgraphs(selectedElements);
 
     if (clonedElements) {
       insertNodes(pageId)(clonedElements);
       if (selectedPrimaryShapes.length) {
-        if (selectedElements.length > 1) {
-          // adHocGroup branch (currently, pasting will leave only the 1st element selected, rather than forming a
-          // new adHocGroup - todo)
-          selectElement(clonedElements[0].id);
-        } else {
-          // single element or single persistentGroup branch
-          selectElement(
-            clonedElements[selectedElements.findIndex(s => s.id === selectedPrimaryShapes[0])].id
-          );
-        }
+        selectToplevelNodes(toplevel(clonedElements).map(e => e.id));
       }
     }
   }
 
   private _pasteElements() {
-    const { insertNodes, pageId, selectElement } = this.props;
+    const { insertNodes, pageId, selectToplevelNodes } = this.props;
     const { selectedElements, rootShapes } = JSON.parse(getClipboardData()) || {
       selectedElements: [],
       rootShapes: [],
@@ -159,22 +153,9 @@ export class WorkpadShortcuts extends Component<Props> {
     const clonedElements = selectedElements && cloneSubgraphs(selectedElements);
 
     if (clonedElements) {
-      // first clone and persist the new node(s)
-      insertNodes(pageId)(clonedElements);
-      // then select the cloned node
+      insertNodes(pageId)(clonedElements); // first clone and persist the new node(s)
       if (rootShapes.length) {
-        if (selectedElements.length > 1) {
-          // adHocGroup branch (currently, pasting will leave only the 1st element selected, rather than forming a
-          // new adHocGroup - todo)
-          selectElement(clonedElements[0].id);
-        } else {
-          // single element or single persistentGroup branch
-          selectElement(
-            clonedElements[
-              selectedElements.findIndex((s: { id: string }) => s.id === rootShapes[0])
-            ].id
-          );
-        }
+        selectToplevelNodes(toplevel(clonedElements).map(e => e.id)); // then select the cloned node(s)
       }
     }
   }
