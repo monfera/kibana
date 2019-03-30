@@ -203,26 +203,3 @@ export const globalStateUpdater = (dispatch, getState) => state => {
     }
   }
 };
-
-export const elementsAndCommit = ({ elements, updateGlobalState, aeroStore, forceRerender }) => {
-  const scene = aeroStore.getCurrentState().currentScene;
-  const elementLookup = new Map(elements.map(element => [element.id, element]));
-  const elementsToRender = scene.shapes.map(shape => {
-    const element = elementLookup.get(shape.id);
-    return element
-      ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
-      : shape;
-  });
-  return {
-    elements: elementsToRender,
-    cursor: scene.cursor,
-    commit: (type, payload) => {
-      const newLayoutState = aeroStore.commit(type, payload);
-      if (newLayoutState.currentScene.gestureEnd) {
-        updateGlobalState(newLayoutState);
-      } else {
-        forceRerender();
-      }
-    },
-  };
-};

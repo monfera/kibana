@@ -13,7 +13,6 @@ import { getNodes, getNodesForPage, getPages, isWriteable } from '../../state/se
 import {
   elementToShape,
   globalStateUpdater,
-  elementsAndCommit,
   shapesForNodes,
 } from '../../lib/aeroelastic/integration_utils';
 import { updater } from '../../lib/aeroelastic/layout';
@@ -226,7 +225,27 @@ const InteractivePage = compose(
   withProps(componentLayoutState),
   withState('canvasOrigin', 'saveCanvasOrigin'),
   withState('_forceRerender', 'forceRerender'),
-  withProps(elementsAndCommit), // Updates states; needs to have both local and global state
+  withProps(({ aeroStore, updateGlobalState, forceRerender }) => ({
+    commit: (type, payload) => {
+      const newLayoutState = aeroStore.commit(type, payload);
+      if (newLayoutState.currentScene.gestureEnd) {
+        updateGlobalState(newLayoutState);
+      } else {
+        forceRerender();
+      }
+    },
+  })),
+  withProps(({ aeroStore }) => ({ cursor: aeroStore.getCurrentState().currentScene.cursor })),
+  withProps(({ aeroStore, elements }) => {
+    const elementLookup = new Map(elements.map(element => [element.id, element]));
+    const elementsToRender = aeroStore.getCurrentState().currentScene.shapes.map(shape => {
+      const element = elementLookup.get(shape.id);
+      return element
+        ? { ...shape, width: shape.a * 2, height: shape.b * 2, filter: element.filter }
+        : shape;
+    });
+    return { elements: elementsToRender };
+  }),
   withHandlers(groupHandlerCreators),
   withHandlers(eventHandlers), // Captures user intent, needs to have reconciled state
   () => InteractiveComponent
