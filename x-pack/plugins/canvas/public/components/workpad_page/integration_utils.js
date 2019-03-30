@@ -200,16 +200,9 @@ export const globalStateUpdater = (dispatch, getState) => state => {
 };
 
 export const crawlTree = shapes => shapeId => {
-  const recurseGroupTreeInternal = shapeId => {
-    return [
-      shapeId,
-      ...flatten(
-        shapes
-          .filter(s => s.position.parent === shapeId)
-          .map(s => s.id)
-          .map(recurseGroupTreeInternal)
-      ),
-    ];
-  };
-  return recurseGroupTreeInternal(shapeId);
+  const rec = shapeId => [
+    shapeId,
+    ...flatten(shapes.filter(s => s.position.parent === shapeId).map(s => rec(s.id))),
+  ];
+  return rec(shapeId);
 };
