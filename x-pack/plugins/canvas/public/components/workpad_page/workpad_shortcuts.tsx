@@ -29,29 +29,29 @@ export interface Props {
 
 const id = (node: any): string => node.id;
 
-function deleteNodes({ pageId, removeNodes, selectedNodes }) {
+const deleteNodes = ({ pageId, removeNodes, selectedNodes }) => {
   // currently, handle the removal of one node, exploiting multiselect subsequently
   if (selectedNodes.length) {
     removeNodes(pageId)(selectedNodes.map(id));
   }
-}
+};
 
-function copyNodes({ selectedNodes }) {
+const copyNodes = ({ selectedNodes }) => {
   if (selectedNodes.length) {
     setClipboardData({ selectedNodes });
     notify.success('Copied element to clipboard');
   }
-}
+};
 
-function cutNodes({ pageId, removeNodes, selectedNodes }) {
+const cutNodes = ({ pageId, removeNodes, selectedNodes }) => {
   if (selectedNodes.length) {
     setClipboardData({ selectedNodes });
     removeNodes(pageId)(selectedNodes.map(id));
     notify.success('Cut element to clipboard');
   }
-}
+};
 
-function duplicateNodes({ insertNodes, pageId, selectToplevelNodes, selectedNodes }) {
+const duplicateNodes = ({ insertNodes, pageId, selectToplevelNodes, selectedNodes }) => {
   // TODO: This is slightly different from the duplicateNodes function in sidebar/index.js. Should they be doing the same thing?
   // This should also be abstracted.
   const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
@@ -59,44 +59,60 @@ function duplicateNodes({ insertNodes, pageId, selectToplevelNodes, selectedNode
     insertNodes(pageId)(clonedNodes);
     selectToplevelNodes(clonedNodes);
   }
-}
+};
 
-function pasteNodes({ insertNodes, pageId, selectToplevelNodes }) {
+const pasteNodes = ({ insertNodes, pageId, selectToplevelNodes }) => {
   const { selectedNodes } = JSON.parse(getClipboardData()) || { selectedNodes: [] };
-
   const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
-
   if (clonedNodes) {
     insertNodes(pageId)(clonedNodes); // first clone and persist the new node(s)
     selectToplevelNodes(clonedNodes); // then select the cloned node(s)
   }
-}
+};
 
-function bringForward({ elementLayer, pageId, selectedNodes }) {
+const bringForward = ({ elementLayer, pageId, selectedNodes }) => {
   // TODO: Same as above. Abstract these out. This is the same code as in sidebar/index.js
   // Note: these layer actions only work when a single node is selected
   if (selectedNodes.length === 1) {
     elementLayer(pageId, selectedNodes[0], 1);
   }
-}
+};
 
-function bringToFront({ elementLayer, pageId, selectedNodes }) {
+const bringToFront = ({ elementLayer, pageId, selectedNodes }) => {
   if (selectedNodes.length === 1) {
     elementLayer(pageId, selectedNodes[0], Infinity);
   }
-}
+};
 
-function sendBackward({ elementLayer, pageId, selectedNodes }) {
+const sendBackward = ({ elementLayer, pageId, selectedNodes }) => {
   if (selectedNodes.length === 1) {
     elementLayer(pageId, selectedNodes[0], -1);
   }
-}
+};
 
-function sendToBack({ elementLayer, pageId, selectedNodes }) {
+const sendToBack = ({ elementLayer, pageId, selectedNodes }) => {
   if (selectedNodes.length === 1) {
     elementLayer(pageId, selectedNodes[0], -Infinity);
   }
-}
+};
+
+const group = ({ groupNodes }) => groupNodes();
+
+const ungroup = ({ ungroupNodes }) => ungroupNodes();
+
+const keyMap = {
+  COPY: copyNodes,
+  CLONE: duplicateNodes,
+  CUT: cutNodes,
+  DELETE: deleteNodes,
+  PASTE: pasteNodes,
+  BRING_FORWARD: bringForward,
+  BRING_TO_FRONT: bringToFront,
+  SEND_BACKWARD: sendBackward,
+  SEND_TO_BACK: sendToBack,
+  GROUP: group,
+  UNGROUP: ungroup,
+};
 
 export class WorkpadShortcuts extends Component<Props> {
   public render() {
@@ -105,7 +121,8 @@ export class WorkpadShortcuts extends Component<Props> {
       <Shortcuts
         name="ELEMENT"
         handler={(action: string, event: Event) => {
-          this._keyHandler(action, event);
+          event.preventDefault();
+          keyMap[action](this.props);
         }}
         targetNodeSelector={`#${pageId}`}
         global
@@ -115,24 +132,5 @@ export class WorkpadShortcuts extends Component<Props> {
 
   public shouldComponentUpdate(nextProps: Props) {
     return !isEqual(nextProps, this.props);
-  }
-
-  private _keyHandler(action: string, event: Event) {
-    event.preventDefault();
-    const { props } = this;
-    const keyMap = {
-      COPY: copyNodes,
-      CLONE: duplicateNodes,
-      CUT: cutNodes,
-      DELETE: deleteNodes,
-      PASTE: pasteNodes,
-      BRING_FORWARD: bringForward,
-      BRING_TO_FRONT: bringToFront,
-      SEND_BACKWARD: sendBackward,
-      SEND_TO_BACK: sendToBack,
-      GROUP: props.groupNodes,
-      UNGROUP: props.ungroupNodes,
-    };
-    keyMap[action](props);
   }
 }
