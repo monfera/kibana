@@ -219,18 +219,16 @@ const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
 
 const InteractivePage = compose(
   withProps(componentLayoutState),
-  withState('canvasOrigin', 'saveCanvasOrigin'),
-  withState('_forceRerender', 'forceRerender'),
-  withProps(({ aeroStore, updateGlobalState, forceRerender }) => ({
+  withProps(({ aeroStore, updateGlobalState }) => ({
     commit: (type, payload) => {
       const newLayoutState = aeroStore.commit(type, payload);
       if (newLayoutState.currentScene.gestureEnd) {
         updateGlobalState(newLayoutState);
-      } else {
-        forceRerender();
       }
     },
   })),
+  withState('canvasOrigin', 'saveCanvasOrigin'),
+  withState('_forceRerender', 'forceRerender'),
   withProps(({ aeroStore }) => ({ cursor: aeroStore.getCurrentState().currentScene.cursor })),
   withProps(({ aeroStore, elements }) => {
     const elementLookup = new Map(elements.map(element => [element.id, element]));
@@ -242,6 +240,9 @@ const InteractivePage = compose(
     });
     return { elements: elementsToRender };
   }),
+  withProps(({ commit, forceRerender }) => ({
+    commit: (...args) => forceRerender(commit(...args)),
+  })),
   withHandlers(groupHandlerCreators),
   withHandlers(eventHandlers), // Captures user intent, needs to have reconciled state
   () => InteractiveComponent
