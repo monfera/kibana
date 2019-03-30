@@ -57,17 +57,15 @@ export const elementToShape = (element, i) => {
   };
 };
 
-const shapeToElement = shape => {
-  return {
-    left: shape.transformMatrix[12] - shape.a,
-    top: shape.transformMatrix[13] - shape.b,
-    width: shape.a * 2,
-    height: shape.b * 2,
-    angle: Math.round((matrixToAngle(shape.transformMatrix) * 180) / Math.PI),
-    parent: shape.parent || null,
-    type: shape.type === 'group' ? 'group' : 'element',
-  };
-};
+const shapeToElement = shape => ({
+  left: shape.transformMatrix[12] - shape.a,
+  top: shape.transformMatrix[13] - shape.b,
+  width: shape.a * 2,
+  height: shape.b * 2,
+  angle: Math.round((matrixToAngle(shape.transformMatrix) * 180) / Math.PI),
+  parent: shape.parent || null,
+  type: shape.type === 'group' ? 'group' : 'element',
+});
 
 const globalPositionUpdates = (setMultiplePositions, { shapes, gestureEnd }, unsortedElements) => {
   const ascending = (a, b) => (a.id < b.id ? -1 : 1);
