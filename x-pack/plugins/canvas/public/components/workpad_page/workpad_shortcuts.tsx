@@ -29,85 +29,67 @@ export interface Props {
 
 const id = (node: any): string => node.id;
 
-const deleteNodes = ({ pageId, removeNodes, selectedNodes }) => {
-  // currently, handle the removal of one node, exploiting multiselect subsequently
-  if (selectedNodes.length) {
-    removeNodes(pageId)(selectedNodes.map(id));
-  }
-};
-
-const copyNodes = ({ selectedNodes }) => {
-  if (selectedNodes.length) {
-    setClipboardData({ selectedNodes });
-    notify.success('Copied element to clipboard');
-  }
-};
-
-const cutNodes = ({ pageId, removeNodes, selectedNodes }) => {
-  if (selectedNodes.length) {
-    setClipboardData({ selectedNodes });
-    removeNodes(pageId)(selectedNodes.map(id));
-    notify.success('Cut element to clipboard');
-  }
-};
-
-const duplicateNodes = ({ insertNodes, pageId, selectToplevelNodes, selectedNodes }) => {
-  // TODO: This is slightly different from the duplicateNodes function in sidebar/index.js. Should they be doing the same thing?
-  // This should also be abstracted.
-  const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
-  if (clonedNodes) {
-    insertNodes(pageId)(clonedNodes);
-    selectToplevelNodes(clonedNodes);
-  }
-};
-
-const pasteNodes = ({ insertNodes, pageId, selectToplevelNodes }) => {
-  const { selectedNodes } = JSON.parse(getClipboardData()) || { selectedNodes: [] };
-  const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
-  if (clonedNodes) {
-    insertNodes(pageId)(clonedNodes); // first clone and persist the new node(s)
-    selectToplevelNodes(clonedNodes); // then select the cloned node(s)
-  }
-};
-
-const bringForward = ({ elementLayer, pageId, selectedNodes }) => {
-  // TODO: Same as above. Abstract these out. This is the same code as in sidebar/index.js
-  // Note: these layer actions only work when a single node is selected
-  if (selectedNodes.length === 1) {
-    elementLayer(pageId, selectedNodes[0], 1);
-  }
-};
-
-const bringToFront = ({ elementLayer, pageId, selectedNodes }) => {
-  if (selectedNodes.length === 1) {
-    elementLayer(pageId, selectedNodes[0], Infinity);
-  }
-};
-
-const sendBackward = ({ elementLayer, pageId, selectedNodes }) => {
-  if (selectedNodes.length === 1) {
-    elementLayer(pageId, selectedNodes[0], -1);
-  }
-};
-
-const sendToBack = ({ elementLayer, pageId, selectedNodes }) => {
-  if (selectedNodes.length === 1) {
-    elementLayer(pageId, selectedNodes[0], -Infinity);
-  }
-};
-
 const keyMap = {
-  COPY: copyNodes,
-  CLONE: duplicateNodes,
-  CUT: cutNodes,
-  DELETE: deleteNodes,
-  PASTE: pasteNodes,
-  BRING_FORWARD: bringForward,
-  BRING_TO_FRONT: bringToFront,
-  SEND_BACKWARD: sendBackward,
-  SEND_TO_BACK: sendToBack,
-  GROUP: props => props.groupNodes(),
-  UNGROUP: props => props.ungroupNodes(),
+  DELETE: function deleteNodes({ pageId, removeNodes, selectedNodes }) {
+    // currently, handle the removal of one node, exploiting multiselect subsequently
+    if (selectedNodes.length) {
+      removeNodes(pageId)(selectedNodes.map(id));
+    }
+  },
+  COPY: function copyNodes({ selectedNodes }) {
+    if (selectedNodes.length) {
+      setClipboardData({ selectedNodes });
+      notify.success('Copied element to clipboard');
+    }
+  },
+  CUT: function cutNodes({ pageId, removeNodes, selectedNodes }) {
+    if (selectedNodes.length) {
+      setClipboardData({ selectedNodes });
+      removeNodes(pageId)(selectedNodes.map(id));
+      notify.success('Cut element to clipboard');
+    }
+  },
+  CLONE: function duplicateNodes({ insertNodes, pageId, selectToplevelNodes, selectedNodes }) {
+    // TODO: This is slightly different from the duplicateNodes function in sidebar/index.js. Should they be doing the same thing?
+    // This should also be abstracted.
+    const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
+    if (clonedNodes) {
+      insertNodes(pageId)(clonedNodes);
+      selectToplevelNodes(clonedNodes);
+    }
+  },
+  PASTE: function pasteNodes({ insertNodes, pageId, selectToplevelNodes }) {
+    const { selectedNodes } = JSON.parse(getClipboardData()) || { selectedNodes: [] };
+    const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
+    if (clonedNodes) {
+      insertNodes(pageId)(clonedNodes); // first clone and persist the new node(s)
+      selectToplevelNodes(clonedNodes); // then select the cloned node(s)
+    }
+  },
+  BRING_FORWARD: function bringForward({ elementLayer, pageId, selectedNodes }) {
+    // TODO: Same as above. Abstract these out. This is the same code as in sidebar/index.js
+    // Note: these layer actions only work when a single node is selected
+    if (selectedNodes.length === 1) {
+      elementLayer(pageId, selectedNodes[0], 1);
+    }
+  },
+  BRING_TO_FRONT: function bringToFront({ elementLayer, pageId, selectedNodes }) {
+    if (selectedNodes.length === 1) {
+      elementLayer(pageId, selectedNodes[0], Infinity);
+    }
+  },
+  SEND_BACKWARD: function sendBackward({ elementLayer, pageId, selectedNodes }) {
+    if (selectedNodes.length === 1) {
+      elementLayer(pageId, selectedNodes[0], -1);
+    }
+  },
+  SEND_TO_BACK: function sendToBack({ elementLayer, pageId, selectedNodes }) {
+    if (selectedNodes.length === 1) {
+      elementLayer(pageId, selectedNodes[0], -Infinity);
+    }
+  },
+  GROUP: ({ groupNodes }) => groupNodes(),
+  UNGROUP: ({ ungroupNodes }) => ungroupNodes(),
 };
 
 export class WorkpadShortcuts extends Component<Props> {
