@@ -233,8 +233,8 @@ export const removeElements = createThunk(
     });
 
     const _removeElements = createAction('removeElements', (elementIds, pageId) => ({
-      pageId,
       elementIds,
+      pageId,
     }));
     dispatch(_removeElements(elementIds, pageId));
 
