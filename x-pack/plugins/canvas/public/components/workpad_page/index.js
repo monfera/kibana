@@ -94,8 +94,8 @@ const simplePositioning = ({ elements }) => ({
 });
 
 const groupHandlerCreators = {
-  groupElements: ({ commit }) => () => commit('actionEvent', { event: 'group' }),
-  ungroupElements: ({ commit }) => () => commit('actionEvent', { event: 'ungroup' }),
+  groupNodes: ({ commit }) => () => commit('actionEvent', { event: 'group' }),
+  ungroupNodes: ({ commit }) => () => commit('actionEvent', { event: 'ungroup' }),
 };
 
 const StaticPage = compose(
@@ -117,20 +117,20 @@ const mapStateToProps = (state, ownProps) => {
         : shapes.filter(s => s.parent === shape.id).map(s => s.id)
     )
   );
-  const selectedElementIds = flatten(selectedPersistentPrimaryNodes.map(crawlTree(shapes)));
+  const selectedNodeIds = flatten(selectedPersistentPrimaryNodes.map(crawlTree(shapes)));
   return {
     state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
     elements: nodes,
-    selectedElements: selectedElementIds.map(id => nodes.find(s => s.id === id)),
+    selectedNodes: selectedNodeIds.map(id => nodes.find(s => s.id === id)),
   };
 };
 
 const mapDispatchToProps = dispatch => {
   return {
     dispatch,
-    insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
-    removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
+    insertNodes: pageId => selectedNodes => dispatch(insertNodes(selectedNodes, pageId)),
+    removeNodes: pageId => nodeIds => dispatch(removeElements(nodeIds, pageId)),
     selectToplevelNodes: nodes =>
       dispatch(selectToplevelNodes(nodes.filter(e => !e.position.parent).map(e => e.id))),
     // TODO: Abstract this out, this is similar to layering code in sidebar/index.js:

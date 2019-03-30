@@ -39,13 +39,13 @@ export class InteractiveWorkpadPage extends PureComponent {
       onMouseUp,
       onAnimationEnd,
       onWheel,
-      selectedElements,
+      selectedNodes,
       selectToplevelNodes,
       insertNodes,
-      removeElements,
+      removeNodes,
       elementLayer,
-      groupElements,
-      ungroupElements,
+      groupNodes,
+      ungroupNodes,
       canvasOrigin,
       saveCanvasOrigin,
     } = this.props;
@@ -54,13 +54,13 @@ export class InteractiveWorkpadPage extends PureComponent {
 
     const shortcutProps = {
       elementLayer,
-      groupElements,
+      groupNodes,
       insertNodes,
       pageId: page.id,
-      removeElements,
-      selectedElements,
+      removeNodes,
+      selectedNodes,
       selectToplevelNodes,
-      ungroupElements,
+      ungroupNodes,
     };
     shortcuts = <WorkpadShortcuts {...shortcutProps} />;
 
@@ -68,9 +68,9 @@ export class InteractiveWorkpadPage extends PureComponent {
       <div
         key={page.id}
         id={page.id}
-        ref={element => {
-          if (!canvasOrigin && element && element.getBoundingClientRect) {
-            saveCanvasOrigin(() => () => element.getBoundingClientRect());
+        ref={node => {
+          if (!canvasOrigin && node && node.getBoundingClientRect) {
+            saveCanvasOrigin(() => () => node.getBoundingClientRect());
           }
         }}
         data-test-subj="canvasWorkpadPage"
@@ -88,18 +88,18 @@ export class InteractiveWorkpadPage extends PureComponent {
       >
         {shortcuts}
         {elements
-          .map(element => {
-            if (element.type === 'annotation') {
+          .map(node => {
+            if (node.type === 'annotation') {
               const props = {
-                key: element.id,
-                type: element.type,
-                transformMatrix: element.transformMatrix,
-                width: element.width,
-                height: element.height,
-                text: element.text,
+                key: node.id,
+                type: node.type,
+                transformMatrix: node.transformMatrix,
+                width: node.width,
+                height: node.height,
+                text: node.text,
               };
 
-              switch (element.subtype) {
+              switch (node.subtype) {
                 case 'alignmentGuide':
                   return <AlignmentGuide {...props} />;
                 case 'adHocChildAnnotation': // now sharing aesthetics but may diverge in the future
@@ -116,8 +116,8 @@ export class InteractiveWorkpadPage extends PureComponent {
                 default:
                   return [];
               }
-            } else if (element.type !== 'group') {
-              return <ElementWrapper key={element.id} element={element} />;
+            } else if (node.type !== 'group') {
+              return <ElementWrapper key={node.id} element={node} />;
             }
           })
           .filter(element => !!element)}
