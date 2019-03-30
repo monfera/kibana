@@ -4,7 +4,6 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
-import _ from 'lodash';
 import React, { Component } from 'react';
 
 import isEqual from 'react-fast-compare';
@@ -21,7 +20,6 @@ export interface Props {
   pageId: string;
   selectedElementIds: string[];
   selectedElements: any[];
-  selectedPrimaryShapes: any[];
   selectToplevelNodes: (...elementIds: string[]) => void;
   insertNodes: (pageId: string) => (selectedElements: any[]) => void;
   removeElements: (pageId: string) => (selectedElementIds: string[]) => void;
@@ -97,24 +95,18 @@ export class WorkpadShortcuts extends Component<Props> {
   }
 
   private _copyElements() {
-    const { selectedElements, selectedPrimaryShapes } = this.props;
+    const { selectedElements } = this.props;
     if (selectedElements.length) {
-      setClipboardData({ selectedElements, rootShapes: selectedPrimaryShapes });
+      setClipboardData({ selectedElements });
       notify.success('Copied element to clipboard');
     }
   }
 
   private _cutElements() {
-    const {
-      pageId,
-      removeElements,
-      selectedElements,
-      selectedElementIds,
-      selectedPrimaryShapes,
-    } = this.props;
+    const { pageId, removeElements, selectedElements, selectedElementIds } = this.props;
 
     if (selectedElements.length) {
-      setClipboardData({ selectedElements, rootShapes: selectedPrimaryShapes });
+      setClipboardData({ selectedElements });
       removeElements(pageId)(selectedElementIds);
       notify.success('Copied element to clipboard');
     }
@@ -123,38 +115,27 @@ export class WorkpadShortcuts extends Component<Props> {
   // TODO: This is slightly different from the duplicateElements function in sidebar/index.js. Should they be doing the same thing?
   // This should also be abstracted.
   private _duplicateElements() {
-    const {
-      insertNodes,
-      pageId,
-      selectToplevelNodes,
-      selectedElements,
-      selectedPrimaryShapes,
-    } = this.props;
+    const { insertNodes, pageId, selectToplevelNodes, selectedElements } = this.props;
 
     const clonedElements = selectedElements && cloneSubgraphs(selectedElements);
 
     if (clonedElements) {
       insertNodes(pageId)(clonedElements);
-      if (selectedPrimaryShapes.length) {
-        selectToplevelNodes(clonedElements);
-      }
+      selectToplevelNodes(clonedElements);
     }
   }
 
   private _pasteElements() {
     const { insertNodes, pageId, selectToplevelNodes } = this.props;
-    const { selectedElements, rootShapes } = JSON.parse(getClipboardData()) || {
+    const { selectedElements } = JSON.parse(getClipboardData()) || {
       selectedElements: [],
-      rootShapes: [],
     };
 
     const clonedElements = selectedElements && cloneSubgraphs(selectedElements);
 
     if (clonedElements) {
       insertNodes(pageId)(clonedElements); // first clone and persist the new node(s)
-      if (rootShapes.length) {
-        selectToplevelNodes(clonedElements); // then select the cloned node(s)
-      }
+      selectToplevelNodes(clonedElements); // then select the cloned node(s)
     }
   }
 

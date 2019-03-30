@@ -41,7 +41,6 @@ export class InteractiveWorkpadPage extends PureComponent {
       onWheel,
       selectedElementIds,
       selectedElements,
-      selectedPrimaryShapes,
       selectToplevelNodes,
       insertNodes,
       removeElements,
@@ -62,7 +61,6 @@ export class InteractiveWorkpadPage extends PureComponent {
       removeElements,
       selectedElementIds,
       selectedElements,
-      selectedPrimaryShapes,
       selectToplevelNodes,
       ungroupElements,
     };
