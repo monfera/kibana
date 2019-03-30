@@ -18,7 +18,6 @@ import { notify } from '../../lib/notify';
 
 export interface Props {
   pageId: string;
-  selectedElementIds: string[];
   selectedElements: any[];
   selectToplevelNodes: (...elementIds: string[]) => void;
   insertNodes: (pageId: string) => (selectedElements: any[]) => void;
@@ -27,6 +26,8 @@ export interface Props {
   groupElements: () => void;
   ungroupElements: () => void;
 }
+
+const id = (node: any): string => node.id;
 
 export class WorkpadShortcuts extends Component<Props> {
   public render() {
@@ -87,10 +88,10 @@ export class WorkpadShortcuts extends Component<Props> {
   }
 
   private _removeElements() {
-    const { pageId, removeElements, selectedElementIds } = this.props;
+    const { pageId, removeElements, selectedElements } = this.props;
     // currently, handle the removal of one element, exploiting multiselect subsequently
-    if (selectedElementIds.length) {
-      removeElements(pageId)(selectedElementIds);
+    if (selectedElements.length) {
+      removeElements(pageId)(selectedElements.map(id));
     }
   }
 
@@ -103,11 +104,11 @@ export class WorkpadShortcuts extends Component<Props> {
   }
 
   private _cutElements() {
-    const { pageId, removeElements, selectedElements, selectedElementIds } = this.props;
+    const { pageId, removeElements, selectedElements } = this.props;
 
     if (selectedElements.length) {
       setClipboardData({ selectedElements });
-      removeElements(pageId)(selectedElementIds);
+      removeElements(pageId)(selectedElements.map(id));
       notify.success('Copied element to clipboard');
     }
   }
@@ -127,9 +128,7 @@ export class WorkpadShortcuts extends Component<Props> {
 
   private _pasteElements() {
     const { insertNodes, pageId, selectToplevelNodes } = this.props;
-    const { selectedElements } = JSON.parse(getClipboardData()) || {
-      selectedElements: [],
-    };
+    const { selectedElements } = JSON.parse(getClipboardData()) || { selectedElements: [] };
 
     const clonedElements = selectedElements && cloneSubgraphs(selectedElements);
 

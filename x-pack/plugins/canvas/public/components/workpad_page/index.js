@@ -122,7 +122,6 @@ const mapStateToProps = (state, ownProps) => {
     state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
     elements: nodes,
-    selectedElementIds,
     selectedElements: selectedElementIds.map(id => nodes.find(s => s.id === id)),
   };
 };
