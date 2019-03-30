@@ -30,8 +30,6 @@ export interface Props {
   ungroupElements: () => void;
 }
 
-const toplevel = nodes => nodes.filter(n => !n.position.parent);
-
 export class WorkpadShortcuts extends Component<Props> {
   public render() {
     const { pageId } = this.props;
@@ -138,7 +136,7 @@ export class WorkpadShortcuts extends Component<Props> {
     if (clonedElements) {
       insertNodes(pageId)(clonedElements);
       if (selectedPrimaryShapes.length) {
-        selectToplevelNodes(toplevel(clonedElements).map(e => e.id));
+        selectToplevelNodes(clonedElements);
       }
     }
   }
@@ -155,7 +153,7 @@ export class WorkpadShortcuts extends Component<Props> {
     if (clonedElements) {
       insertNodes(pageId)(clonedElements); // first clone and persist the new node(s)
       if (rootShapes.length) {
-        selectToplevelNodes(toplevel(clonedElements).map(e => e.id)); // then select the cloned node(s)
+        selectToplevelNodes(clonedElements); // then select the cloned node(s)
       }
     }
   }

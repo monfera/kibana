@@ -133,16 +133,11 @@ const mapDispatchToProps = dispatch => {
     dispatch,
     insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
     removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
-    selectToplevelNodes: nodeIds => dispatch(selectToplevelNodes(nodeIds)),
-    // TODO: Abstract this out. This is the same code as in sidebar/index.js
+    selectToplevelNodes: nodes =>
+      dispatch(selectToplevelNodes(nodes.filter(e => !e.position.parent).map(e => e.id))),
+    // TODO: Abstract this out, this is similar to layering code in sidebar/index.js:
     elementLayer: (pageId, selectedElement, movement) => {
-      dispatch(
-        elementLayer({
-          pageId,
-          elementId: selectedElement.id,
-          movement,
-        })
-      );
+      dispatch(elementLayer({ pageId, elementId: selectedElement.id, movement }));
     },
   };
 };
