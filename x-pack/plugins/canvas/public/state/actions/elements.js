@@ -221,10 +221,7 @@ export const removeElements = createThunk(
 
     // todo consider doing the group membership collation in aeroelastic, or the Redux reducer, when adding templates
     const allElements = getNodes(state, pageId);
-    const allRoots = rootElementIds.map(id => allElements.find(e => id === e.id));
-    if (allRoots.indexOf(undefined) !== -1) {
-      throw new Error('Some of the elements to be deleted do not exist');
-    }
+    const allRoots = rootElementIds.map(id => allElements.find(e => id === e.id)).filter(d => d);
     const elementIds = subMultitree(e => e.id, e => e.position.parent, allElements, allRoots).map(
       e => e.id
     );
