@@ -122,7 +122,7 @@ export function getGlobalFilterExpression(state) {
 }
 
 // element getters
-export function getSelectedElementId(state) {
+function getSelectedElementId(state) {
   const toplevelNodes = get(state, 'transient.selectedToplevelNodes');
   return toplevelNodes.length === 1 ? toplevelNodes[0] : null;
 }
