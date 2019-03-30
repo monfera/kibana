@@ -96,10 +96,6 @@ const sendToBack = ({ elementLayer, pageId, selectedNodes }) => {
   }
 };
 
-const group = ({ groupNodes }) => groupNodes();
-
-const ungroup = ({ ungroupNodes }) => ungroupNodes();
-
 const keyMap = {
   COPY: copyNodes,
   CLONE: duplicateNodes,
@@ -110,8 +106,8 @@ const keyMap = {
   BRING_TO_FRONT: bringToFront,
   SEND_BACKWARD: sendBackward,
   SEND_TO_BACK: sendToBack,
-  GROUP: group,
-  UNGROUP: ungroup,
+  GROUP: props => props.groupNodes(),
+  UNGROUP: props => props.ungroupNodes(),
 };
 
 export class WorkpadShortcuts extends Component<Props> {
