@@ -15,8 +15,6 @@ import {
   globalStateUpdater,
   elementsAndCommit,
   shapesForNodes,
-  selectedElementObjects,
-  recurseGroupTree,
 } from '../../lib/aeroelastic/integration_utils';
 import { updater } from '../../lib/aeroelastic/layout';
 import { createStore } from '../../lib/aeroelastic/store';
@@ -25,6 +23,21 @@ import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
+
+const recurseGroupTree = shapes => shapeId => {
+  const recurseGroupTreeInternal = shapeId => {
+    return [
+      shapeId,
+      ...flatten(
+        shapes
+          .filter(s => s.position.parent === shapeId)
+          .map(s => s.id)
+          .map(recurseGroupTreeInternal)
+      ),
+    ];
+  };
+  return recurseGroupTreeInternal(shapeId);
+};
 
 const configuration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -137,6 +150,7 @@ const mapStateToProps = (state, ownProps) => {
     elements: nodes,
     selectedPrimaryShapes,
     selectedElementIds,
+    selectedElements: selectedElementIds.map(id => nodes.find(s => s.id === id)),
   };
 };
 
@@ -211,7 +225,6 @@ const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
 const InteractivePage = compose(
   withProps(componentLayoutState),
   withState('canvasOrigin', 'saveCanvasOrigin'),
-  withProps(selectedElementObjects),
   withState('_forceRerender', 'forceRerender'),
   withProps(elementsAndCommit), // Updates states; needs to have both local and global state
   withHandlers(groupHandlerCreators),

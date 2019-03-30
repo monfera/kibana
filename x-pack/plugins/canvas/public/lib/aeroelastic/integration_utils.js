@@ -9,7 +9,7 @@ import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selec
 import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
 import { selectElement } from '../../state/actions/transient';
 import { matrixToAngle, multiply, rotateZ, translate } from './matrix';
-import { arrayToMap, flatten, identity } from './functional';
+import { arrayToMap, identity } from './functional';
 import { getLocalTransformMatrix } from './layout_functions';
 
 const isGroupId = id => id.startsWith('group');
@@ -203,25 +203,6 @@ export const globalStateUpdater = (dispatch, getState) => state => {
     }
   }
 };
-
-export const recurseGroupTree = shapes => shapeId => {
-  const recurseGroupTreeInternal = shapeId => {
-    return [
-      shapeId,
-      ...flatten(
-        shapes
-          .filter(s => s.position.parent === shapeId)
-          .map(s => s.id)
-          .map(recurseGroupTreeInternal)
-      ),
-    ];
-  };
-  return recurseGroupTreeInternal(shapeId);
-};
-
-export const selectedElementObjects = ({ elements, selectedElementIds }) => ({
-  selectedElements: selectedElementIds.map(id => elements.find(s => s.id === id)),
-});
 
 export const elementsAndCommit = ({ elements, updateGlobalState, aeroStore, forceRerender }) => {
   const scene = aeroStore.getCurrentState().currentScene;
