@@ -104,7 +104,7 @@ const StaticPage = compose(
 );
 
 const mapStateToProps = (state, ownProps) => {
-  const selectedPrimaryShapes = [state.transient.selectedElement].filter(e => e);
+  const selectedPrimaryShapes = state.transient.selectedToplevelNodes;
   const nodes = getNodes(state, ownProps.page.id);
   const shapes = nodes;
   const selectedPrimaryShapeObjects = selectedPrimaryShapes

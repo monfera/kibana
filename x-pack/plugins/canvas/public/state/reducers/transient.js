@@ -51,6 +51,13 @@ export const transientReducer = handleActions(
       };
     },
 
+    [actions.selectToplevelNodes]: (transientState, { payload }) => {
+      return {
+        ...transientState,
+        selectedToplevelNodes: payload,
+      };
+    },
+
     [setRefreshInterval]: (transientState, { payload }) => {
       return { ...transientState, refresh: { interval: Number(payload) || 0 } };
     },

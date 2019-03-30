@@ -7,7 +7,7 @@
 import { shallowEqual } from 'recompose';
 import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selectors/workpad';
 import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
-import { selectElement } from '../../state/actions/transient';
+import { selectElement, selectToplevelNodes } from '../../state/actions/transient';
 import { matrixToAngle, multiply, rotateZ, translate } from '../../lib/aeroelastic/matrix';
 import { arrayToMap, flatten, identity } from '../../lib/aeroelastic/functional';
 import { getLocalTransformMatrix } from '../../lib/aeroelastic/layout_functions';
@@ -136,9 +136,10 @@ const updateGlobalPositionsInRedux = (setMultiplePositions, scene, unsortedEleme
 
 export const globalStateUpdater = (dispatch, getState) => state => {
   const nextScene = state.currentScene;
-  const page = getSelectedPage(getState());
-  const elements = getNodes(getState(), page);
-  const selectedElement = getSelectedElement(getState());
+  const globalState = getState();
+  const page = getSelectedPage(globalState);
+  const elements = getNodes(globalState, page);
+  const selectedElement = getSelectedElement(globalState);
 
   const shapes = nextScene.shapes;
   const persistableGroups = shapes.filter(s => s.subtype === 'persistentGroup').filter(dedupe);
@@ -184,7 +185,11 @@ export const globalStateUpdater = (dispatch, getState) => state => {
   }
 
   // set the selected element on the global store, if one element is selected
-  const selectedShape = nextScene.selectedPrimaryShapes[0];
+  const selectedPrimaryShapes = nextScene.selectedPrimaryShapes;
+  if (!shallowEqual(selectedPrimaryShapes, getState().transient.selectedToplevelNodes)) {
+    dispatch(selectToplevelNodes(selectedPrimaryShapes));
+  }
+  const selectedShape = selectedPrimaryShapes[0];
   if (nextScene.selectedShapes.length === 1) {
     if (selectedShape !== (selectedElement && selectedElement.id)) {
       dispatch(selectElement(selectedShape));
