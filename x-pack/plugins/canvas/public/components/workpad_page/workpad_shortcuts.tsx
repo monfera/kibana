@@ -29,6 +29,75 @@ export interface Props {
 
 const id = (node: any): string => node.id;
 
+function deleteNodes({ pageId, removeNodes, selectedNodes }) {
+  // currently, handle the removal of one node, exploiting multiselect subsequently
+  if (selectedNodes.length) {
+    removeNodes(pageId)(selectedNodes.map(id));
+  }
+}
+
+function copyNodes({ selectedNodes }) {
+  if (selectedNodes.length) {
+    setClipboardData({ selectedNodes });
+    notify.success('Copied element to clipboard');
+  }
+}
+
+function cutNodes({ pageId, removeNodes, selectedNodes }) {
+  if (selectedNodes.length) {
+    setClipboardData({ selectedNodes });
+    removeNodes(pageId)(selectedNodes.map(id));
+    notify.success('Cut element to clipboard');
+  }
+}
+
+function duplicateNodes({ insertNodes, pageId, selectToplevelNodes, selectedNodes }) {
+  // TODO: This is slightly different from the duplicateNodes function in sidebar/index.js. Should they be doing the same thing?
+  // This should also be abstracted.
+  const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
+  if (clonedNodes) {
+    insertNodes(pageId)(clonedNodes);
+    selectToplevelNodes(clonedNodes);
+  }
+}
+
+function pasteNodes({ insertNodes, pageId, selectToplevelNodes }) {
+  const { selectedNodes } = JSON.parse(getClipboardData()) || { selectedNodes: [] };
+
+  const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
+
+  if (clonedNodes) {
+    insertNodes(pageId)(clonedNodes); // first clone and persist the new node(s)
+    selectToplevelNodes(clonedNodes); // then select the cloned node(s)
+  }
+}
+
+function bringForward({ elementLayer, pageId, selectedNodes }) {
+  // TODO: Same as above. Abstract these out. This is the same code as in sidebar/index.js
+  // Note: these layer actions only work when a single node is selected
+  if (selectedNodes.length === 1) {
+    elementLayer(pageId, selectedNodes[0], 1);
+  }
+}
+
+function bringToFront({ elementLayer, pageId, selectedNodes }) {
+  if (selectedNodes.length === 1) {
+    elementLayer(pageId, selectedNodes[0], Infinity);
+  }
+}
+
+function sendBackward({ elementLayer, pageId, selectedNodes }) {
+  if (selectedNodes.length === 1) {
+    elementLayer(pageId, selectedNodes[0], -1);
+  }
+}
+
+function sendToBack({ elementLayer, pageId, selectedNodes }) {
+  if (selectedNodes.length === 1) {
+    elementLayer(pageId, selectedNodes[0], -Infinity);
+  }
+}
+
 export class WorkpadShortcuts extends Component<Props> {
   public render() {
     const { pageId } = this.props;
@@ -50,121 +119,20 @@ export class WorkpadShortcuts extends Component<Props> {
 
   private _keyHandler(action: string, event: Event) {
     event.preventDefault();
-    switch (action) {
-      case 'COPY':
-        this._copyNodes();
-        break;
-      case 'CLONE':
-        this._duplicateNodes();
-        break;
-      case 'CUT':
-        this._cutNodes();
-        break;
-      case 'DELETE':
-        this._removeNodes();
-        break;
-      case 'PASTE':
-        this._pasteNodes();
-        break;
-      case 'BRING_FORWARD':
-        this._bringForward();
-        break;
-      case 'BRING_TO_FRONT':
-        this._bringToFront();
-        break;
-      case 'SEND_BACKWARD':
-        this._sendBackward();
-        break;
-      case 'SEND_TO_BACK':
-        this._sendToBack();
-        break;
-      case 'GROUP':
-        this.props.groupNodes();
-        break;
-      case 'UNGROUP':
-        this.props.ungroupNodes();
-        break;
-    }
-  }
-
-  private _removeNodes() {
-    const { pageId, removeNodes, selectedNodes } = this.props;
-    // currently, handle the removal of one node, exploiting multiselect subsequently
-    if (selectedNodes.length) {
-      removeNodes(pageId)(selectedNodes.map(id));
-    }
-  }
-
-  private _copyNodes() {
-    const { selectedNodes } = this.props;
-    if (selectedNodes.length) {
-      setClipboardData({ selectedNodes });
-      notify.success('Copied element to clipboard');
-    }
-  }
-
-  private _cutNodes() {
-    const { pageId, removeNodes, selectedNodes } = this.props;
-
-    if (selectedNodes.length) {
-      setClipboardData({ selectedNodes });
-      removeNodes(pageId)(selectedNodes.map(id));
-      notify.success('Copied element to clipboard');
-    }
-  }
-
-  // TODO: This is slightly different from the duplicateNodes function in sidebar/index.js. Should they be doing the same thing?
-  // This should also be abstracted.
-  private _duplicateNodes() {
-    const { insertNodes, pageId, selectToplevelNodes, selectedNodes } = this.props;
-
-    const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
-
-    if (clonedNodes) {
-      insertNodes(pageId)(clonedNodes);
-      selectToplevelNodes(clonedNodes);
-    }
-  }
-
-  private _pasteNodes() {
-    const { insertNodes, pageId, selectToplevelNodes } = this.props;
-    const { selectedNodes } = JSON.parse(getClipboardData()) || { selectedNodes: [] };
-
-    const clonedNodes = selectedNodes && cloneSubgraphs(selectedNodes);
-
-    if (clonedNodes) {
-      insertNodes(pageId)(clonedNodes); // first clone and persist the new node(s)
-      selectToplevelNodes(clonedNodes); // then select the cloned node(s)
-    }
-  }
-
-  // TODO: Same as above. Abstract these out. This is the same code as in sidebar/index.js
-  // Note: these layer actions only work when a single node is selected
-  private _bringForward() {
-    const { elementLayer, pageId, selectedNodes } = this.props;
-    if (selectedNodes.length === 1) {
-      elementLayer(pageId, selectedNodes[0], 1);
-    }
-  }
-
-  private _bringToFront() {
-    const { elementLayer, pageId, selectedNodes } = this.props;
-    if (selectedNodes.length === 1) {
-      elementLayer(pageId, selectedNodes[0], Infinity);
-    }
-  }
-
-  private _sendBackward() {
-    const { elementLayer, pageId, selectedNodes } = this.props;
-    if (selectedNodes.length === 1) {
-      elementLayer(pageId, selectedNodes[0], -1);
-    }
-  }
-
-  private _sendToBack() {
-    const { elementLayer, pageId, selectedNodes } = this.props;
-    if (selectedNodes.length === 1) {
-      elementLayer(pageId, selectedNodes[0], -Infinity);
-    }
+    const { props } = this;
+    const keyMap = {
+      COPY: copyNodes,
+      CLONE: duplicateNodes,
+      CUT: cutNodes,
+      DELETE: deleteNodes,
+      PASTE: pasteNodes,
+      BRING_FORWARD: bringForward,
+      BRING_TO_FRONT: bringToFront,
+      SEND_BACKWARD: sendBackward,
+      SEND_TO_BACK: sendToBack,
+      GROUP: props.groupNodes,
+      UNGROUP: props.ungroupNodes,
+    };
+    keyMap[action](props);
   }
 }
