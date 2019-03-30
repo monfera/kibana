@@ -16,7 +16,7 @@ import { getDefaultElement } from '../defaults';
 import { notify } from '../../lib/notify';
 import { runInterpreter } from '../../lib/run_interpreter';
 import { subMultitree } from '../../lib/aeroelastic/functional';
-import { selectElement } from './transient';
+import { selectToplevelNodes } from './transient';
 import * as args from './resolved_args';
 
 export function getSiblingContext(state, elementId, checkIndex) {
@@ -411,5 +411,5 @@ export const addElement = createThunk('addElement', ({ dispatch }, pageId, eleme
   }
 
   // select the new element
-  dispatch(selectElement(newElement.id));
+  dispatch(selectToplevelNodes([newElement.id]));
 });

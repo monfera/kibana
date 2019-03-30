@@ -44,13 +44,6 @@ export const transientReducer = handleActions(
       return set(transientState, 'elementStats', payload);
     },
 
-    [actions.selectElement]: (transientState, { payload }) => {
-      return {
-        ...transientState,
-        selectedElement: payload || null,
-      };
-    },
-
     [actions.selectToplevelNodes]: (transientState, { payload }) => {
       return {
         ...transientState,

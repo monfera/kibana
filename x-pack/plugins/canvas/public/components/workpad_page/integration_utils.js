@@ -5,9 +5,9 @@
  */
 
 import { shallowEqual } from 'recompose';
-import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selectors/workpad';
+import { getNodes, getSelectedPage } from '../../state/selectors/workpad';
 import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
-import { selectElement, selectToplevelNodes } from '../../state/actions/transient';
+import { selectToplevelNodes } from '../../state/actions/transient';
 import { matrixToAngle, multiply, rotateZ, translate } from '../../lib/aeroelastic/matrix';
 import { arrayToMap, flatten, identity } from '../../lib/aeroelastic/functional';
 import { getLocalTransformMatrix } from '../../lib/aeroelastic/layout_functions';
@@ -139,8 +139,6 @@ export const globalStateUpdater = (dispatch, getState) => state => {
   const globalState = getState();
   const page = getSelectedPage(globalState);
   const elements = getNodes(globalState, page);
-  const selectedElement = getSelectedElement(globalState);
-
   const shapes = nextScene.shapes;
   const persistableGroups = shapes.filter(s => s.subtype === 'persistentGroup').filter(dedupe);
   const persistedGroups = elements.filter(e => isGroupId(e.id)).filter(dedupe);
@@ -188,22 +186,6 @@ export const globalStateUpdater = (dispatch, getState) => state => {
   const selectedPrimaryShapes = nextScene.selectedPrimaryShapes;
   if (!shallowEqual(selectedPrimaryShapes, getState().transient.selectedToplevelNodes)) {
     dispatch(selectToplevelNodes(selectedPrimaryShapes));
-  }
-  const selectedShape = selectedPrimaryShapes[0];
-  if (nextScene.selectedShapes.length === 1) {
-    if (selectedShape !== (selectedElement && selectedElement.id)) {
-      dispatch(selectElement(selectedShape));
-    }
-  } else {
-    // otherwise, clear the selected element state
-    // even for groups - TODO add handling for groups, esp. persistent groups - common styling etc.
-    if (selectedElement) {
-      const shape = shapes.find(s => s.id === selectedShape);
-      // don't reset if eg. we're in the middle of converting an ad hoc group into a persistent one
-      if (!shape || shape.subtype !== 'adHocGroup') {
-        dispatch(selectElement(null));
-      }
-    }
   }
 };
 

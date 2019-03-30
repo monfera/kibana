@@ -123,7 +123,8 @@ export function getGlobalFilterExpression(state) {
 
 // element getters
 export function getSelectedElementId(state) {
-  return get(state, 'transient.selectedElement');
+  const toplevelNodes = get(state, 'transient.selectedToplevelNodes');
+  return toplevelNodes.length === 1 ? toplevelNodes[0] : null;
 }
 
 export function getSelectedElement(state) {

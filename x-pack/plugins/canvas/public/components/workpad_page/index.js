@@ -17,7 +17,7 @@ import { elementToShape, globalStateUpdater, crawlTree, shapesForNodes } from '.
 import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
-import { selectElement } from './../../state/actions/transient';
+import { selectToplevelNodes } from './../../state/actions/transient';
 
 const configuration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -133,7 +133,8 @@ const mapDispatchToProps = dispatch => {
     dispatch,
     insertNodes: pageId => selectedElements => dispatch(insertNodes(selectedElements, pageId)),
     removeElements: pageId => elementIds => dispatch(removeElements(elementIds, pageId)),
-    selectElement: selectedElement => dispatch(selectElement(selectedElement)),
+    selectElement: selectedElement =>
+      dispatch(selectToplevelNodes(selectedElement ? [selectedElement] : [])),
     // TODO: Abstract this out. This is the same code as in sidebar/index.js
     elementLayer: (pageId, selectedElement, movement) => {
       dispatch(
@@ -167,8 +168,8 @@ const mergeProps = (
 
 const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
   const shapes = shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page]));
-  const selectedShapes = [state.transient.selectedElement].filter(
-    e => e && shapes.find(s => s.id === e)
+  const selectedShapes = state.transient.selectedToplevelNodes.filter(e =>
+    shapes.find(s => s.id === e)
   );
   const newState = {
     primaryUpdate: null,
