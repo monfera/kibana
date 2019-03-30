@@ -13,26 +13,11 @@ import { getNodes, getNodesForPage, getPages, isWriteable } from '../../state/se
 import { updater } from '../../lib/aeroelastic/layout';
 import { createStore } from '../../lib/aeroelastic/store';
 import { flatten } from '../../lib/aeroelastic/functional';
-import { elementToShape, globalStateUpdater, shapesForNodes } from './integration_utils';
+import { elementToShape, globalStateUpdater, crawlTree, shapesForNodes } from './integration_utils';
 import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';
 import { selectElement } from './../../state/actions/transient';
-
-const recurseGroupTree = shapes => shapeId => {
-  const recurseGroupTreeInternal = shapeId => {
-    return [
-      shapeId,
-      ...flatten(
-        shapes
-          .filter(s => s.position.parent === shapeId)
-          .map(s => s.id)
-          .map(recurseGroupTreeInternal)
-      ),
-    ];
-  };
-  return recurseGroupTreeInternal(shapeId);
-};
 
 const configuration = {
   getAdHocChildAnnotationName: 'adHocChildAnnotation',
@@ -109,14 +94,8 @@ const simplePositioning = ({ elements }) => ({
 });
 
 const groupHandlerCreators = {
-  groupElements: ({ commit }) => () =>
-    commit('actionEvent', {
-      event: 'group',
-    }),
-  ungroupElements: ({ commit }) => () =>
-    commit('actionEvent', {
-      event: 'ungroup',
-    }),
+  groupElements: ({ commit }) => () => commit('actionEvent', { event: 'group' }),
+  ungroupElements: ({ commit }) => () => commit('actionEvent', { event: 'ungroup' }),
 };
 
 const StaticPage = compose(
@@ -138,7 +117,7 @@ const mapStateToProps = (state, ownProps) => {
         : shapes.filter(s => s.parent === shape.id).map(s => s.id)
     )
   );
-  const selectedElementIds = flatten(selectedPersistentPrimaryNodes.map(recurseGroupTree(shapes)));
+  const selectedElementIds = flatten(selectedPersistentPrimaryNodes.map(crawlTree(shapes)));
   return {
     state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),

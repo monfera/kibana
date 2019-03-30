@@ -9,7 +9,7 @@ import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selec
 import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
 import { selectElement } from '../../state/actions/transient';
 import { matrixToAngle, multiply, rotateZ, translate } from '../../lib/aeroelastic/matrix';
-import { arrayToMap, identity } from '../../lib/aeroelastic/functional';
+import { arrayToMap, flatten, identity } from '../../lib/aeroelastic/functional';
 import { getLocalTransformMatrix } from '../../lib/aeroelastic/layout_functions';
 
 const isGroupId = id => id.startsWith('group');
@@ -202,4 +202,19 @@ export const globalStateUpdater = (dispatch, getState) => state => {
       }
     }
   }
+};
+
+export const crawlTree = shapes => shapeId => {
+  const recurseGroupTreeInternal = shapeId => {
+    return [
+      shapeId,
+      ...flatten(
+        shapes
+          .filter(s => s.position.parent === shapeId)
+          .map(s => s.id)
+          .map(recurseGroupTreeInternal)
+      ),
+    ];
+  };
+  return recurseGroupTreeInternal(shapeId);
 };
