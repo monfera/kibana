@@ -14,7 +14,6 @@ import {
   elementToShape,
   globalStateUpdater,
   elementsAndCommit,
-  selectedPrimaryShapeIds,
   shapesForNodes,
   selectedElementIds,
   selectedElementObjects,
@@ -121,6 +120,7 @@ const mapStateToProps = (state, ownProps) => {
     state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
     elements: getNodes(state, ownProps.page.id),
+    selectedPrimaryShapes: [state.transient.selectedElement].filter(e => e),
   };
 };
 
@@ -144,7 +144,7 @@ const mapDispatchToProps = dispatch => {
 };
 
 const mergeProps = (
-  { state, isEditable, elements },
+  { state, isEditable, elements, ...restStateProps },
   { dispatch, ...restDispatchProps },
   { isSelected, ...remainingOwnProps }
 ) =>
@@ -155,6 +155,7 @@ const mergeProps = (
         isSelected,
         ...remainingOwnProps,
         ...restDispatchProps,
+        ...restStateProps,
         updateGlobalState: globalStateUpdater(dispatch, () => state),
         state,
       }
@@ -194,7 +195,6 @@ const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
 const InteractivePage = compose(
   withProps(componentLayoutState),
   withState('canvasOrigin', 'saveCanvasOrigin'),
-  withProps(selectedPrimaryShapeIds),
   withProps(selectedElementIds),
   withProps(selectedElementObjects),
   withState('_forceRerender', 'forceRerender'),

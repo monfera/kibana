@@ -219,10 +219,6 @@ const recurseGroupTree = shapes => shapeId => {
   return recurseGroupTreeInternal(shapeId);
 };
 
-export const selectedPrimaryShapeIds = ({ aeroStore }) => ({
-  selectedPrimaryShapes: aeroStore.getCurrentState().currentScene.selectedPrimaryShapes || [],
-});
-
 export const selectedElementIds = ({ selectedPrimaryShapes, aeroStore }) => {
   const shapes = aeroStore.getCurrentState().currentScene.shapes;
   const selectedPrimaryShapeObjects = selectedPrimaryShapes
