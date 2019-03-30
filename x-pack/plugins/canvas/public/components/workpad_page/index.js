@@ -10,14 +10,10 @@ import { branch, compose, withHandlers, withProps, withState } from 'recompose';
 import { elementLayer, insertNodes, removeElements } from '../../state/actions/elements';
 import { canUserWrite, getFullscreen } from '../../state/selectors/app';
 import { getNodes, getNodesForPage, getPages, isWriteable } from '../../state/selectors/workpad';
-import {
-  elementToShape,
-  globalStateUpdater,
-  shapesForNodes,
-} from '../../lib/aeroelastic/integration_utils';
 import { updater } from '../../lib/aeroelastic/layout';
 import { createStore } from '../../lib/aeroelastic/store';
 import { flatten } from '../../lib/aeroelastic/functional';
+import { elementToShape, globalStateUpdater, shapesForNodes } from './integration_utils';
 import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
 import { StaticWorkpadPage as StaticComponent } from './static_workpad_page';

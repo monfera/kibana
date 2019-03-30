@@ -8,9 +8,9 @@ import { shallowEqual } from 'recompose';
 import { getNodes, getSelectedElement, getSelectedPage } from '../../state/selectors/workpad';
 import { addElement, removeElements, setMultiplePositions } from '../../state/actions/elements';
 import { selectElement } from '../../state/actions/transient';
-import { matrixToAngle, multiply, rotateZ, translate } from './matrix';
-import { arrayToMap, identity } from './functional';
-import { getLocalTransformMatrix } from './layout_functions';
+import { matrixToAngle, multiply, rotateZ, translate } from '../../lib/aeroelastic/matrix';
+import { arrayToMap, identity } from '../../lib/aeroelastic/functional';
+import { getLocalTransformMatrix } from '../../lib/aeroelastic/layout_functions';
 
 const isGroupId = id => id.startsWith('group');
 
@@ -107,7 +107,7 @@ const globalPositionUpdates = (setMultiplePositions, { shapes, gestureEnd }, uns
   return repositionings;
 };
 
-export const dedupe = (d, i, a) => a.findIndex(s => s.id === d.id) === i;
+const dedupe = (d, i, a) => a.findIndex(s => s.id === d.id) === i;
 
 const missingParentCheck = groups => {
   const idMap = arrayToMap(groups.map(g => g.id));
