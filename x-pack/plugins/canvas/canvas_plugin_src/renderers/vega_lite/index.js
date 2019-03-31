@@ -7,7 +7,9 @@
 // This bit of hackiness is required because this isn't part of the main kibana bundle
 import 'jquery';
 import '../../lib/flot-charts';
-// import * as vegaLite from 'vega-lite';
+import * as vegaLite from 'vega-lite'; // eslint-disable-line import/no-extraneous-dependencies
+
+console.log(vegaLite);
 
 import { debounce, includes } from 'lodash';
 import { size } from './plugins/size';
