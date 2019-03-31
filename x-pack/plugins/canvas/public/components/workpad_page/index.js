@@ -4,15 +4,22 @@
  * you may not use this file except in compliance with the Elastic License.
  */
 
+import isEqual from 'react-fast-compare';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
-import { branch, compose, withHandlers, withProps, withState } from 'recompose';
+import { branch, compose, withHandlers, withProps, withState, shouldUpdate } from 'recompose';
 import { elementLayer, insertNodes, removeElements } from '../../state/actions/elements';
 import { canUserWrite, getFullscreen } from '../../state/selectors/app';
-import { getNodes, getNodesForPage, getPages, isWriteable } from '../../state/selectors/workpad';
+import {
+  getNodes,
+  getNodesForPage,
+  getPageById,
+  getPages,
+  isWriteable,
+} from '../../state/selectors/workpad';
 import { updater } from '../../lib/aeroelastic/layout';
 import { createStore } from '../../lib/aeroelastic/store';
-import { flatten } from '../../lib/aeroelastic/functional';
+import { not, flatten } from '../../lib/aeroelastic/functional';
 import { elementToShape, globalStateUpdater, crawlTree, shapesForNodes } from './integration_utils';
 import { eventHandlers } from './event_handlers';
 import { InteractiveWorkpadPage as InteractiveComponent } from './interactive_workpad_page';
@@ -122,6 +129,7 @@ const mapStateToProps = (state, ownProps) => {
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
     elements: nodes,
     selectedNodes: selectedNodeIds.map(id => nodes.find(s => s.id === id)),
+    pageStyle: getPageById(state, ownProps.pageId).style,
   };
 };
 
@@ -218,7 +226,8 @@ const InteractivePage = compose(
 );
 
 export const WorkpadPage = compose(
-  withProps(({ page }) => ({ page: undefined, pageId: page.id, pageStyle: page.style })), // insulate!
+  withProps(({ page }) => ({ page: null, pageId: page.id })), // insulate!
+  shouldUpdate(not(isEqual)), // this is critical, else random unrelated rerenders in the parent cause glitches here
   withState('aeroStore', 'setAeroStore'), // must wrap `connect`, though only interactive pages end up using it
   withProps(animationProps),
   connect(
