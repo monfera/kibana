@@ -19,13 +19,7 @@ const spec =
     autosize: 'none',
     padding: { top: 0, left: 0, right: 0, bottom: 0 },
     style: 'cell',
-    data: [
-      {
-        name: 'source',
-        values: [{ x: 40, y: 'A' }, { x: 20, y: 'B' }, { x: 50, y: 'C' }, { x: 5, y: 'D' }],
-      },
-      { name: 'selected', on: [{ trigger: 'clicked', toggle: 'clicked' }] },
-    ],
+    data: [{ name: 'selected', on: [{ trigger: 'clicked', toggle: 'clicked' }] }],
     signals: [
       {
         name: 'clicked',
@@ -62,7 +56,7 @@ const spec =
         name: 'x',
         type: 'linear',
         domain: { data: 'source', field: 'x' },
-        range: [50, { signal: 'width - 50' }],
+        range: [100, { signal: 'width - 50' }],
         round: true,
         nice: true,
         zero: true,
@@ -70,16 +64,16 @@ const spec =
       {
         name: 'y',
         type: 'band',
-        domain: { data: 'source', field: 'y', sort: true },
-        range: [{ signal: 'height - 50' }, 50],
+        domain: { data: 'source', field: 'y', sort: false },
+        range: [50, { signal: 'height - 50' }],
         round: true,
-        paddingInner: 0.1,
-        paddingOuter: 0.05,
+        paddingInner: 0.3,
+        paddingOuter: 0.2,
       },
       {
         name: 'color',
         type: 'ordinal',
-        domain: { data: 'source', field: 'y', sort: true },
+        domain: { data: 'source', field: 'y', sort: false },
         range: 'category',
       },
     ],
@@ -89,7 +83,7 @@ const spec =
         labelOverlap: true,
         orient: 'bottom',
         tickCount: { signal: 'ceil(width/50)' },
-        title: 'x in cursive font (see config)',
+        title: 'Average price ($)',
         offset: -50,
         zindex: 1,
       },
@@ -110,13 +104,13 @@ const spec =
         scale: 'y',
         labelOverlap: true,
         orient: 'left',
-        title: 'y in cursive font (see config)',
-        offset: -50,
+        title: 'Project',
+        offset: -100,
         zindex: 1,
       },
     ],
     config: {
-      axis: { domainColor: '#888', tickColor: '#888', labelFont: 'cursive', titleFont: 'cursive' },
+      axis: { domainColor: '#888', tickColor: '#888' },
       axisY: { minExtent: 30 },
       style: {
         cell: {
@@ -125,12 +119,21 @@ const spec =
       },
     },
   };
-const Chart = ({ width, height, spec }) => {
+
+const Chart = ({ width, height, spec, data }) => {
   const sizedSpec = {
     ...spec,
     width,
     height,
     viewport: [width, height],
+    data: [
+      {
+        name: 'source',
+        values: data.rows,
+        transform: [{ type: 'aggregate', fields: ['x'], as: ['x'], ops: ['mean'], groupby: ['y'] }],
+      },
+      ...spec.data,
+    ],
     signals: [
       { name: 'width', update: width + '' },
       { name: 'height', update: height + '' },
@@ -144,25 +147,25 @@ const Chart = ({ width, height, spec }) => {
   );
 };
 
-const App = ({ width, height, spec }) => {
+const App = ({ width, height, spec, data }) => {
   return (
     <div className="App">
-      <Chart width={width} height={height} spec={spec} />
+      <Chart width={width} height={height} spec={spec} data={data} />
     </div>
   );
 };
 
-const draw = (domNode, spec) => {
+const draw = (domNode, spec, datatable) => {
   const width = domNode.offsetWidth;
   const height = domNode.offsetHeight;
-  ReactDOM.render(<App width={width} height={height} spec={spec} />, domNode);
+  ReactDOM.render(<App width={width} height={height} spec={spec} data={datatable} />, domNode);
 };
 
-const render = (domNode, config, handlers) => {
+const render = (domNode, { datatable }, handlers) => {
   handlers.onDestroy(() => {});
-  handlers.onResize(() => draw(domNode, spec));
+  handlers.onResize(() => draw(domNode, spec, datatable));
 
-  draw(domNode, spec);
+  draw(domNode, spec, datatable);
 
   return handlers.done();
 };
