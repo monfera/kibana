@@ -24,7 +24,8 @@ export class InteractiveWorkpadPage extends PureComponent {
 
   render() {
     const {
-      page,
+      pageId,
+      pageStyle,
       className,
       animationStyle,
       elements,
@@ -56,7 +57,7 @@ export class InteractiveWorkpadPage extends PureComponent {
       elementLayer,
       groupNodes,
       insertNodes,
-      pageId: page.id,
+      pageId,
       removeNodes,
       selectedNodes,
       selectToplevelNodes,
@@ -66,8 +67,8 @@ export class InteractiveWorkpadPage extends PureComponent {
 
     return (
       <div
-        key={page.id}
-        id={page.id}
+        key={pageId}
+        id={pageId}
         ref={node => {
           if (!canvasOrigin && node && node.getBoundingClientRect) {
             saveCanvasOrigin(() => () => node.getBoundingClientRect());
@@ -76,7 +77,7 @@ export class InteractiveWorkpadPage extends PureComponent {
         data-test-subj="canvasWorkpadPage"
         className={`canvasPage ${className} canvasPage--isEditable`}
         data-shared-items-container
-        style={{ ...page.style, ...animationStyle, height, width, cursor }}
+        style={{ ...pageStyle, ...animationStyle, height, width, cursor }}
         onKeyDown={onKeyDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}

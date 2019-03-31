@@ -12,16 +12,16 @@ export class StaticWorkpadPage extends PureComponent {
   static propTypes = staticWorkpadPagePropTypes;
 
   render() {
-    const { page, className, animationStyle, elements, height, width } = this.props;
+    const { pageId, pageStyle, className, animationStyle, elements, height, width } = this.props;
 
     return (
       <div
-        key={page.id}
-        id={page.id}
+        key={pageId}
+        id={pageId}
         data-test-subj="canvasWorkpadPage"
         className={`canvasPage ${className}`}
         data-shared-items-container
-        style={{ ...page.style, ...animationStyle, height, width }}
+        style={{ ...pageStyle, ...animationStyle, height, width }}
       >
         {elements.map(element => (
           <ElementWrapper key={element.id} element={element} />

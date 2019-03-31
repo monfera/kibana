@@ -8,10 +8,8 @@
 import PropTypes from 'prop-types';
 
 export const staticWorkpadPagePropTypes = {
-  page: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    style: PropTypes.object,
-  }).isRequired,
+  pageId: PropTypes.string.isRequired,
+  pageStyle: PropTypes.object,
   className: PropTypes.string.isRequired,
   animationStyle: PropTypes.object.isRequired,
   elements: PropTypes.arrayOf(

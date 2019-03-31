@@ -105,7 +105,7 @@ const StaticPage = compose(
 
 const mapStateToProps = (state, ownProps) => {
   const selectedPrimaryShapes = state.transient.selectedToplevelNodes;
-  const nodes = getNodes(state, ownProps.page.id);
+  const nodes = getNodes(state, ownProps.pageId);
   const selectedPrimaryShapeObjects = selectedPrimaryShapes
     .map(id => nodes.find(s => s.id === id))
     .filter(shape => shape);
@@ -218,6 +218,7 @@ const InteractivePage = compose(
 );
 
 export const WorkpadPage = compose(
+  withProps(({ page }) => ({ page: undefined, pageId: page.id, pageStyle: page.style })), // insulate!
   withState('aeroStore', 'setAeroStore'), // must wrap `connect`, though only interactive pages end up using it
   withProps(animationProps),
   connect(
