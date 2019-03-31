@@ -10,13 +10,7 @@ import PropTypes from 'prop-types';
 import { branch, compose, withHandlers, withProps, withState, shouldUpdate } from 'recompose';
 import { elementLayer, insertNodes, removeElements } from '../../state/actions/elements';
 import { canUserWrite, getFullscreen } from '../../state/selectors/app';
-import {
-  getNodes,
-  getNodesForPage,
-  getPageById,
-  getPages,
-  isWriteable,
-} from '../../state/selectors/workpad';
+import { getNodes, getPageById, isWriteable } from '../../state/selectors/workpad';
 import { updater } from '../../lib/aeroelastic/layout';
 import { createStore } from '../../lib/aeroelastic/store';
 import { not, flatten } from '../../lib/aeroelastic/functional';
@@ -111,9 +105,9 @@ const StaticPage = compose(
 );
 
 const mapStateToProps = (state, ownProps) => {
-  const selectedPrimaryShapes = state.transient.selectedToplevelNodes;
+  const selectedToplevelNodes = state.transient.selectedToplevelNodes;
   const nodes = getNodes(state, ownProps.pageId);
-  const selectedPrimaryShapeObjects = selectedPrimaryShapes
+  const selectedPrimaryShapeObjects = selectedToplevelNodes
     .map(id => nodes.find(s => s.id === id))
     .filter(shape => shape);
   const selectedPersistentPrimaryNodes = flatten(
@@ -128,6 +122,7 @@ const mapStateToProps = (state, ownProps) => {
     state,
     isEditable: !getFullscreen(state) && isWriteable(state) && canUserWrite(state),
     elements: nodes,
+    selectedToplevelNodes,
     selectedNodes: selectedNodeIds.map(id => nodes.find(s => s.id === id)),
     pageStyle: getPageById(state, ownProps.pageId).style,
   };
@@ -159,15 +154,12 @@ const mergeProps = (
         ...restDispatchProps,
         ...restStateProps,
         updateGlobalState: globalStateUpdater(dispatch, () => state),
-        state,
       }
     : { elements, isSelected, isInteractive: false, ...remainingOwnProps };
 
-const componentLayoutState = ({ state, aeroStore, setAeroStore }) => {
-  const shapes = shapesForNodes(getNodesForPage(getPages(state)[state.persistent.workpad.page]));
-  const selectedShapes = state.transient.selectedToplevelNodes.filter(e =>
-    shapes.find(s => s.id === e)
-  );
+const componentLayoutState = ({ aeroStore, setAeroStore, elements, selectedToplevelNodes }) => {
+  const shapes = shapesForNodes(elements);
+  const selectedShapes = selectedToplevelNodes.filter(e => shapes.find(s => s.id === e));
   const newState = {
     primaryUpdate: null,
     currentScene: {
@@ -226,7 +218,6 @@ const InteractivePage = compose(
 );
 
 export const WorkpadPage = compose(
-  withProps(({ page }) => ({ page: null, pageId: page.id })), // insulate!
   shouldUpdate(not(isEqual)), // this is critical, else random unrelated rerenders in the parent cause glitches here
   withState('aeroStore', 'setAeroStore'), // must wrap `connect`, though only interactive pages end up using it
   withProps(animationProps),
@@ -239,7 +230,5 @@ export const WorkpadPage = compose(
 )();
 
 WorkpadPage.propTypes = {
-  page: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-  }).isRequired,
+  pageId: PropTypes.string.isRequired,
 };
