@@ -11,38 +11,158 @@ import React from 'react';
 
 import * as ReactDOM from 'react-dom';
 
-const spec = JSON.parse(
-  `{"$schema":"https://vega.github.io/schema/vega/v3.0.json","description":"A simple bar chart with embedded data.","autosize":"pad","padding":5,"style":"cell","data":[{"name":"source","values":[{"x":40,"y":"A"},{"x":20,"y":"B"},{"x":50,"y":"C"},{"x":5,"y":"D"}]},{"name":"selected","on":[{"trigger":"clicked","toggle":"clicked"}]}],"signals":[{"name":"width","update":"600"},{"name":"height","update":"400"},{"name":"clicked","value":null,"on":[{"events":"@marks:click","update":"{value: datum.y}","force":true}]}],"marks":[{"name":"marks","type":"rect","style":["bar"],"from":{"data":"source"},"encode":{"update":{"x":{"scale":"x","field":"x"},"x2":{"scale":"x","value":0},"y":{"scale":"y","field":"y"},"height":{"scale":"y","band":true},"fill":[{"test":"(!length(data('selected')) || indata('selected', 'value', datum.y))","scale":"color","field":"y"},{"value":"grey"}]}}}],"scales":[{"name":"x","type":"linear","domain":{"data":"source","field":"x"},"range":[0,{"signal":"width"}],"round":true,"nice":true,"zero":true},{"name":"y","type":"band","domain":{"data":"source","field":"y","sort":true},"range":[{"signal":"height"},0],"round":true,"paddingInner":0.1,"paddingOuter":0.05},{"name":"color","type":"ordinal","domain":{"data":"source","field":"y","sort":true},"range":"category"}],"axes":[{"scale":"x","labelOverlap":true,"orient":"bottom","tickCount":{"signal":"ceil(width/40)"},"title":"x in cursive font (see config)","zindex":1},{"scale":"x","domain":false,"grid":true,"labels":false,"maxExtent":0,"minExtent":0,"orient":"bottom","tickCount":{"signal":"ceil(width/40)"},"ticks":false,"zindex":0,"gridScale":"y"},{"scale":"y","labelOverlap":true,"orient":"left","title":"y in cursive font (see config)","zindex":1}],"config":{"axis":{"domainColor":"#888","tickColor":"#888","labelFont":"cursive","titleFont":"cursive"},"axisY":{"minExtent":30}}}`
-);
-
-const Chart = () => {
+const spec =
+  //JSON.parse(`{"$schema":"https://vega.github.io/schema/vega/v3.0.json","description":"A simple bar chart with embedded data.","autosize":"pad","padding":5,"style":"cell","data":[{"name":"source","values":[{"x":40,"y":"A"},{"x":20,"y":"B"},{"x":50,"y":"C"},{"x":5,"y":"D"}]},{"name":"selected","on":[{"trigger":"clicked","toggle":"clicked"}]}],"signals":[{"name":"width","update":"600"},{"name":"height","update":"400"},{"name":"clicked","value":null,"on":[{"events":"@marks:click","update":"{value: datum.y}","force":true}]}],"marks":[{"name":"marks","type":"rect","style":["bar"],"from":{"data":"source"},"encode":{"update":{"x":{"scale":"x","field":"x"},"x2":{"scale":"x","value":0},"y":{"scale":"y","field":"y"},"height":{"scale":"y","band":true},"fill":[{"test":"(!length(data('selected')) || indata('selected', 'value', datum.y))","scale":"color","field":"y"},{"value":"grey"}]}}}],"scales":[{"name":"x","type":"linear","domain":{"data":"source","field":"x"},"range":[0,{"signal":"width"}],"round":true,"nice":true,"zero":true},{"name":"y","type":"band","domain":{"data":"source","field":"y","sort":true},"range":[{"signal":"height"},0],"round":true,"paddingInner":0.1,"paddingOuter":0.05},{"name":"color","type":"ordinal","domain":{"data":"source","field":"y","sort":true},"range":"category"}],"axes":[{"scale":"x","labelOverlap":true,"orient":"bottom","tickCount":{"signal":"ceil(width/40)"},"title":"x in cursive font (see config)","zindex":1},{"scale":"x","domain":false,"grid":true,"labels":false,"maxExtent":0,"minExtent":0,"orient":"bottom","tickCount":{"signal":"ceil(width/40)"},"ticks":false,"zindex":0,"gridScale":"y"},{"scale":"y","labelOverlap":true,"orient":"left","title":"y in cursive font (see config)","zindex":1}],"config":{"axis":{"domainColor":"#888","tickColor":"#888","labelFont":"cursive","titleFont":"cursive"},"axisY":{"minExtent":30}}}`);
+  {
+    $schema: 'https://vega.github.io/schema/vega/v3.0.json',
+    description: 'A simple bar chart with embedded data.',
+    autosize: 'none',
+    padding: { top: 0, left: 0, right: 0, bottom: 0 },
+    style: 'cell',
+    data: [
+      {
+        name: 'source',
+        values: [{ x: 40, y: 'A' }, { x: 20, y: 'B' }, { x: 50, y: 'C' }, { x: 5, y: 'D' }],
+      },
+      { name: 'selected', on: [{ trigger: 'clicked', toggle: 'clicked' }] },
+    ],
+    signals: [
+      {
+        name: 'clicked',
+        value: null,
+        on: [{ events: '@marks:click', update: '{value: datum.y}', force: true }],
+      },
+    ],
+    marks: [
+      {
+        name: 'marks',
+        type: 'rect',
+        style: ['bar'],
+        from: { data: 'source' },
+        encode: {
+          update: {
+            x: { scale: 'x', field: 'x' },
+            x2: { scale: 'x', value: 0 },
+            y: { scale: 'y', field: 'y' },
+            height: { scale: 'y', band: true },
+            fill: [
+              {
+                test: "(!length(data('selected')) || indata('selected', 'value', datum.y))",
+                scale: 'color',
+                field: 'y',
+              },
+              { value: 'grey' },
+            ],
+          },
+        },
+      },
+    ],
+    scales: [
+      {
+        name: 'x',
+        type: 'linear',
+        domain: { data: 'source', field: 'x' },
+        range: [50, { signal: 'width - 50' }],
+        round: true,
+        nice: true,
+        zero: true,
+      },
+      {
+        name: 'y',
+        type: 'band',
+        domain: { data: 'source', field: 'y', sort: true },
+        range: [{ signal: 'height - 50' }, 50],
+        round: true,
+        paddingInner: 0.1,
+        paddingOuter: 0.05,
+      },
+      {
+        name: 'color',
+        type: 'ordinal',
+        domain: { data: 'source', field: 'y', sort: true },
+        range: 'category',
+      },
+    ],
+    axes: [
+      {
+        scale: 'x',
+        labelOverlap: true,
+        orient: 'bottom',
+        tickCount: { signal: 'ceil(width/50)' },
+        title: 'x in cursive font (see config)',
+        offset: -50,
+        zindex: 1,
+      },
+      {
+        scale: 'x',
+        domain: false,
+        grid: true,
+        labels: false,
+        maxExtent: 0,
+        minExtent: 0,
+        orient: 'bottom',
+        tickCount: { signal: 'ceil(width/50)' },
+        ticks: false,
+        zindex: 0,
+        gridScale: 'y',
+      },
+      {
+        scale: 'y',
+        labelOverlap: true,
+        orient: 'left',
+        title: 'y in cursive font (see config)',
+        offset: -50,
+        zindex: 1,
+      },
+    ],
+    config: {
+      axis: { domainColor: '#888', tickColor: '#888', labelFont: 'cursive', titleFont: 'cursive' },
+      axisY: { minExtent: 30 },
+      style: {
+        cell: {
+          stroke: 'transparent',
+        },
+      },
+    },
+  };
+const Chart = ({ width, height, spec }) => {
+  const sizedSpec = {
+    ...spec,
+    width,
+    height,
+    viewport: [width, height],
+    signals: [
+      { name: 'width', update: width + '' },
+      { name: 'height', update: height + '' },
+      ...spec.signals,
+    ],
+  };
   return (
-    <div className="Chart" style={{ width: 800, height: 400 }}>
-      <Vega spec={spec} width={800} />
+    <div className="Chart" style={{ width, height }}>
+      <Vega spec={sizedSpec} width={width} height={height} />
     </div>
   );
 };
 
-function App() {
+const App = ({ width, height, spec }) => {
   return (
     <div className="App">
-      <Chart />
+      <Chart width={width} height={height} spec={spec} />
     </div>
   );
-}
+};
 
-/*
-const draw = domNode => {
+const draw = (domNode, spec) => {
   const width = domNode.offsetWidth;
   const height = domNode.offsetHeight;
-}
-*/
+  ReactDOM.render(<App width={width} height={height} spec={spec} />, domNode);
+};
 
 const render = (domNode, config, handlers) => {
   handlers.onDestroy(() => {});
-  handlers.onResize(() => {});
+  handlers.onResize(() => draw(domNode, spec));
 
-  ReactDOM.render(<App />, domNode);
+  draw(domNode, spec);
 
   return handlers.done();
 };
