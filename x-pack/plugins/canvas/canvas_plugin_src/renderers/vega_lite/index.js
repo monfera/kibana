@@ -35,15 +35,15 @@ const spec =
         from: { data: 'source' },
         encode: {
           update: {
-            x: { scale: 'x', field: 'cost' },
+            x: { scale: 'x', field: 'FlightDelayMin' },
             x2: { scale: 'x', value: 0 },
-            y: { scale: 'y', field: 'project' },
+            y: { scale: 'y', field: 'Carrier' },
             height: { scale: 'y', band: true },
             fill: [
               {
                 test: "(!length(data('selected')) || indata('selected', 'value', datum.y))",
                 scale: 'color',
-                field: 'project',
+                field: 'Carrier',
               },
               { value: 'grey' },
             ],
@@ -55,7 +55,7 @@ const spec =
       {
         name: 'x',
         type: 'linear',
-        domain: { data: 'source', field: 'cost' },
+        domain: { data: 'source', field: 'FlightDelayMin' },
         range: [100, { signal: 'width - 50' }],
         round: true,
         nice: true,
@@ -64,7 +64,7 @@ const spec =
       {
         name: 'y',
         type: 'band',
-        domain: { data: 'source', field: 'project', sort: false },
+        domain: { data: 'source', field: 'Carrier', sort: false },
         range: [50, { signal: 'height - 50' }],
         round: true,
         paddingInner: 0.3,
@@ -73,7 +73,7 @@ const spec =
       {
         name: 'color',
         type: 'ordinal',
-        domain: { data: 'source', field: 'project', sort: false },
+        domain: { data: 'source', field: 'Carrier', sort: false },
         range: 'category',
       },
     ],
@@ -83,7 +83,7 @@ const spec =
         labelOverlap: true,
         orient: 'bottom',
         tickCount: { signal: 'ceil(width/50)' },
-        title: 'Average price ($)',
+        title: 'FlightDelayMin',
         offset: -50,
         zindex: 1,
       },
@@ -104,7 +104,7 @@ const spec =
         scale: 'y',
         labelOverlap: true,
         orient: 'left',
-        title: 'Project',
+        title: 'Carrier',
         offset: -100,
         zindex: 1,
       },
@@ -133,10 +133,10 @@ const Chart = ({ width, height, spec, data }) => {
         transform: [
           {
             type: 'aggregate',
-            fields: ['cost'],
-            as: ['cost'],
-            ops: ['median'],
-            groupby: ['project'],
+            fields: ['FlightDelayMin'],
+            as: ['FlightDelayMin'],
+            ops: ['mean'],
+            groupby: ['Carrier'],
           },
         ],
       },
@@ -184,3 +184,9 @@ export const vegaLitePlot = () => ({
   help: 'Render any Vega Lite plot',
   render,
 });
+
+/*
+filters
+| essql "select Carrier,FlightDelayMin from kibana_sample_data_flights"
+| render as="vegalite"
+ */
