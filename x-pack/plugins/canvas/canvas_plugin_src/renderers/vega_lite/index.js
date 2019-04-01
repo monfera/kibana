@@ -124,8 +124,8 @@ const spec2 = {
   $schema: 'https://vega.github.io/schema/vega/v5.json',
   width: 500,
   height: 380,
-  padding: 5,
-  autosize: 'pad',
+  padding: 0,
+  autosize: 'fit',
 
   config: {
     text: {
@@ -641,8 +641,9 @@ const spec2 = {
 const Chart = ({ width, height, spec, data }) => {
   const sizedSpec = {
     ...spec,
-    width,
-    height,
+    width: width * 2,
+    height: height * 2,
+/*
     viewport: [width, height],
     data: [
       {
@@ -665,10 +666,12 @@ const Chart = ({ width, height, spec, data }) => {
       { name: 'height', update: height + '' },
       ...spec.signals,
     ],
+*/
   };
+  console.log(sizedSpec.width, sizedSpec.height)
   return (
     <div className="Chart" style={{ width, height }}>
-      <Vega spec={spec} width={width} height={height} />
+      <Vega spec={sizedSpec} width={width} height={height} />
     </div>
   );
 };
