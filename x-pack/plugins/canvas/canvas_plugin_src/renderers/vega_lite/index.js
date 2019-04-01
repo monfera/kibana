@@ -668,7 +668,7 @@ const Chart = ({ width, height, spec, data }) => {
   };
   return (
     <div className="Chart" style={{ width, height }}>
-      <Vega spec={spec2} width={width} height={height} />
+      <Vega spec={spec} width={width} height={height} />
     </div>
   );
 };
@@ -688,10 +688,11 @@ const draw = (domNode, spec, datatable) => {
 };
 
 const render = (domNode, { datatable }, handlers) => {
+  const vegaSpec = spec2;
   handlers.onDestroy(() => {});
-  handlers.onResize(() => draw(domNode, spec, datatable));
+  handlers.onResize(() => draw(domNode, vegaSpec, datatable));
 
-  draw(domNode, spec, datatable);
+  draw(domNode, vegaSpec, datatable);
 
   return handlers.done();
 };
