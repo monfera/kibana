@@ -35,15 +35,15 @@ const spec =
         from: { data: 'source' },
         encode: {
           update: {
-            x: { scale: 'x', field: 'x' },
+            x: { scale: 'x', field: 'cost' },
             x2: { scale: 'x', value: 0 },
-            y: { scale: 'y', field: 'y' },
+            y: { scale: 'y', field: 'project' },
             height: { scale: 'y', band: true },
             fill: [
               {
                 test: "(!length(data('selected')) || indata('selected', 'value', datum.y))",
                 scale: 'color',
-                field: 'y',
+                field: 'project',
               },
               { value: 'grey' },
             ],
@@ -55,7 +55,7 @@ const spec =
       {
         name: 'x',
         type: 'linear',
-        domain: { data: 'source', field: 'x' },
+        domain: { data: 'source', field: 'cost' },
         range: [100, { signal: 'width - 50' }],
         round: true,
         nice: true,
@@ -64,7 +64,7 @@ const spec =
       {
         name: 'y',
         type: 'band',
-        domain: { data: 'source', field: 'y', sort: false },
+        domain: { data: 'source', field: 'project', sort: false },
         range: [50, { signal: 'height - 50' }],
         round: true,
         paddingInner: 0.3,
@@ -73,7 +73,7 @@ const spec =
       {
         name: 'color',
         type: 'ordinal',
-        domain: { data: 'source', field: 'y', sort: false },
+        domain: { data: 'source', field: 'project', sort: false },
         range: 'category',
       },
     ],
@@ -130,7 +130,15 @@ const Chart = ({ width, height, spec, data }) => {
       {
         name: 'source',
         values: data.rows,
-        transform: [{ type: 'aggregate', fields: ['x'], as: ['x'], ops: ['mean'], groupby: ['y'] }],
+        transform: [
+          {
+            type: 'aggregate',
+            fields: ['cost'],
+            as: ['cost'],
+            ops: ['median'],
+            groupby: ['project'],
+          },
+        ],
       },
       ...spec.data,
     ],
